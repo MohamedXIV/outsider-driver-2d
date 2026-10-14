@@ -35,7 +35,50 @@ offset_bottom = 706.0
 
 [node name="HintLabel" type="Label" parent="HUD/HintPanel"]
 layout_mode = 2
+autowrap_mode = 3
 text = "DOCKSIDE  →  NIGHT CLINIC    •    R: restart shift"
+
+[node name="PrepPanel" type="PanelContainer" parent="HUD"]
+offset_left = 18.0
+offset_top = 96.0
+offset_right = 530.0
+offset_bottom = 296.0
+
+[node name="PrepContent" type="VBoxContainer" parent="HUD/PrepPanel"]
+layout_mode = 2
+
+[node name="PrepTitle" type="Label" parent="HUD/PrepPanel/PrepContent"]
+layout_mode = 2
+text = "DOCKSIDE GARAGE  /  SHIFT PREP"
+
+[node name="PrepHelp" type="Label" parent="HUD/PrepPanel/PrepContent"]
+layout_mode = 2
+text = "Choose one device before pickup."
+autowrap_mode = 3
+
+[node name="PrepChoices" type="HBoxContainer" parent="HUD/PrepPanel/PrepContent"]
+layout_mode = 2
+
+[node name="GPS" type="Button" parent="HUD/PrepPanel/PrepContent/PrepChoices"]
+custom_minimum_size = Vector2(135, 38)
+layout_mode = 2
+text = "GPS"
+
+[node name="Translator" type="Button" parent="HUD/PrepPanel/PrepContent/PrepChoices"]
+custom_minimum_size = Vector2(135, 38)
+layout_mode = 2
+text = "Translator"
+
+[node name="Radio" type="Button" parent="HUD/PrepPanel/PrepContent/PrepChoices"]
+custom_minimum_size = Vector2(135, 38)
+layout_mode = 2
+text = "Radio"
+
+[node name="PrepDetail" type="Label" parent="HUD/PrepPanel/PrepContent"]
+custom_minimum_size = Vector2(470, 60)
+layout_mode = 2
+text = "Each device reveals different information."
+autowrap_mode = 3
 
 [node name="PassengerPanel" type="PanelContainer" parent="HUD"]
 offset_left = 885.0

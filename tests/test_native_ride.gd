@@ -27,9 +27,18 @@ func _walkthrough() -> void:
 	var passenger: PanelContainer = scene.get_node("HUD/PassengerPanel") as PanelContainer
 	var session: GameSession = scene.get("_session") as GameSession
 	assert(session.phase == GameSession.RidePhase.WAITING)
+	assert(pickup.disabled, "Pickup should require shift prep.")
 	await RenderingServer.frame_post_draw
 	_capture("waiting.png")
 
+	var prep: Button = scene.get_node("HUD/PrepPanel/PrepContent/PrepChoices/GPS") as Button
+	prep.pressed.emit()
+	await process_frame
+	assert(session.starter_device == "gps")
+	assert(session.known_facts.has("map:inspection-arch"))
+	assert(not pickup.disabled)
+	await RenderingServer.frame_post_draw
+	_capture("prepared.png")
 	pickup.pressed.emit()
 	await process_frame
 	assert(session.phase == GameSession.RidePhase.TRAVELING)
@@ -78,6 +87,8 @@ func _walkthrough() -> void:
 	assert(restored.phase == GameSession.RidePhase.COMPLETED)
 	assert(restored.credits == GameSession.FARE_CREDITS)
 	assert(restored.known_facts.has("docks-route"))
+	assert(restored.known_facts.has("map:inspection-arch"))
+	assert(restored.starter_device == "gps")
 	assert(not restored.drop_off(), "Native Load allowed duplicate fare.")
 	print("P1_DESKTOP_NATIVE_PASS")
 	quit(0)
