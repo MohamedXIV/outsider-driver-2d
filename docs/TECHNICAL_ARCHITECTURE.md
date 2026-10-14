@@ -2,7 +2,7 @@
 
 ## Stack
 
-- Godot 4.x, Compatibility renderer, Web and desktop targets from one project.
+- Godot 4.7.2 stable, Compatibility renderer, Web and desktop targets from one project.
 - Typed GDScript for gameplay and orchestration.
 - `Node2D` / `Camera2D` / `TileMapLayer` (as useful), Godot `Control` UI.
 - Simple sprite/spritesheet passenger animation using built-in Godot 2D APIs.
