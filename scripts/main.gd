@@ -24,7 +24,7 @@ func _process(delta: float) -> void:
 	var follow: float = 1.0 - exp(-delta * 2.8)
 	_camera.position = _camera.position.lerp(destination, follow)
 	var crossing_distance: float = Vector2(taxi_position.x - 2.0, taxi_position.z).length()
-	var target_zoom: float = 0.80 if crossing_distance < 5.0 or taxi_position.y > 0.05 else 0.96
+	var target_zoom: float = 1.18 if crossing_distance < 5.0 or taxi_position.y > 0.05 else 1.45
 	_camera.zoom = _camera.zoom.lerp(Vector2.ONE * target_zoom, follow)
 
 	var height_label: String = "elevated" if taxi_position.y > 0.5 else "ground"

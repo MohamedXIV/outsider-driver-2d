@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
     if (!response || !response.ok()) throw new Error('Web page did not respond successfully.');
     await page.locator('canvas').first().waitFor({ timeout: 30000 });
     await page.waitForTimeout(9000);
-    await page.screenshot({ path: 'artifacts/p0/web-browser.png' });
+    await page.screenshot({ path: '/tmp/p0-evidence/web-browser.png' });
     console.log('Browser loaded Godot HTML canvas; screenshot saved.');
     if (errors.length) throw new Error(errors.join('\n'));
   } finally { await browser.close(); }

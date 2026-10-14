@@ -11,7 +11,7 @@ script = ExtResource("2_view")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 enabled = true
-zoom = Vector2(0.9, 0.9)
+zoom = Vector2(1.45, 1.45)
 
 [node name="HUD" type="CanvasLayer" parent="."]
 

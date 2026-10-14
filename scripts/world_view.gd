@@ -26,7 +26,14 @@ func _draw() -> void:
 		_draw_taxi()
 	_draw_support(Vector3(2, 0, -4))
 	_draw_support(Vector3(2, 0, 3))
-	_draw_road(Vector3(2, 1, -7), Vector3(2, 1, 7), 4.1, Color("778c90"))
+
+	# Fade the deck when it occludes the player's ground-level taxi.
+	# Correct depth is preserved, but the player does not lose track of the vehicle.
+	var deck_color: Color = Color("778c90")
+	if taxi_world.y < 0.5:
+		var crossing_distance: float = Vector2(taxi_world.x - 2.0, taxi_world.z).length()
+		deck_color.a = lerpf(0.42, 1.0, clampf(crossing_distance / 4.0, 0.0, 1.0))
+	_draw_road(Vector3(2, 1, -7), Vector3(2, 1, 7), 4.1, deck_color)
 	_draw_bridge_skirting(Vector3(2, 1, -7), Vector3(2, 1, 7), 4.1)
 	_draw_road_line(Vector3(2, 1, -6), Vector3(2, 1, 6), Color("e6bd74"))
 	_draw_bridge_edge(Vector3(2, 1, -7), Vector3(2, 1, 7))
