@@ -4,7 +4,7 @@ These are short **playtest** builds, not a content-complete demo or a visually f
 
 ## Download
 
-Open the successful GitHub Actions run for the current `feat/p1-playtest-builds` branch, then download its **outsider-driver-p1-playtest-builds** artifact from the **Artifacts** section. The artifact contains three compressed platform bundles.
+Open [the validated playtest build run #38637520099](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38637520099) and download its **outsider-driver-p1-playtest-builds** artifact from **Artifacts**. This artifact is retained for **21 days**, and contains three compressed platform bundles. All three internal archives were checked for integrity and expected binary/site files.
 
 - **Windows x86_64:** unpack `outsider-driver-p1-windows-x86_64.zip` completely and launch `outsider-driver.exe`. Keep any accompanying data files next to the executable.
 - **Linux x86_64:** extract `outsider-driver-p1-linux-x86_64.tar.gz` and run `./outsider-driver.x86_64`; use `chmod +x outsider-driver.x86_64` if needed.
