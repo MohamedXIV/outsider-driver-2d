@@ -14,7 +14,9 @@ var _ride: TaxiRide
 
 func _ready() -> void:
 	_restart()
-	_start_ink()
+	# Godot is still registering children inside _ready. Ink's singleton is
+	# created only after the scene tree completes this initialization pass.
+	call_deferred("_start_ink")
 
 
 func _process(delta: float) -> void:

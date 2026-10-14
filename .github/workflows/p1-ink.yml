@@ -29,8 +29,17 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/ink-tools
           npm --prefix /tmp/ink-tools install --no-save --no-audit --no-fund inkjs@2.4.0
+          if test -f stories/p1_probe.ink.json; then
+            cp stories/p1_probe.ink.json /tmp/tracked-ink.json
+          fi
           /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
             -o stories/p1_probe.ink.json stories/p1_probe.ink
+          if test -f /tmp/tracked-ink.json; then
+            cmp -s /tmp/tracked-ink.json stories/p1_probe.ink.json || {
+              echo "Committed Ink JSON drifted from the authored .ink source"
+              exit 1
+            }
+          fi
           test -s stories/p1_probe.ink.json
           echo P1_COMPILED_INK_BEGIN
           cat stories/p1_probe.ink.json
