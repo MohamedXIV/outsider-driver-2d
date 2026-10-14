@@ -37,6 +37,10 @@ jobs:
             -o stories/p1_probe.ink.json stories/p1_probe.ink
           # inkjs writes a UTF-8 BOM; normalize generated JSON to match Git.
           python3 -c 'from pathlib import Path; p=Path("stories/p1_probe.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
+          # Emit the canonical compiler output even on drift, for review without a second compiler setup.
+          echo P1_COMPILED_INK_BEGIN
+          cat stories/p1_probe.ink.json
+          echo P1_COMPILED_INK_END
           if test -f /tmp/tracked-ink.json; then
             cmp -s /tmp/tracked-ink.json stories/p1_probe.ink.json || {
               echo "Committed Ink JSON drifted from the authored .ink source"
