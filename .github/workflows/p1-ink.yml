@@ -111,6 +111,22 @@ jobs:
           chmod +x build/linux/outsider-driver.x86_64
           build/linux/outsider-driver.x86_64 --headless --quit-after 90 2>&1 | tee /tmp/linux-run.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/linux-run.log; then exit 1; fi
+      - name: Visible Linux desktop scene, choice and save/load walkthrough
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq xvfb xauth
+          fi
+          mkdir -p /tmp/od2d-ink-evidence/native
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_native_ride.gd \
+            2>&1 | tee /tmp/native-ride.log
+          grep -q 'P1_DESKTOP_NATIVE_PASS' /tmp/native-ride.log
+          test -s /tmp/od2d-ink-evidence/native/waiting.png
+          test -s /tmp/od2d-ink-evidence/native/completed.png
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/native-ride.log; then exit 1; fi
       - name: Real Ink in Chromium Web release
         shell: bash
         run: |
