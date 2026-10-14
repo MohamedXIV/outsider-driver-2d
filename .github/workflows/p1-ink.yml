@@ -2,7 +2,7 @@ name: P1 first authentic ride Web/Desktop gate
 
 on:
   push:
-    branches: [feat/p1-ride-session]
+    branches: ['feat/p1-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
