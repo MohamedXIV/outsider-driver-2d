@@ -71,6 +71,11 @@ jobs:
               shutil.copyfile(frames[i], f'/tmp/p0-evidence/{label}.png')
           print('Captured',len(frames),'frames; sampled 5')
           PY
+      - name: Confirm capture evidence cannot enter exported game
+        shell: bash
+        run: |
+          test -d /tmp/p0-evidence
+          test ! -d artifacts/p0
       - name: Install only needed Godot export templates
         shell: bash
         run: |
