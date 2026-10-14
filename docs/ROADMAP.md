@@ -28,8 +28,10 @@ Each milestone produces a playable improvement using production-quality code. Pl
 
 **P2.0 merged via PR #12:** one-time GPS / Translator / Radio preparation before pickup, authoritative equipment + three distinct knowledge facts, preserved in new v2 saves. [Equipment slice](P2_SHIFT_PREP.md); [P2 tracking #11](https://github.com/MohamedXIV/outsider-driver-2d/issues/11). This is a small dockside-garage prep **UI**, not yet a walkable garage scene or a repeatable daily loop. P1 human acceptance remains open separately.
 
-**P2.1 implemented and native/Web validated:** bounded on-foot garage, proximity-gated equipment, read-once shift notice and taxi-door departure, including browser refresh/save recovery ([P2.1 evidence](P2_GARAGE.md); [CI #38650014827](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38650014827)). The garage uses **placeholder art**, Windows runtime and human pacing remain unverified. There is still **no repeatable daily/repair loop** (P2.2+).
+**P2.1 implemented and native/Web validated:** bounded on-foot garage, proximity-gated equipment, read-once shift notice and taxi-door departure, including browser refresh/save recovery ([P2.1 evidence](P2_GARAGE.md); [CI #38650014827](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38650014827)). The garage uses **placeholder art**, Windows runtime and human pacing remain unverified. P2.2 follows with return-to-garage and day-by-day servicing.
 
+
+**P2.2 implemented and Web/Linux validated (PR #14):** after a completed fare, return to the authored garage and next morning, service at the workbench for 6 credits and drive another authored shift. Two fares gross 36, one service 6, wallet 30. Fresh v4 saves preserve recurring economy, gear, knowledge and ride-scoped Ink results. [Daily-loop evidence](P2_DAILY_LOOP.md); [successful CI #38652590394](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38652590394). The *same* short authored passenger/route repeats for now, with placeholder art. P2.3 and human/Windows-runtime acceptance remain pending.
 
 - Small apartment/garage scene with basic on-foot interaction.
 - Shift preparation, jobs, repairs, expenses and return.

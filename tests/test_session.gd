@@ -35,7 +35,7 @@ func _initialize() -> void:
 	var save_path: String = "user://p1-session-fixture.json"
 	assert(RideSave.save(state, {}, save_path))
 	var envelope: Dictionary = RideSave.load(save_path)
-	assert(envelope.get("schema_version") == 3)
+	assert(envelope.get("schema_version") == 4)
 	var restored: GameSession = GameSession.new()
 	assert(restored.restore_snapshot(envelope["game"]))
 	assert(restored.phase == GameSession.RidePhase.COMPLETED)

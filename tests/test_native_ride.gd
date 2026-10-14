@@ -23,6 +23,8 @@ func _walkthrough() -> void:
 	var arrival: Button = actions.get_node("Arrived") as Button
 	var save_button: Button = actions.get_node("Save") as Button
 	var load_button: Button = actions.get_node("Load") as Button
+	var return_button: Button = actions.get_node("Return") as Button
+	var service_button: Button = scene.get_node("HUD/PrepPanel/PrepContent/Service") as Button
 	var choice_list: VBoxContainer = scene.get_node("HUD/ChoicePanel/ChoiceList") as VBoxContainer
 	var passenger: PanelContainer = scene.get_node("HUD/PassengerPanel") as PanelContainer
 	var session: GameSession = scene.get("_session") as GameSession
@@ -100,6 +102,53 @@ func _walkthrough() -> void:
 	assert(restored.known_facts.has("notice:inspection-shift"))
 	assert(restored.starter_device == "gps")
 	assert(not restored.drop_off(), "Native Load allowed duplicate fare.")
+	assert(return_button.visible and restored.completed_rides == 1 and restored.service_due)
+	return_button.pressed.emit()
+	await process_frame
+	var home: GameSession = scene.get("_session") as GameSession
+	assert(home.phase == GameSession.RidePhase.WAITING)
+	assert(home.day_number() == 2 and home.credits == GameSession.FARE_CREDITS)
+	assert(home.service_due and home.starter_device == "gps")
+	await RenderingServer.frame_post_draw
+	_capture("returned-day2.png")
+	_walk_to(home, GameSession.WORKBENCH)
+	scene.call("_refresh_ui")
+	assert(service_button.visible and not service_button.disabled)
+	service_button.pressed.emit()
+	await process_frame
+	assert(home.credits == 12 and not home.service_due and home.service_count == 1)
+	assert(not home.service_vehicle(), "Upkeep paid twice.")
+	await RenderingServer.frame_post_draw
+	_capture("serviced-day2.png")
+	_walk_to(home, GameSession.TAXI_DOOR)
+	scene.call("_refresh_ui")
+	assert(not pickup.disabled)
+	pickup.pressed.emit()
+	await process_frame
+	assert(home.phase == GameSession.RidePhase.TRAVELING)
+	assert(choice_list.get_child_count() == 2, "Second Ink run didn't reset.")
+	(choice_list.get_child(1) as Button).pressed.emit()
+	await process_frame
+	assert(home.suspicion == 1, "Second run's dialogue consequence missing.")
+	home.advance(100.0)
+	await process_frame
+	assert(home.phase == GameSession.RidePhase.ARRIVED)
+	arrival.pressed.emit()
+	await process_frame
+	assert(choice_list.get_child_count() == 2)
+	(choice_list.get_child(0) as Button).pressed.emit()
+	await process_frame
+	assert(home.phase == GameSession.RidePhase.COMPLETED)
+	assert(home.completed_rides == 2 and home.credits == 30 and home.service_due)
+	assert(home.known_facts.has("docks-route"))
+	await RenderingServer.frame_post_draw
+	_capture("second-ride-completed.png")
+	load_button.pressed.emit()
+	await process_frame
+	var twice: GameSession = scene.get("_session") as GameSession
+	assert(twice.completed_rides == 2 and twice.credits == 30)
+	assert(twice.service_due and twice.service_count == 1)
+	assert(not twice.drop_off(), "Second fare was paid twice after reload.")
 	print("P1_DESKTOP_NATIVE_PASS")
 	quit(0)
 

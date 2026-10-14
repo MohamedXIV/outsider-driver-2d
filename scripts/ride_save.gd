@@ -1,8 +1,8 @@
 class_name RideSave
 extends RefCounted
 
-const SAVE_PATH: String = "user://outsider_driver_ride_v3.json"
-const VERSION: int = 3
+const SAVE_PATH: String = "user://outsider_driver_ride_v4.json"
+const VERSION: int = 4
 
 
 static func save(session: GameSession, ink: Dictionary, path: String = SAVE_PATH) -> bool:

@@ -8,6 +8,9 @@ const PASSENGER_ID: String = "passenger:docks-visitor"
 const JOB_ID: String = "job:docks-night-clinic"
 const ROUTE_ID: String = "route:docks-clinic-overpass"
 const FARE_CREDITS: int = 18
+const SERVICE_COST: int = 6
+# Return to the dockside garage after a shift; rest until the following morning.
+const RETURN_MINUTES: float = 45.0
 # Starter equipment provides one source of information, never an automatic translation
 # of the city's foreign-language conversations.
 const STARTER_FACTS: Dictionary = {
@@ -31,6 +34,9 @@ var starter_device: String = ""
 var garage_position: Vector2 = GARAGE_START
 var world_minutes: float = START_MINUTE
 var credits: int = 0
+var completed_rides: int = 0
+var service_count: int = 0
+var service_due: bool = false
 var suspicion: int = 0
 var known_facts: Array[String] = []
 var applied_story_events: Array[String] = []
@@ -97,9 +103,34 @@ func select_starter_device(device_id: String) -> bool:
 
 
 func pickup() -> bool:
-	if not near_garage_station("taxi") or starter_device.is_empty():
+	if not near_garage_station("taxi") or starter_device.is_empty() or service_due:
 		return false
 	phase = RidePhase.TRAVELING
+	return true
+
+
+func day_number() -> int:
+	return int(world_minutes / 1440.0) + 1
+
+
+func service_vehicle() -> bool:
+	# Exactly one combined upkeep/repair charge per completed ride.
+	if not near_garage_station("workbench") or not service_due or credits < SERVICE_COST:
+		return false
+	credits -= SERVICE_COST
+	service_count += 1
+	service_due = false
+	return true
+
+
+func return_to_garage() -> bool:
+	if phase != RidePhase.COMPLETED:
+		return false
+	phase = RidePhase.WAITING
+	garage_position = GARAGE_START
+	ride = _create_ride()
+	world_minutes = maxf(world_minutes + RETURN_MINUTES,
+			START_MINUTE + float(completed_rides) * 1440.0)
 	return true
 
 
@@ -132,6 +163,8 @@ func drop_off() -> bool:
 		return false
 	phase = RidePhase.COMPLETED
 	credits += FARE_CREDITS
+	completed_rides += 1
+	service_due = true
 	return true
 
 
@@ -145,6 +178,9 @@ func snapshot() -> Dictionary:
 		"phase": int(phase),
 		"world_minutes": world_minutes,
 		"credits": credits,
+		"completed_rides": completed_rides,
+		"service_count": service_count,
+		"service_due": service_due,
 		"suspicion": suspicion,
 		"known_facts": known_facts.duplicate(),
 		"applied_story_events": applied_story_events.duplicate(),
@@ -168,6 +204,17 @@ func restore_snapshot(value: Dictionary) -> bool:
 	var pos: Vector2 = Vector2(float(garage[0]), float(garage[1]))
 	if not pos.is_finite() or pos != pos.clamp(GARAGE_MIN, GARAGE_MAX):
 		return false
+	var rides: int = int(value.get("completed_rides", -1))
+	var serviced: int = int(value.get("service_count", -1))
+	var due_value: Variant = value.get("service_due", null)
+	if rides < 0 or serviced < 0 or serviced > rides or not (due_value is bool):
+		return false
+	var due: bool = bool(due_value)
+	if (restored_phase == int(RidePhase.COMPLETED) and (rides == 0 or not due)) \
+			or (restored_phase == int(RidePhase.TRAVELING) and due) \
+			or (restored_phase == int(RidePhase.ARRIVED) and due) \
+			or (not due and serviced != rides):
+		return false
 	var fresh_ride: TaxiRide = _create_ride()
 	if not fresh_ride.restore_snapshot(value.get("ride", {})):
 		return false
@@ -181,6 +228,9 @@ func restore_snapshot(value: Dictionary) -> bool:
 	garage_position = pos
 	world_minutes = float(value.get("world_minutes", START_MINUTE))
 	credits = maxi(0, int(value.get("credits", 0)))
+	completed_rides = rides
+	service_count = serviced
+	service_due = due
 	suspicion = maxi(0, int(value.get("suspicion", 0)))
 	known_facts.clear()
 	for item in value["known_facts"]:
