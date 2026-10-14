@@ -1,8 +1,8 @@
-name: P1 passenger presentation Web/Desktop gate
+name: P1 first authentic ride Web/Desktop gate
 
 on:
   push:
-    branches: [feat/p1-passenger-ui]
+    branches: [feat/p1-ride-session]
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -72,6 +72,13 @@ jobs:
           /tmp/godot --headless --path . --script res://tests/test_ink.gd 2>&1 | tee /tmp/ink-test.log
           grep -q 'P1_INK_NATIVE_PASS' /tmp/ink-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ink-test.log; then exit 1; fi
+      - name: Verify GameSession, single fare settlement and saves
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --script res://tests/test_session.gd 2>&1 | tee /tmp/session-test.log
+          grep -q 'P1_SESSION_NATIVE_PASS' /tmp/session-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/session-test.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -111,7 +118,7 @@ jobs:
           python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
-          NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ink_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ride_smoke.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
