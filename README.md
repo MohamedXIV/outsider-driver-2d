@@ -29,6 +29,16 @@ The old [Outsider Driver repository](https://github.com/MohamedXIV/outsider-driv
 
 ## Run
 
-Open `project.godot` with the selected Godot 4.x editor; press **F6/F5** once the first scene lands. For headless project loading, run `godot --headless --path . --editor --quit`.
+Open `project.godot` in Godot 4.6.3 and press **F5**. The first playable scene is a vector-art P0 route/camera proof: taxi passes under an elevated crossing, follows an authored ramp and drives above it. Press **R** to restart.
+
+For repeatable headless verification:
+
+```sh
+godot --headless --path . --import
+godot --headless --path . --script res://tests/test_core.gd
+godot --headless --path . --quit-after 90
+```
+
+See [P0 validation evidence](docs/P0_VALIDATION.md) and [Issue #1](https://github.com/MohamedXIV/outsider-driver-2d/issues/1) before treating Web/Desktop acceptance as complete.
 
 This project prioritizes playable, testable increments over building systems with no immediate player-facing use.
