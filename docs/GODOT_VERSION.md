@@ -18,6 +18,13 @@ Migration notes: https://docs.godotengine.org/en/stable/tutorials/migrating/upgr
 
 ## Validation state
 
-**PENDING targeted 4.7.2 CI** at this commit. Historic P0 evidence from 4.6.3 remains truthful but must not be represented as 4.7.2 validation.
+**PASS:** [targeted CI run #38614945344](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38614945344) (Godot 4.7.2) completed successfully:
+- Godot editor import, GDScript parse, P0 deterministic tests and headless startup.
+- Real software-OpenGL frames captured at start, underpass, ramp, elevated deck and end.
+- Linux x86_64 release exported and launched.
+- Single-threaded Web exported and loaded in Chromium, with a rendered canvas screenshot and no captured browser page errors.
+- [Six-image evidence artifact](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38614945344/artifacts/11919420559) was reviewed. Underpass remains visible through a translucent deck; camera and elevated road remain legible with no obvious regression compared to P0.
+
+This is Web Chromium/Linux smoke verification only, not Windows/macOS, mobile Safari or full gameplay validation. Historic P0 evidence from 4.6.3 remains unchanged.
 
 Keep the CI branch-specific to this version migration; do not use this job for routine docs changes.
