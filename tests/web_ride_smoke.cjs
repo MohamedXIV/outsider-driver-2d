@@ -92,7 +92,7 @@ const { chromium } = require('playwright');
       document.documentElement.dataset.rideFacts === '3' &&
       document.documentElement.dataset.rideSuspicion === '0' &&
       document.documentElement.dataset.passengerVisible === 'false', 'Completed consequences failed browser persistence');
-    await page.mouse.click(743, 615); // Second Load is idempotent
+    await page.mouse.click(620, 615); // Completed HUD: Load moves left when Pickup hides.
     await phase('completed');
     await check(() => document.documentElement.dataset.rideCredits === '18', 'Duplicate payment after loading');
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/restored-completed.png' });
