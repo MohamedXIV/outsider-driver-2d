@@ -13,11 +13,14 @@
 - No Inochi2D. No C++ by default, but GDExtension is allowed for proven hotspots.
 - Keep the previous project's core game design, not its Babylon architecture or versioned saves.
 
-## Pending technical proof (not design reconsideration)
+## Verified P0 technical proof
+
+- Isometric road/elevation/bridge proof, ride progression and close-follow camera: [P0 validation](P0_VALIDATION.md).
+- Linux desktop export and Chromium Web runtime on Godot 4.6.3: verified in the targeted P0 workflow.
+
+## Pending P1 technical proof (not design reconsideration)
 
 - Select/verify a stable Ink interpreter integration working in Godot desktop and Web.
-- Verify isometric elevation/occlusion, camera comfort, correct bridge traversal.
-- Validate Web + desktop exports on the selected Godot release.
 - Validate simple portrait sprite atlas/display and settings before scaling character production.
 
-Only these gates can block expanding P0/P1; do not use them to restart engine debates without evidence.
+These P1 gates must be validated before growing narrative/character content. Do not restart engine debates without new evidence.
