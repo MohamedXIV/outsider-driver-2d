@@ -17,10 +17,24 @@ const { chromium } = require('playwright');
     await page.goto('http://127.0.0.1:8765/index.html', { waitUntil: 'domcontentloaded' });
     await phase('waiting');
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/ride-before-pickup.png' });
-    await page.mouse.click(65, 181); // Select GPS in the garage prep panel
+    // Real keyboard input drives the visible character to each station.
+    for (let i = 0; i < 5; i++) await page.keyboard.press('w');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('a');
+    await page.waitForFunction(() => document.documentElement.dataset.garageStation === 'workbench', null, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/garage-workbench.png' });
+    await page.mouse.click(65, 181); // Select GPS at the real workbench
     await page.waitForFunction(() => document.documentElement.dataset.starterDevice === 'gps', null, { timeout: 15000 });
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/shift-prepared.png' });
-    await page.mouse.click(615, 614); // Pick up visitor
+    for (let i = 0; i < 4; i++) await page.keyboard.press('d');
+    await page.waitForFunction(() => document.documentElement.dataset.garageStation === 'noticeboard', null, { timeout: 15000 });
+    await page.keyboard.press('e');
+    await page.waitForFunction(() => document.documentElement.dataset.noticeRead === 'true', null, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/garage-notice.png' });
+    for (let i = 0; i < 4; i++) await page.keyboard.press('d');
+    for (let i = 0; i < 5; i++) await page.keyboard.press('s');
+    await page.waitForFunction(() => document.documentElement.dataset.garageStation === 'taxi', null, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/garage-taxi.png' });
+    await page.mouse.click(615, 614); // Pick up visitor from the parked taxi
     await page.waitForFunction(() => document.documentElement.dataset.inkReady === 'true' &&
       document.documentElement.dataset.ridePhase === 'traveling', null, { timeout: 15000 });
     await check(() => document.documentElement.dataset.choiceCount === '2', 'Missing original Ink choices');
@@ -33,10 +47,11 @@ const { chromium } = require('playwright');
     await page.mouse.click(743, 615); // Load
     await phase('traveling');
     await check(() => document.documentElement.dataset.choiceCount === '2' &&
-      document.documentElement.dataset.rideCredits === '0' && document.documentElement.dataset.starterDevice === 'gps', 'Unanswered Ink frame, prep or wallet lost on reload');
+      document.documentElement.dataset.rideCredits === '0' && document.documentElement.dataset.starterDevice === 'gps' &&
+      document.documentElement.dataset.noticeRead === 'true', 'Unanswered Ink frame, prep or wallet lost on reload');
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/restored-midride.png' });
     await page.mouse.click(170, 467); // Authored first Ink response
-    await page.waitForFunction(() => document.documentElement.dataset.rideFacts === '2',
+    await page.waitForFunction(() => document.documentElement.dataset.rideFacts === '3',
       null, { timeout: 15000 });
     await check(() => document.documentElement.dataset.rideCredits === '0', 'Fare paid before dropoff');
     await phase('arrived');
@@ -52,7 +67,7 @@ const { chromium } = require('playwright');
     await page.mouse.click(170, 467); // We've arrived (authored Ink ending)
     await phase('completed');
     await check(() => document.documentElement.dataset.rideCredits === '18' &&
-      document.documentElement.dataset.rideFacts === '2' &&
+      document.documentElement.dataset.rideFacts === '3' &&
       document.documentElement.dataset.rideSuspicion === '0' &&
       document.documentElement.dataset.passengerVisible === 'false' &&
       document.documentElement.dataset.choiceVisible === 'false', 'Completed ride UI or consequences wrong');
@@ -63,7 +78,7 @@ const { chromium } = require('playwright');
     await page.mouse.click(743, 615); // Restore completed ride
     await phase('completed');
     await check(() => document.documentElement.dataset.rideCredits === '18' &&
-      document.documentElement.dataset.rideFacts === '2' &&
+      document.documentElement.dataset.rideFacts === '3' &&
       document.documentElement.dataset.rideSuspicion === '0' &&
       document.documentElement.dataset.passengerVisible === 'false', 'Completed consequences failed browser persistence');
     await page.mouse.click(743, 615); // Second Load is idempotent

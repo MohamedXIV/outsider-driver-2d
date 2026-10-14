@@ -87,6 +87,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_session.gd 2>&1 | tee /tmp/session-test.log
           grep -q 'P1_SESSION_NATIVE_PASS' /tmp/session-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/session-test.log; then exit 1; fi
+      - name: Verify walkable garage movement and station facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_garage.gd 2>&1 | tee /tmp/garage-test.log
+          grep -q 'P2_GARAGE_NATIVE_PASS' /tmp/garage-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/garage-test.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |

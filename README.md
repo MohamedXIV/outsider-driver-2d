@@ -29,9 +29,9 @@ The old [Outsider Driver repository](https://github.com/MohamedXIV/outsider-driv
 
 ## Run
 
-Open `project.godot` in Godot 4.7.2 and press **F5**. In the dockside garage **Shift Prep** panel, choose one starter device (GPS / Translator / Radio), then **Pick up visitor**. The taxi follows an authored route through the elevated crossing while you speak to the passenger. At the clinic, choose **Talk at destination** to conclude the ride. Save / Load preserve the chosen device and unfinished dialogue. Press **R** to restart the current shift.
+Open `project.godot` in Godot 4.7.2 and press **F5**. Move with **WASD / arrow keys** in the small garage. Approach the workbench to choose one starter device (GPS / Translator / Radio). Read the shift notice with **E**, then approach the taxi and press **E** or **Pick up visitor**. The taxi follows an authored route through the elevated crossing while you speak to the passenger. At the clinic, choose **Talk at destination** to conclude the ride. Save / Load preserve the chosen device and unfinished dialogue. Press **R** to restart the current shift.
 
-For the first bounded preparation slice and limits, see [P2 Shift Prep](docs/P2_SHIFT_PREP.md). For the previously validated P1-only build (without prep), see [P1 Playtest](docs/P1_PLAYTEST.md).
+For the garage interactions see [P2 Garage](docs/P2_GARAGE.md), and for starter knowledge see [P2 Shift Prep](docs/P2_SHIFT_PREP.md). For the previously validated P1-only build (without prep), see [P1 Playtest](docs/P1_PLAYTEST.md).
 
 For repeatable headless verification:
 

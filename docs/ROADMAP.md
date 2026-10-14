@@ -26,7 +26,9 @@ Each milestone produces a playable improvement using production-quality code. Pl
 
 ## P2 — Daily loop with personal spaces
 
-**P2.0 in progress:** one-time GPS / Translator / Radio preparation before pickup, authoritative equipment + three distinct knowledge facts, preserved in new v2 saves. [Equipment slice](P2_SHIFT_PREP.md); [P2 tracking #11](https://github.com/MohamedXIV/outsider-driver-2d/issues/11). This is a small dockside-garage prep **UI**, not yet a walkable garage scene or a repeatable daily loop. P1 human acceptance remains open separately.
+**P2.0 merged via PR #12:** one-time GPS / Translator / Radio preparation before pickup, authoritative equipment + three distinct knowledge facts, preserved in new v2 saves. [Equipment slice](P2_SHIFT_PREP.md); [P2 tracking #11](https://github.com/MohamedXIV/outsider-driver-2d/issues/11). This is a small dockside-garage prep **UI**, not yet a walkable garage scene or a repeatable daily loop. P1 human acceptance remains open separately.
+
+**P2.1 in development:** bounded on-foot garage, proximity-gated equipment, shift notice and taxi-door interactions ([P2.1 design and controls](P2_GARAGE.md)). No repeatable daily/repair loop yet.
 
 
 - Small apartment/garage scene with basic on-foot interaction.

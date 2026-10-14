@@ -7,10 +7,14 @@ func _initialize() -> void:
 	assert(state.world_minutes > GameSession.START_MINUTE)
 	assert(state.ride.world_position() == start, "Taxi drove before pickup.")
 	assert(not state.pickup(), "A shift needs a prepared starter device.")
+	assert(not state.select_starter_device("gps"), "Can't reach the bench from spawn.")
+	_walk_to(state, GameSession.WORKBENCH)
 	assert(not state.select_starter_device("unknown"))
 	assert(state.select_starter_device("gps"))
 	assert(not state.select_starter_device("translator"), "Starter choice must be single-use.")
 	assert(state.known_facts.has("map:inspection-arch"))
+	assert(not state.pickup(), "Taxi is too far from workbench.")
+	_walk_to(state, GameSession.TAXI_DOOR)
 	assert(state.pickup())
 	assert(not state.pickup(), "Pickup must happen only once.")
 	state.advance(100.0)
@@ -31,7 +35,7 @@ func _initialize() -> void:
 	var save_path: String = "user://p1-session-fixture.json"
 	assert(RideSave.save(state, {}, save_path))
 	var envelope: Dictionary = RideSave.load(save_path)
-	assert(envelope.get("schema_version") == 2)
+	assert(envelope.get("schema_version") == 3)
 	var restored: GameSession = GameSession.new()
 	assert(restored.restore_snapshot(envelope["game"]))
 	assert(restored.phase == GameSession.RidePhase.COMPLETED)
@@ -46,7 +50,9 @@ func _initialize() -> void:
 	restored.advance(2.0)
 	assert(restored.world_minutes > after_dropoff, "Completed ride froze the world.")
 	var traveling: GameSession = GameSession.new()
+	_walk_to(traveling, GameSession.WORKBENCH)
 	assert(traveling.select_starter_device("radio"))
+	_walk_to(traveling, GameSession.TAXI_DOOR)
 	assert(traveling.pickup())
 	traveling.advance(2.0)
 	var unfinished_path: String = "user://p1-unfinished-fixture.json"
@@ -58,6 +64,7 @@ func _initialize() -> void:
 
 	# The three choices must remain differentiated and survive persistence.
 	var translation: GameSession = GameSession.new()
+	_walk_to(translation, GameSession.WORKBENCH)
 	assert(translation.select_starter_device("translator"))
 	assert(translation.known_facts.has("translation:clinic-token"))
 	assert(not translation.known_facts.has("radio:two-local-languages"))
@@ -72,3 +79,11 @@ func _initialize() -> void:
 
 	print("P1_SESSION_NATIVE_PASS")
 	quit(0)
+
+
+func _walk_to(state: GameSession, goal: Vector2) -> void:
+	for step in range(40):
+		if state.garage_position.distance_to(goal) <= 0.38:
+			break
+		assert(state.move_in_garage(goal - state.garage_position))
+	assert(state.garage_position.distance_to(goal) <= GameSession.INTERACT_RADIUS, "Could not reach garage station.")
