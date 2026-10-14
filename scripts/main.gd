@@ -156,7 +156,8 @@ func _on_load() -> void:
 func _refresh_ui() -> void:
 	_pickup_button.visible = _session.phase == GameSession.RidePhase.WAITING
 	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED
-	_passenger_panel.visible = _session.phase != GameSession.RidePhase.WAITING
+	_passenger_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
+			or _session.phase == GameSession.RidePhase.ARRIVED
 	_choice_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
 			or _session.phase == GameSession.RidePhase.ARRIVED
 	var status_text: String = ["WAITING", "TRAVELING", "ARRIVED", "COMPLETED"][int(_session.phase)]

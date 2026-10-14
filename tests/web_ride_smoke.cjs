@@ -27,7 +27,16 @@ const { chromium } = require('playwright');
     await page.waitForFunction(() => document.documentElement.dataset.ridePhase === 'completed',
       null, { timeout: 15000 });
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/after-dropoff.png' });
+    // Godot Web saves through user://. Verify persistence across a full reload.
+    await page.waitForTimeout(2200);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => document.documentElement.dataset.ridePhase === 'waiting',
+      null, { timeout: 60000 });
+    await page.mouse.click(743, 615); // Load v1 save
+    await page.waitForFunction(() => document.documentElement.dataset.ridePhase === 'completed',
+      null, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/restored-completed.png' });
     if (errors.length) throw new Error(errors.join('\n'));
-    console.log('P1_RIDE_WEB_PASS: pickup, Ink choice, arrival, single dropoff and Web save');
+    console.log('P1_RIDE_WEB_PASS: pickup, Ink choice, arrival, single dropoff, save and reload restore');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
