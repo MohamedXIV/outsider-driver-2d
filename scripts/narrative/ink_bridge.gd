@@ -5,6 +5,7 @@ extends RefCounted
 # Callers receive authored text/choices/tags; they own all gameplay consequences.
 var _runtime: Node
 var _story: InkStory
+var _last_frame: Dictionary = {}
 
 
 func open_compiled(json_text: String, scene_tree: SceneTree) -> bool:
@@ -16,6 +17,7 @@ func open_compiled(json_text: String, scene_tree: SceneTree) -> bool:
 		scene_tree.root.add_child(existing)
 	_runtime = existing
 	_story = InkStory.new(json_text, _runtime)
+	_last_frame = {}
 	return _story != null
 
 
@@ -35,16 +37,48 @@ func advance() -> Dictionary:
 	var options: Array[String] = []
 	for choice in _story.current_choices:
 		options.append(str(choice.text))
-	return {
+	_last_frame = {
 		"text": "\n".join(lines),
 		"tags": tags,
 		"choices": options,
 		"ended": options.is_empty() and not _story.can_continue
 	}
+	return _last_frame.duplicate(true)
 
 
 func choose(index: int) -> Dictionary:
 	assert(_story != null, "No Ink story is open.")
 	assert(index >= 0 and index < _story.current_choices.size(), "Invalid Ink choice.")
 	_story.choose_choice_index(index)
+	return advance()
+
+
+func snapshot() -> Dictionary:
+	if _story == null:
+		return {}
+	return {
+		"runtime_state": _story.state.to_json(),
+		"frame": _last_frame.duplicate(true)
+	}
+
+
+func restore_snapshot(saved: Dictionary) -> bool:
+	if _story == null or not (saved.get("frame") is Dictionary):
+		return false
+	var json_text: String = str(saved.get("runtime_state", ""))
+	if json_text.is_empty():
+		return false
+	_story.state.load_json(json_text)
+	_last_frame = saved["frame"].duplicate(true)
+	return true
+
+
+func current_frame() -> Dictionary:
+	return _last_frame.duplicate(true)
+
+
+# An explicit player-initiated jump to an authored safe-exit knot.
+func jump_to(knot: String) -> Dictionary:
+	assert(_story != null, "No Ink story is open.")
+	_story.choose_path_string(knot)
 	return advance()

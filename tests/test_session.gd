@@ -1,0 +1,52 @@
+extends SceneTree
+
+func _initialize() -> void:
+	var state: GameSession = GameSession.new()
+	var start: Vector3 = state.ride.world_position()
+	state.advance(3.0)
+	assert(state.world_minutes > GameSession.START_MINUTE)
+	assert(state.ride.world_position() == start, "Taxi drove before pickup.")
+	assert(state.pickup())
+	assert(not state.pickup(), "Pickup must happen only once.")
+	state.advance(100.0)
+	assert(state.phase == GameSession.RidePhase.ARRIVED)
+	assert(state.ride.is_finished())
+	var world_clock: float = state.world_minutes
+	state.advance(5.0)
+	assert(state.world_minutes > world_clock, "World stopped during arrival.")
+	state.apply_story_tags("choice:docks", ["fact:docks-route", "suspicion:1"])
+	state.apply_story_tags("choice:docks", ["fact:docks-route", "suspicion:1"])
+	assert(state.known_facts == ["docks-route"])
+	assert(state.suspicion == 1, "Duplicate choice re-applied suspicion.")
+	assert(state.credits == 0)
+	assert(state.drop_off())
+	assert(not state.drop_off(), "Double dropoff allowed.")
+	assert(state.credits == GameSession.FARE_CREDITS)
+
+	var save_path: String = "user://p1-session-fixture.json"
+	assert(RideSave.save(state, {}, save_path))
+	var envelope: Dictionary = RideSave.load(save_path)
+	assert(envelope.get("schema_version") == 1)
+	var restored: GameSession = GameSession.new()
+	assert(restored.restore_snapshot(envelope["game"]))
+	assert(restored.phase == GameSession.RidePhase.COMPLETED)
+	assert(restored.credits == GameSession.FARE_CREDITS)
+	assert(restored.suspicion == 1)
+	assert(restored.known_facts.has("docks-route"))
+	assert(restored.ride.world_position() == state.ride.world_position())
+	assert(not restored.drop_off(), "Restore allowed double payment.")
+	var after_dropoff: float = restored.world_minutes
+	restored.advance(2.0)
+	assert(restored.world_minutes > after_dropoff, "Completed ride froze the world.")
+	var traveling: GameSession = GameSession.new()
+	assert(traveling.pickup())
+	traveling.advance(2.0)
+	var unfinished_path: String = "user://p1-unfinished-fixture.json"
+	assert(RideSave.save(traveling, {"runtime_state": "ink-state", "frame": {"choices": ["A", "B"]}}, unfinished_path))
+	var unfinished: GameSession = GameSession.new()
+	assert(unfinished.restore_snapshot(RideSave.load(unfinished_path)["game"]))
+	assert(unfinished.phase == GameSession.RidePhase.TRAVELING)
+	assert(unfinished.credits == 0 and unfinished.ride.world_position() == traveling.ride.world_position())
+
+	print("P1_SESSION_NATIVE_PASS")
+	quit(0)

@@ -1,8 +1,8 @@
-name: P1 passenger presentation Web/Desktop gate
+name: P1 first authentic ride Web/Desktop gate
 
 on:
   push:
-    branches: [feat/p1-passenger-ui]
+    branches: [feat/p1-ride-session]
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -37,6 +37,10 @@ jobs:
             -o stories/p1_probe.ink.json stories/p1_probe.ink
           # inkjs writes a UTF-8 BOM; normalize generated JSON to match Git.
           python3 -c 'from pathlib import Path; p=Path("stories/p1_probe.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
+          # Emit the canonical compiler output even on drift, for review without a second compiler setup.
+          echo P1_COMPILED_INK_BEGIN
+          cat stories/p1_probe.ink.json
+          echo P1_COMPILED_INK_END
           if test -f /tmp/tracked-ink.json; then
             cmp -s /tmp/tracked-ink.json stories/p1_probe.ink.json || {
               echo "Committed Ink JSON drifted from the authored .ink source"
@@ -72,6 +76,13 @@ jobs:
           /tmp/godot --headless --path . --script res://tests/test_ink.gd 2>&1 | tee /tmp/ink-test.log
           grep -q 'P1_INK_NATIVE_PASS' /tmp/ink-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ink-test.log; then exit 1; fi
+      - name: Verify GameSession, single fare settlement and saves
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --script res://tests/test_session.gd 2>&1 | tee /tmp/session-test.log
+          grep -q 'P1_SESSION_NATIVE_PASS' /tmp/session-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/session-test.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -111,7 +122,7 @@ jobs:
           python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
-          NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ink_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ride_smoke.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

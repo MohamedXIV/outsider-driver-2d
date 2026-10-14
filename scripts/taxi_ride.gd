@@ -50,3 +50,22 @@ func screen_heading() -> Vector2:
 	var from_screen: Vector2 = IsoProjection.project(_position)
 	var to_screen: Vector2 = IsoProjection.project(target)
 	return (to_screen - from_screen).normalized()
+
+
+func snapshot() -> Dictionary:
+	return {
+		"position": [_position.x, _position.y, _position.z],
+		"next_index": _next_index
+	}
+
+
+func restore_snapshot(value: Dictionary) -> bool:
+	var point: Variant = value.get("position", null)
+	var index: int = int(value.get("next_index", -1))
+	if not (point is Array) or point.size() != 3:
+		return false
+	if index < 1 or index > _points.size():
+		return false
+	_position = Vector3(float(point[0]), float(point[1]), float(point[2]))
+	_next_index = index
+	return true

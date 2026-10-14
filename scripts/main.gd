@@ -4,98 +4,199 @@ extends Node2D
 @onready var _camera: Camera2D = $Camera2D
 @onready var _status: Label = $HUD/InfoPanel/InfoLabel
 @onready var _passenger_label: Label = $HUD/PassengerPanel/PassengerBody/PassengerText
+@onready var _passenger_panel: PanelContainer = $HUD/PassengerPanel
+@onready var _choice_panel: PanelContainer = $HUD/ChoicePanel
 @onready var _choice_list: VBoxContainer = $HUD/ChoicePanel/ChoiceList
 @onready var _portrait: PassengerPresenter = $HUD/PassengerPanel/PassengerBody/AvatarCanvas
 @onready var _frame_toggle: CheckButton = $HUD/PassengerPanel/PassengerBody/FrameToggle
+@onready var _ride_state: Label = $HUD/RideBar/RideContent/RideState
+@onready var _pickup_button: Button = $HUD/RideBar/RideContent/Actions/Pickup
+@onready var _arrival_button: Button = $HUD/RideBar/RideContent/Actions/Arrived
+@onready var _save_button: Button = $HUD/RideBar/RideContent/Actions/Save
+@onready var _load_button: Button = $HUD/RideBar/RideContent/Actions/Load
 
+const STORY_PATH: String = "res://stories/p1_probe.ink.json"
 const PRESENTATION_PREFS: String = "user://passenger_presentation.cfg"
 
-const INK_PROBE_PATH: String = "res://stories/p1_probe.ink.json"
+var _session: GameSession
 var _ink: InkBridge
-
-var _ride: TaxiRide
+var _notice: String = ""
 
 
 func _ready() -> void:
 	_initialize_presentation()
+	_pickup_button.pressed.connect(_on_pickup)
+	_arrival_button.pressed.connect(_on_arrived)
+	_save_button.pressed.connect(_on_save)
+	_load_button.pressed.connect(_on_load)
 	_restart()
-	# Godot is still registering children inside _ready. Ink's singleton is
-	# created only after the scene tree completes this initialization pass.
-	call_deferred("_start_ink")
 
 
 func _process(delta: float) -> void:
-	_ride.advance(delta)
-	var taxi_position: Vector3 = _ride.world_position()
-	var heading: Vector2 = _ride.screen_heading()
-	_world.taxi_world = taxi_position
+	_session.advance(delta)
+	var taxi_world: Vector3 = _session.ride.world_position()
+	var heading: Vector2 = _session.ride.screen_heading()
+	_world.taxi_world = taxi_world
 	_world.taxi_heading = heading
 	_world.queue_redraw()
-
-	# Camera look-ahead follows movement, but shows more context around the crossing.
-	var destination: Vector2 = IsoProjection.project(taxi_position) + heading * 80.0
+	var destination: Vector2 = IsoProjection.project(taxi_world) + heading * 80.0
 	var follow: float = 1.0 - exp(-delta * 2.8)
 	_camera.position = _camera.position.lerp(destination, follow)
-	var crossing_distance: float = Vector2(taxi_position.x - 2.0, taxi_position.z).length()
-	var target_zoom: float = 1.18 if crossing_distance < 5.0 or taxi_position.y > 0.05 else 1.45
+	var crossing_distance: float = Vector2(taxi_world.x - 2.0, taxi_world.z).length()
+	var target_zoom: float = 1.18 if crossing_distance < 5.0 or taxi_world.y > 0.05 else 1.45
 	_camera.zoom = _camera.zoom.lerp(Vector2.ONE * target_zoom, follow)
-
-	var height_label: String = "elevated" if taxi_position.y > 0.5 else "ground"
-	var state: String = "ARRIVED" if _ride.is_finished() else "MOVING"
-	_status.text = "OUTSIDER DRIVER 2D  |  %s  |  %s  |  R to restart" % [state, height_label]
+	_refresh_ui()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
 		_restart()
-		_start_ink()
 
 
-func _start_ink() -> void:
-	var story_json: String = FileAccess.get_file_as_string(INK_PROBE_PATH)
+func _restart() -> void:
+	_session = GameSession.new()
+	_ink = null
+	_notice = ""
+	_passenger_label.text = "Pick up the visitor to begin."
+	_portrait.set_expression("neutral")
+	_camera.position = IsoProjection.project(_session.ride.world_position())
+	_refresh_ui()
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='false';document.documentElement.dataset.inkChoice='none'", true)
+
+
+func _on_pickup() -> void:
+	if not _session.pickup():
+		return
+	_notice = "Passenger picked up."
+	_start_ink()
+	_refresh_ui()
+
+
+func _start_ink(saved: Dictionary = {}) -> void:
+	var story_json: String = FileAccess.get_file_as_string(STORY_PATH)
 	if story_json.is_empty():
-		_passenger_label.text = "Compiled Ink is missing. Compile stories/p1_probe.ink first."
+		_passenger_label.text = "Missing authored Ink story."
 		return
 	_ink = InkBridge.new()
 	if not _ink.open_compiled(story_json, get_tree()):
-		_passenger_label.text = "Could not load the Ink story."
+		_passenger_label.text = "Ink runtime could not load."
 		return
-	_portrait.set_expression("neutral")
-	_show_ink(_ink.advance())
+	if not saved.is_empty() and _ink.restore_snapshot(saved):
+		_show_ink(_ink.current_frame())
+	else:
+		_show_ink(_ink.advance())
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='true'", true)
 
 
-func _show_ink(line: Dictionary) -> void:
-	_passenger_label.text = str(line["text"])
+func _show_ink(frame: Dictionary) -> void:
+	_passenger_label.text = str(frame["text"])
 	for child in _choice_list.get_children():
 		child.queue_free()
-	var options: Array = line["choices"]
-	for i in range(options.size()):
+	var options: Array = frame["choices"]
+	for index in range(options.size()):
 		var button: Button = Button.new()
-		button.text = str(options[i])
-		button.pressed.connect(_on_choice.bind(i))
+		button.text = str(options[index])
+		button.pressed.connect(_on_choice.bind(index))
 		_choice_list.add_child(button)
-	if options.is_empty() and bool(line["ended"]):
-		_passenger_label.text += "\n[Conversation ended]"
+	if options.is_empty() and bool(frame["ended"]):
+		_passenger_label.text += "\n[Conversation finished]"
 
 
 func _on_choice(index: int) -> void:
-	var consequence: Dictionary = _ink.choose(index)
-	_show_ink(consequence)
-	var tags: Array = consequence["tags"]
-	if tags.has("fact:docks-route"):
+	if _ink == null or _session.phase == GameSession.RidePhase.COMPLETED:
+		return
+	var choosing_arrival: bool = _ink.current_frame().get("tags", []).has("arrival:offer")
+	var result: Dictionary = _ink.choose(index)
+	var event_id: String = "first-ride:arrival-choice" if choosing_arrival else "first-ride:passenger-choice"
+	_session.apply_story_tags(event_id, result["tags"])
+	_show_ink(result)
+	if result["tags"].has("fact:docks-route"):
 		_portrait.set_expression("curious")
-	elif tags.has("suspicion:1"):
+	elif result["tags"].has("suspicion:1"):
 		_portrait.set_expression("uneasy")
+	if choosing_arrival and result["tags"].has("arrival:complete") and _session.drop_off():
+		_notice = "Passenger dropped off. Fare settled."
+		_on_save()
+	_refresh_ui()
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkChoice='selected'", true)
 
 
+func _on_arrived() -> void:
+	if _session.phase != GameSession.RidePhase.ARRIVED or _ink == null:
+		return
+	# Player deliberately opens the short authored arrival scene, even if the
+	# earlier conversation was left unanswered. This never auto-cuts a line.
+	_show_ink(_ink.jump_to("arrival"))
+	_notice = "The visitor is ready to disembark."
+	_refresh_ui()
+
+
+func _on_save() -> void:
+	var ink_state: Dictionary = _ink.snapshot() if _ink != null else {}
+	_notice = "Game saved." if RideSave.save(_session, ink_state) else "Save failed."
+	_refresh_ui()
+
+
+func _on_load() -> void:
+	var payload: Dictionary = RideSave.load()
+	if payload.is_empty():
+		_notice = "No valid v1 save exists."
+		_refresh_ui()
+		return
+	var restored: GameSession = GameSession.new()
+	if not restored.restore_snapshot(payload["game"]):
+		_notice = "Save contains an invalid ride."
+		_refresh_ui()
+		return
+	if (restored.phase == GameSession.RidePhase.TRAVELING or restored.phase == GameSession.RidePhase.ARRIVED) and payload["ink"].is_empty():
+		_notice = "Save is missing its active conversation."
+		_refresh_ui()
+		return
+	_session = restored
+	_ink = null
+	if _session.phase == GameSession.RidePhase.TRAVELING or _session.phase == GameSession.RidePhase.ARRIVED:
+		_start_ink(payload["ink"])
+	_notice = "Game loaded."
+	_camera.position = IsoProjection.project(_session.ride.world_position())
+	_refresh_ui()
+
+
+func _refresh_ui() -> void:
+	_pickup_button.visible = _session.phase == GameSession.RidePhase.WAITING
+	var arrival_offered: bool = _ink != null and _ink.current_frame().get("tags", []).has("arrival:offer")
+	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED and not arrival_offered
+	_passenger_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
+			or _session.phase == GameSession.RidePhase.ARRIVED
+	_choice_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
+			or _session.phase == GameSession.RidePhase.ARRIVED
+	var status_text: String = ["WAITING", "TRAVELING", "ARRIVED", "COMPLETED"][int(_session.phase)]
+	var minute_of_day: int = int(_session.world_minutes) % 1440
+	_status.text = "OUTSIDER DRIVER 2D | %s | %02d:%02d" % [
+		status_text, minute_of_day / 60, minute_of_day % 60
+	]
+	_ride_state.text = "Fare %d cr | Wallet %d cr | Suspicion %d | Facts %d | %s" % [
+		GameSession.FARE_CREDITS, _session.credits, _session.suspicion,
+		_session.known_facts.size(), _notice
+	]
+	if OS.has_feature("web"):
+		var phase_name: String = status_text.to_lower()
+		var web_state: String = "Object.assign(document.documentElement.dataset,{ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
+			phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
+			_session.world_minutes, str(_passenger_panel.visible).to_lower(),
+			str(_choice_panel.visible).to_lower(),
+			_ink.current_frame().get("choices", []).size() if _ink != null else 0,
+			str(arrival_offered).to_lower()
+		]
+		JavaScriptBridge.eval(web_state, true)
+
+
 func _initialize_presentation() -> void:
-	var settings: ConfigFile = ConfigFile.new()
-	settings.load(PRESENTATION_PREFS)
-	var framed: bool = bool(settings.get_value("passenger", "framed", true))
+	var config: ConfigFile = ConfigFile.new()
+	config.load(PRESENTATION_PREFS)
+	var framed: bool = bool(config.get_value("passenger", "framed", true))
 	_frame_toggle.set_pressed_no_signal(framed)
 	_portrait.set_framed(framed)
 	_frame_toggle.toggled.connect(_on_frame_toggled)
@@ -104,11 +205,10 @@ func _initialize_presentation() -> void:
 
 func _on_frame_toggled(framed: bool) -> void:
 	_portrait.set_framed(framed)
-	var settings: ConfigFile = ConfigFile.new()
-	settings.set_value("passenger", "framed", framed)
-	var result: Error = settings.save(PRESENTATION_PREFS)
-	if result != OK:
-		push_warning("Passenger presentation preferences could not be saved.")
+	var config: ConfigFile = ConfigFile.new()
+	config.set_value("passenger", "framed", framed)
+	if config.save(PRESENTATION_PREFS) != OK:
+		push_warning("Passenger presentation preference could not be saved.")
 	_publish_frame_mode(framed)
 
 
@@ -116,22 +216,3 @@ func _publish_frame_mode(framed: bool) -> void:
 	if OS.has_feature("web"):
 		var value: String = "framed" if framed else "avatar"
 		JavaScriptBridge.eval("document.documentElement.dataset.cabinFrame='%s'" % value, true)
-
-
-func _restart() -> void:
-	var points: Array[Vector3] = [
-		Vector3(-10, 0, 0),
-		Vector3(-2, 0, 0),
-		Vector3(3, 0, 0),  # Cross under elevated road at x=2.
-		Vector3(10, 0, 0),
-		Vector3(10, 0, 6),
-		Vector3(7, 0, 9),
-		Vector3(3, 0, 9),
-		Vector3(2, 1, 6),  # Authored ramp from level 0 to level 1.
-		Vector3(2, 1, -6), # Cross above the same ground road.
-	]
-	_ride = TaxiRide.new(points)
-	_world.taxi_world = _ride.world_position()
-	_world.taxi_heading = _ride.screen_heading()
-	_world.queue_redraw()
-	_camera.position = IsoProjection.project(_ride.world_position())
