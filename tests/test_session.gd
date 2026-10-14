@@ -21,7 +21,7 @@ func _initialize() -> void:
 	assert(state.world_minutes > world_clock, "World stopped during arrival.")
 	state.apply_story_tags("choice:docks", ["fact:docks-route", "suspicion:1"])
 	state.apply_story_tags("choice:docks", ["fact:docks-route", "suspicion:1"])
-	assert(state.known_facts == ["docks-route"])
+	assert(state.known_facts == ["map:inspection-arch", "docks-route"])
 	assert(state.suspicion == 1, "Duplicate choice re-applied suspicion.")
 	assert(state.credits == 0)
 	assert(state.drop_off())
@@ -39,6 +39,7 @@ func _initialize() -> void:
 	assert(restored.suspicion == 1)
 	assert(restored.starter_device == "gps")
 	assert(restored.known_facts.has("docks-route"))
+	assert(restored.known_facts.has("map:inspection-arch"))
 	assert(restored.ride.world_position() == state.ride.world_position())
 	assert(not restored.drop_off(), "Restore allowed double payment.")
 	var after_dropoff: float = restored.world_minutes
