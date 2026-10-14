@@ -1,0 +1,120 @@
+name: P1 Ink Web and native compatibility gate
+
+on:
+  push:
+    branches: [feat/p1-ink-runtime]
+    paths:
+      - 'addons/inkgd/**'
+      - 'scripts/**'
+      - 'scenes/**'
+      - 'stories/**'
+      - 'tests/**'
+      - 'project.godot'
+      - 'export_presets.cfg'
+      - '.github/workflows/p1-ink.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ink:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile actual Ink source using pinned compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ink-tools
+          npm --prefix /tmp/ink-tools install --no-save --no-audit --no-fund inkjs@2.4.0
+          if test -f stories/p1_probe.ink.json; then
+            cp stories/p1_probe.ink.json /tmp/tracked-ink.json
+          fi
+          /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
+            -o stories/p1_probe.ink.json stories/p1_probe.ink
+          # inkjs writes a UTF-8 BOM; normalize generated JSON to match Git.
+          python3 -c 'from pathlib import Path; p=Path("stories/p1_probe.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
+          if test -f /tmp/tracked-ink.json; then
+            cmp -s /tmp/tracked-ink.json stories/p1_probe.ink.json || {
+              echo "Committed Ink JSON drifted from the authored .ink source"
+              exit 1
+            }
+          fi
+          test -s stories/p1_probe.ink.json
+          echo P1_COMPILED_INK_BEGIN
+          cat stories/p1_probe.ink.json
+          echo
+          echo P1_COMPILED_INK_END
+      - name: Install official Godot 4.7.2 standard editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          /tmp/godot --version
+      - name: Import and parse inkgd runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --import 2>&1 | tee /tmp/import.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/import.log; then exit 1; fi
+      - name: Prove two Ink branches and consequences
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --script res://tests/test_ink.gd 2>&1 | tee /tmp/ink-test.log
+          grep -q 'P1_INK_NATIVE_PASS' /tmp/ink-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ink-test.log; then exit 1; fi
+      - name: Run scene headless with real Ink
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/scene.log; then exit 1; fi
+      - name: Install matching export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz \
+            -o /tmp/exports.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          unzip -j -q -o /tmp/exports.tpz \
+            templates/linux_release.x86_64 templates/linux_debug.x86_64 \
+            templates/web_nothreads_release.zip templates/web_nothreads_debug.zip \
+            -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+      - name: Linux x86_64 game export and boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/od2d-ink-evidence build/linux build/web
+          /tmp/godot --headless --path . --export-release Linux build/linux/outsider-driver.x86_64 2>&1 | tee /tmp/linux-export.log
+          test -s build/linux/outsider-driver.x86_64
+          chmod +x build/linux/outsider-driver.x86_64
+          build/linux/outsider-driver.x86_64 --headless --quit-after 90 2>&1 | tee /tmp/linux-run.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/linux-run.log; then exit 1; fi
+      - name: Real Ink in Chromium Web release
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/web-export.log
+          test -s build/web/index.html
+          npm --prefix /tmp/ink-tools install --no-save --no-audit --no-fund playwright@1.56.0
+          /tmp/ink-tools/node_modules/.bin/playwright install chromium
+          python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true' EXIT
+          NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ink_smoke.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p1-ink-web-evidence
+          path: |
+            /tmp/od2d-ink-evidence/
+          if-no-files-found: warn

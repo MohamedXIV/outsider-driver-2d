@@ -18,7 +18,7 @@ Each milestone produces a playable improvement using production-quality code. Pl
 - One job / passenger / destination.
 - Pickup → travel → arrival → deliberate drop-off.
 - Passenger portrait upper-right, player choices lower-left, optional cabin frame.
-- Ink story integration proven on Web and desktop.
+- Ink story integration proven on Web and desktop. **P1.1 verified:** [Ink native/Web evidence](P1_INK.md); remaining ride loop and UI work is ongoing.
 - World/time continue throughout dialogue; arrival-aware choices and safe exits.
 - Fare and one meaningful suspicion/knowledge consequence; fresh save/load.
 
