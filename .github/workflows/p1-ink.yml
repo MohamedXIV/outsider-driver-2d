@@ -100,6 +100,7 @@ jobs:
           unzip -j -q -o /tmp/exports.tpz \
             templates/linux_release.x86_64 templates/linux_debug.x86_64 \
             templates/web_nothreads_release.zip templates/web_nothreads_debug.zip \
+            templates/windows_release_x86_64.exe templates/windows_debug_x86_64.exe \
             -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
       - name: Linux x86_64 game export and boot
         shell: bash
@@ -111,6 +112,14 @@ jobs:
           chmod +x build/linux/outsider-driver.x86_64
           build/linux/outsider-driver.x86_64 --headless --quit-after 90 2>&1 | tee /tmp/linux-run.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/linux-run.log; then exit 1; fi
+      - name: Windows Desktop x86_64 release export
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/windows
+          /tmp/godot --headless --path . --export-release "Windows Desktop" build/windows/outsider-driver.exe 2>&1 | tee /tmp/windows-export.log
+          test -s build/windows/outsider-driver.exe
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/windows-export.log; then exit 1; fi
       - name: Visible Linux desktop scene, choice and save/load walkthrough
         shell: bash
         run: |
@@ -139,6 +148,27 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
           NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ride_smoke.cjs
+      - name: Package downloadable P1 playtest builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/linux/outsider-driver.x86_64
+          test -s build/windows/outsider-driver.exe
+          test -s build/web/index.html
+          mkdir -p dist
+          tar -czf dist/outsider-driver-p1-linux-x86_64.tar.gz -C build/linux .
+          (cd build/windows && zip -qr ../../dist/outsider-driver-p1-windows-x86_64.zip .)
+          (cd build/web && zip -qr ../../dist/outsider-driver-p1-web.zip .)
+          test -s dist/outsider-driver-p1-linux-x86_64.tar.gz
+          test -s dist/outsider-driver-p1-windows-x86_64.zip
+          test -s dist/outsider-driver-p1-web.zip
+          ls -lh dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: outsider-driver-p1-playtest-builds
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 21
       - uses: actions/upload-artifact@v4
         if: always()
         with:
