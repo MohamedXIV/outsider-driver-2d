@@ -11,6 +11,10 @@ extends Node2D
 @onready var _frame_toggle: CheckButton = $HUD/PassengerPanel/PassengerBody/FrameToggle
 @onready var _ride_state: Label = $HUD/RideBar/RideContent/RideState
 @onready var _notice_label: Label = $HUD/RideBar/RideContent/Notice
+@onready var _prep_panel: PanelContainer = $HUD/PrepPanel
+@onready var _prep_help: Label = $HUD/PrepPanel/PrepContent/PrepHelp
+@onready var _prep_detail: Label = $HUD/PrepPanel/PrepContent/PrepDetail
+@onready var _hint_label: Label = $HUD/HintPanel/HintLabel
 @onready var _pickup_button: Button = $HUD/RideBar/RideContent/Actions/Pickup
 @onready var _arrival_button: Button = $HUD/RideBar/RideContent/Actions/Arrived
 @onready var _save_button: Button = $HUD/RideBar/RideContent/Actions/Save
@@ -26,6 +30,9 @@ var _notice: String = ""
 
 func _ready() -> void:
 	_initialize_presentation()
+	$HUD/PrepPanel/PrepContent/PrepChoices/GPS.pressed.connect(_on_select_starter.bind("gps"))
+	$HUD/PrepPanel/PrepContent/PrepChoices/Translator.pressed.connect(_on_select_starter.bind("translator"))
+	$HUD/PrepPanel/PrepContent/PrepChoices/Radio.pressed.connect(_on_select_starter.bind("radio"))
 	_pickup_button.pressed.connect(_on_pickup)
 	_arrival_button.pressed.connect(_on_arrived)
 	_save_button.pressed.connect(_on_save)
@@ -64,6 +71,24 @@ func _restart() -> void:
 	_refresh_ui()
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='false';document.documentElement.dataset.inkChoice='none'", true)
+
+
+func _on_select_starter(device_id: String) -> void:
+	if not _session.select_starter_device(device_id):
+		return
+	_notice = "Prepared %s. You can now take the fare." % device_id.to_upper()
+	_refresh_ui()
+
+
+func _starter_information() -> String:
+	match _session.starter_device:
+		"gps":
+			return "GPS: The direct road crosses an inspection arch. No safe detour is marked."
+		"translator":
+			return "TRANSLATOR: The visitor's token reads NIGHT CLINIC — not an entry permit."
+		"radio":
+			return "RADIO: Two alien languages share the dial. Neither broadcast is intelligible yet."
+	return "Choose one working device. Each reveals different information about the city."
 
 
 func _on_pickup() -> void:
@@ -168,7 +193,14 @@ func _on_load() -> void:
 
 
 func _refresh_ui() -> void:
+	_prep_panel.visible = _session.phase == GameSession.RidePhase.WAITING
+	var device_chosen: bool = not _session.starter_device.is_empty()
+	_prep_help.text = "Equipment locked for this shift." if device_chosen else "One working device. Choose before taking your first passenger."
+	_prep_detail.text = _starter_information()
+	for button in $HUD/PrepPanel/PrepContent/PrepChoices.get_children():
+		(button as Button).disabled = device_chosen
 	_pickup_button.visible = _session.phase == GameSession.RidePhase.WAITING
+	_pickup_button.disabled = not device_chosen
 	var arrival_offered: bool = _ink != null and _ink.current_frame().get("tags", []).has("arrival:offer")
 	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED and not arrival_offered
 	_passenger_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
@@ -185,11 +217,12 @@ func _refresh_ui() -> void:
 	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Visitor %s" % [
 		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint
 	]
+	_hint_label.text = "DOCKSIDE GARAGE  |  Choose equipment to begin" if not device_chosen else _starter_information()
 	_notice_label.text = _notice
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()
-		var web_state: String = "Object.assign(document.documentElement.dataset,{ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
-			phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
+		var web_state: String = "Object.assign(document.documentElement.dataset,{starterDevice:'%s',ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
+			_session.starter_device, phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
 			_session.world_minutes, str(_passenger_panel.visible).to_lower(),
 			str(_choice_panel.visible).to_lower(),
 			_ink.current_frame().get("choices", []).size() if _ink != null else 0,

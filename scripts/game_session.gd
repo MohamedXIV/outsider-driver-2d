@@ -8,17 +8,9 @@ const PASSENGER_ID: String = "passenger:docks-visitor"
 const JOB_ID: String = "job:docks-night-clinic"
 const ROUTE_ID: String = "route:docks-clinic-overpass"
 const FARE_CREDITS: int = 18
-# Starter equipment provides one source of information, never an automatic translation
-# of the city's foreign-language conversations.
-const STARTER_FACTS: Dictionary = {
-	"gps": "map:inspection-arch",
-	"translator": "translation:clinic-token",
-	"radio": "radio:two-local-languages"
-}
 const START_MINUTE: float = 8.0 * 60.0
 
 var phase: RidePhase = RidePhase.WAITING
-var starter_device: String = ""
 var world_minutes: float = START_MINUTE
 var credits: int = 0
 var suspicion: int = 0
@@ -40,17 +32,8 @@ func _create_ride() -> TaxiRide:
 	return TaxiRide.new(route)
 
 
-func select_starter_device(device_id: String) -> bool:
-	if phase != RidePhase.WAITING or not starter_device.is_empty() \
-			or not STARTER_FACTS.has(device_id):
-		return false
-	starter_device = device_id
-	known_facts.append(str(STARTER_FACTS[device_id]))
-	return true
-
-
 func pickup() -> bool:
-	if phase != RidePhase.WAITING or starter_device.is_empty():
+	if phase != RidePhase.WAITING:
 		return false
 	phase = RidePhase.TRAVELING
 	return true
@@ -93,7 +76,6 @@ func snapshot() -> Dictionary:
 		"passenger_id": PASSENGER_ID,
 		"job_id": JOB_ID,
 		"route_id": ROUTE_ID,
-		"starter_device": starter_device,
 		"phase": int(phase),
 		"world_minutes": world_minutes,
 		"credits": credits,
@@ -110,20 +92,13 @@ func restore_snapshot(value: Dictionary) -> bool:
 	var restored_phase: int = int(value.get("phase", -1))
 	if restored_phase < 0 or restored_phase > int(RidePhase.COMPLETED):
 		return false
-	var gear_id: String = str(value.get("starter_device", ""))
-	if (not gear_id.is_empty() and not STARTER_FACTS.has(gear_id)) \
-			or (restored_phase != int(RidePhase.WAITING) and gear_id.is_empty()):
-		return false
 	var fresh_ride: TaxiRide = _create_ride()
 	if not fresh_ride.restore_snapshot(value.get("ride", {})):
 		return false
 	if not value.get("known_facts", null) is Array 			or not value.get("applied_story_events", null) is Array:
 		return false
-	if not gear_id.is_empty() and not value["known_facts"].has(str(STARTER_FACTS[gear_id])):
-		return false
 	ride = fresh_ride
 	phase = restored_phase as RidePhase
-	starter_device = gear_id
 	world_minutes = float(value.get("world_minutes", START_MINUTE))
 	credits = maxi(0, int(value.get("credits", 0)))
 	suspicion = maxi(0, int(value.get("suspicion", 0)))

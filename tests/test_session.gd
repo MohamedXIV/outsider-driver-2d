@@ -6,11 +6,6 @@ func _initialize() -> void:
 	state.advance(3.0)
 	assert(state.world_minutes > GameSession.START_MINUTE)
 	assert(state.ride.world_position() == start, "Taxi drove before pickup.")
-	assert(not state.pickup(), "A shift needs a prepared starter device.")
-	assert(not state.select_starter_device("unknown"))
-	assert(state.select_starter_device("gps"))
-	assert(not state.select_starter_device("translator"), "Starter choice must be single-use.")
-	assert(state.known_facts.has("map:inspection-arch"))
 	assert(state.pickup())
 	assert(not state.pickup(), "Pickup must happen only once.")
 	state.advance(100.0)
@@ -31,13 +26,12 @@ func _initialize() -> void:
 	var save_path: String = "user://p1-session-fixture.json"
 	assert(RideSave.save(state, {}, save_path))
 	var envelope: Dictionary = RideSave.load(save_path)
-	assert(envelope.get("schema_version") == 2)
+	assert(envelope.get("schema_version") == 1)
 	var restored: GameSession = GameSession.new()
 	assert(restored.restore_snapshot(envelope["game"]))
 	assert(restored.phase == GameSession.RidePhase.COMPLETED)
 	assert(restored.credits == GameSession.FARE_CREDITS)
 	assert(restored.suspicion == 1)
-	assert(restored.starter_device == "gps")
 	assert(restored.known_facts.has("docks-route"))
 	assert(restored.ride.world_position() == state.ride.world_position())
 	assert(not restored.drop_off(), "Restore allowed double payment.")
@@ -45,7 +39,6 @@ func _initialize() -> void:
 	restored.advance(2.0)
 	assert(restored.world_minutes > after_dropoff, "Completed ride froze the world.")
 	var traveling: GameSession = GameSession.new()
-	assert(traveling.select_starter_device("radio"))
 	assert(traveling.pickup())
 	traveling.advance(2.0)
 	var unfinished_path: String = "user://p1-unfinished-fixture.json"
@@ -54,20 +47,6 @@ func _initialize() -> void:
 	assert(unfinished.restore_snapshot(RideSave.load(unfinished_path)["game"]))
 	assert(unfinished.phase == GameSession.RidePhase.TRAVELING)
 	assert(unfinished.credits == 0 and unfinished.ride.world_position() == traveling.ride.world_position())
-
-	# The three choices must remain differentiated and survive persistence.
-	var translation: GameSession = GameSession.new()
-	assert(translation.select_starter_device("translator"))
-	assert(translation.known_facts.has("translation:clinic-token"))
-	assert(not translation.known_facts.has("radio:two-local-languages"))
-	assert(translation.restore_snapshot(translation.snapshot()))
-	assert(translation.starter_device == "translator")
-	var invalid: Dictionary = translation.snapshot()
-	invalid["starter_device"] = "unlisted-gear"
-	assert(not GameSession.new().restore_snapshot(invalid), "Invalid equipment must reject save.")
-	invalid = translation.snapshot()
-	invalid["known_facts"] = []
-	assert(not GameSession.new().restore_snapshot(invalid), "Cannot lose the chosen gear's fact.")
 
 	print("P1_SESSION_NATIVE_PASS")
 	quit(0)
