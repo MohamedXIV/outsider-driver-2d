@@ -15,6 +15,10 @@ on:
       - '.github/workflows/p1-ink.yml'
   workflow_dispatch:
 
+concurrency:
+  group: playable-ride-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -73,21 +77,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          /tmp/godot --headless --path . --script res://tests/test_ink.gd 2>&1 | tee /tmp/ink-test.log
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_ink.gd 2>&1 | tee /tmp/ink-test.log
           grep -q 'P1_INK_NATIVE_PASS' /tmp/ink-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ink-test.log; then exit 1; fi
       - name: Verify GameSession, single fare settlement and saves
         shell: bash
         run: |
           set -euo pipefail
-          /tmp/godot --headless --path . --script res://tests/test_session.gd 2>&1 | tee /tmp/session-test.log
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_session.gd 2>&1 | tee /tmp/session-test.log
           grep -q 'P1_SESSION_NATIVE_PASS' /tmp/session-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/session-test.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
           set -euo pipefail
-          /tmp/godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
+          timeout 90s /tmp/godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/scene.log; then exit 1; fi
       - name: Install matching export templates
         shell: bash
@@ -129,7 +133,7 @@ jobs:
             sudo apt-get install -y -qq xvfb xauth
           fi
           mkdir -p /tmp/od2d-ink-evidence/native
-          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" \
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
             /tmp/godot --path . --script res://tests/test_native_ride.gd \
             2>&1 | tee /tmp/native-ride.log
           grep -q 'P1_DESKTOP_NATIVE_PASS' /tmp/native-ride.log
@@ -147,7 +151,7 @@ jobs:
           python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
-          NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ride_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 160s node tests/web_ride_smoke.cjs
       - name: Package downloadable playtest builds
         shell: bash
         run: |
@@ -165,7 +169,7 @@ jobs:
           ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: outsider-driver-playtest-playtest-builds
+          name: outsider-driver-playtest-builds
           path: dist/*
           if-no-files-found: error
           retention-days: 21
