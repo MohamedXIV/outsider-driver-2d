@@ -1,22 +1,28 @@
-# P0 Manual Validation Checklist
+# P0 Evidence and Validation
 
-The initial Godot scene uses **placeholder 2D polygons**, not approved final art.
+## Currently executed
+Not yet run. A targeted GitHub Actions smoke job exists solely because this environment has no local Godot binary, internet downloads, or active ShellWarden tunnel.
 
-## Desktop
+The job imports the project in Godot 4.6.3, runs the domain/projection test script, starts the scene headlessly, and attempts software-rendered PNG capture through Xvfb. The job runs only on relevant changes to the P0 branch, or manually.
 
-1. Open `project.godot` in Godot 4.x and run the scene.
-2. Confirm the taxi starts on the ground road and camera follows with look-ahead.
-3. Confirm the taxi goes **under** the elevated cross-road and is occluded by the bridge deck when appropriate.
-4. Confirm it follows the loop and ramp to level +1, then appears **above** the bridge.
-5. Confirm visible camera expansion near the crossing. Press `R` to replay.
-6. Run `godot --headless --path . --editor --quit` and `godot --headless --path . --script res://tests/test_core.gd`.
+**CI execution ≠ game acceptance.** Review resulting images for camera framing, bridge occlusion, taxi position and the ramp. Desktop/Web exports remain separate gates.
 
-## Web
+### Commands
+```sh
+godot --headless --path . --import
+godot --headless --path . --script res://tests/test_core.gd
+godot --headless --path . --quit-after 90
+```
 
-Export through Godot's Compatibility/Web pipeline once official export templates are present, serve on an HTTP server, and repeat steps 2–5 in a browser. Confirm resources load and inputs work.
+## Visual checks
 
-## Explicit status
+- Crossing on ground should go *behind* bridge deck but not disappear at unrelated positions.
+- Taxi should climb a continuous authored ramp and reappear *above* the bridge.
+- Camera follows direction with moderate look-ahead and zooms out at intersections.
+- The current placeholders are vector polygons, not final art; visually judge geometry and legibility only.
 
-Checks in this file are **instructions, not proof of passing**. A reviewer must record actual platform, Godot version, rendered screenshots, command output, and observations before P0 closure.
+## Export gates
 
-Upcoming: real authored road pieces, passenger presentation and Ink integration. None are claimed implemented by this P0 draw-proof.
+Browser and desktop builds require official Godot export templates and actual launch/smoke on each target; **neither can be inferred from headless CI**.
+
+See [Issue #1](https://github.com/MohamedXIV/outsider-driver-2d/issues/1).

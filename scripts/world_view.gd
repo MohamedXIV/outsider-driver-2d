@@ -26,7 +26,7 @@ func _draw() -> void:
 		_draw_taxi()
 	_draw_support(Vector3(2, 0, -4))
 	_draw_support(Vector3(2, 0, 3))
-	_draw_road(Vector3(2, 1, -7), Vector3(2, 1, 7), 2.25, Color("778c90"))
+	_draw_road(Vector3(2, 1, -7), Vector3(2, 1, 7), 4.1, Color("778c90"))
 	_draw_road_line(Vector3(2, 1, -6), Vector3(2, 1, 6), Color("e6bd74"))
 	_draw_bridge_edge(Vector3(2, 1, -7), Vector3(2, 1, 7))
 	if taxi_world.y >= 0.50:
@@ -48,18 +48,13 @@ func _draw_ground() -> void:
 
 
 func _draw_road(a: Vector3, b: Vector3, width: float, tint: Color) -> void:
-	var tangent: Vector2 = Vector2(b.x - a.x, b.z - a.z).normalized()
-	if tangent.length_squared() < 0.001:
+	var corners: PackedVector2Array = IsoProjection.road_quad(a, b, width)
+	if corners.is_empty():
 		return
-	var lateral: Vector2 = Vector2(-tangent.y, tangent.x) * width * 0.5
-	var corners: PackedVector2Array = PackedVector2Array([
-		IsoProjection.project(Vector3(a.x + lateral.x, a.y, a.z + lateral.y)),
-		IsoProjection.project(Vector3(b.x + lateral.x, b.y, b.z + lateral.y)),
-		IsoProjection.project(Vector3(b.x - lateral.x, b.y, b.z - lateral.y)),
-		IsoProjection.project(Vector3(a.x - lateral.x, a.y, a.z - lateral.y))
-	])
 	draw_colored_polygon(corners, tint)
-	draw_polyline(corners + PackedVector2Array([corners[0]]), Color("b7b7a0", 0.52), 2.0)
+	var outline: PackedVector2Array = corners.duplicate()
+	outline.append(corners[0])
+	draw_polyline(outline, Color("b7b7a0", 0.52), 2.0)
 
 
 func _draw_road_line(a: Vector3, b: Vector3, tint: Color) -> void:
@@ -74,7 +69,7 @@ func _draw_support(base: Vector3) -> void:
 
 
 func _draw_bridge_edge(a: Vector3, b: Vector3) -> void:
-	var side: Vector3 = Vector3(1.25, 0, 0)
+	var side: Vector3 = Vector3(2.05, 0, 0)
 	var left_a: Vector2 = IsoProjection.project(a - side)
 	var left_b: Vector2 = IsoProjection.project(b - side)
 	var right_a: Vector2 = IsoProjection.project(a + side)
@@ -117,7 +112,9 @@ func _draw_taxi() -> void:
 	])
 	draw_circle(center + Vector2(3, 12), 17.0, Color("071015", 0.35))
 	draw_colored_polygon(polygon, Color("eab65c"))
-	draw_polyline(polygon + PackedVector2Array([polygon[0]]), Color("fbe4a9"), 2.5)
+	var outline: PackedVector2Array = polygon.duplicate()
+	outline.append(polygon[0])
+	draw_polyline(outline, Color("fbe4a9"), 2.5)
 	draw_colored_polygon(PackedVector2Array([
 		center + heading * 11 + sideways * 10,
 		center + heading * 11 - sideways * 10,
