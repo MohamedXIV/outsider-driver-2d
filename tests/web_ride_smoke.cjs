@@ -96,7 +96,61 @@ const { chromium } = require('playwright');
     await phase('completed');
     await check(() => document.documentElement.dataset.rideCredits === '18', 'Duplicate payment after loading');
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/restored-completed.png' });
+
+    // Player actually returns to the garage, services the taxi, and works a second shift.
+    await page.keyboard.press('e');
+    await phase('waiting');
+    await check(() => {
+      const d = document.documentElement.dataset;
+      return d.rideCount === '1' && d.dayNumber === '2' &&
+        d.serviceDue === 'true' && d.rideCredits === '18' && d.starterDevice === 'gps';
+    }, 'Return lost the first fare or service debt');
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/returned-day2.png' });
+    await page.waitForTimeout(2200);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await phase('waiting');
+    await page.mouse.click(743, 615); // Load the overnight garage state.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.rideCount === '1' && d.dayNumber === '2' && d.serviceDue === 'true';
+    }, null, { timeout: 15000 });
+    for (let i = 0; i < 5; i++) await page.keyboard.press('w');
+    for (let i = 0; i < 3; i++) await page.keyboard.press('a');
+    await page.waitForFunction(() => document.documentElement.dataset.garageStation === 'workbench', null, { timeout: 15000 });
+    await page.keyboard.press('e'); // One 6-credit repair/upkeep payment.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.serviceDue === 'false' && d.rideCredits === '12' && d.serviceCount === '1';
+    }, null, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/serviced-day2.png' });
+    for (let i = 0; i < 8; i++) await page.keyboard.press('d');
+    for (let i = 0; i < 5; i++) await page.keyboard.press('s');
+    await page.waitForFunction(() => document.documentElement.dataset.garageStation === 'taxi', null, { timeout: 15000 });
+    await page.mouse.click(615, 614);
+    await phase('traveling');
+    await check(() => document.documentElement.dataset.choiceCount === '2', 'Second Ink story did not start.');
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/second-ride.png' });
+    await page.mouse.click(170, 467); // Repeat authored route-information reply.
+    await phase('arrived');
+    await page.mouse.click(614, 614);
+    await page.waitForFunction(() => document.documentElement.dataset.arrivalOffer === 'true', null, { timeout: 15000 });
+    await page.mouse.click(170, 467);
+    await phase('completed');
+    await check(() => {
+      const d = document.documentElement.dataset;
+      return d.rideCount === '2' && d.rideCredits === '30' &&
+        d.serviceCount === '1' && d.serviceDue === 'true' &&
+        d.rideFacts === '3' && d.passengerVisible === 'false';
+    }, 'Second fare or one-time repair/upkeep failed');
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/second-completed.png' });
+    await page.waitForTimeout(2200);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await phase('waiting');
+    await page.mouse.click(743, 615);
+    await page.waitForFunction(() => document.documentElement.dataset.rideCount === '2', null, { timeout: 15000 });
+    await check(() => document.documentElement.dataset.rideCredits === '30' &&
+      document.documentElement.dataset.serviceDue === 'true', 'Second shift failed browser persistence');
     if (errors.length) throw new Error(errors.join('\n'));
-    console.log('P1_RIDE_WEB_PASS: unfinished Ink recovered, authored arrival, ticking clock, single fare and persistent consequences');
+    console.log('P1_RIDE_WEB_PASS: two shifts, once-only fares and upkeep, native Ink and garage persistence in Chromium');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
