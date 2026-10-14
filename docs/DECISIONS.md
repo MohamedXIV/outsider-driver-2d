@@ -20,7 +20,7 @@
 
 ## Pending P1 technical proof (not design reconsideration)
 
-- Select/verify a stable Ink interpreter integration working in Godot desktop and Web.
+- **Verified (P1.1):** inkgd GDScript runtime (pinned source subset) runs authored Ink + choices on Godot 4.7.2 Linux/Desktop and Chromium/Web. See [P1 Ink evidence](P1_INK.md).
 - Validate simple portrait sprite atlas/display and settings before scaling character production.
 
 These P1 gates must be validated before growing narrative/character content. Do not restart engine debates without new evidence.
