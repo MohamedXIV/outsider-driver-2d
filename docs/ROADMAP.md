@@ -2,7 +2,7 @@
 
 Each milestone produces a playable improvement using production-quality code. Placeholder graphics are allowed; disposable architectures are not.
 
-## P0 — Isometric road and camera proof
+## P0 — Isometric road and camera proof — VERIFIED
 
 - Godot project opens and starts on desktop/headless.
 - 2D ground street, elevated bridge, authored ramp and a taxi following them.
@@ -10,6 +10,8 @@ Each milestone produces a playable improvement using production-quality code. Pl
 - Cinematic close-follow, modest look-ahead, readable zoom.
 - Verify the actual rendered frame, not just math.
 - Validate Web and desktop export before closing P0.
+
+**Accepted:** [P0 validation evidence](P0_VALIDATION.md) — real Godot rendering and Chromium/Linux export-smoke passed. Vector graphics remain placeholders, and Windows/mobile UX is a later platform gate.
 
 ## P1 — First authentic taxi ride
 
