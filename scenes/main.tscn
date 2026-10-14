@@ -34,3 +34,31 @@ offset_bottom = 706.0
 [node name="HintLabel" type="Label" parent="HUD/HintPanel"]
 layout_mode = 2
 text = "Taxi follows authored route  •  R: restart  •  Bridge: below then above"
+
+[node name="PassengerPanel" type="PanelContainer" parent="HUD"]
+offset_left = 885.0
+offset_top = 82.0
+offset_right = 1255.0
+offset_bottom = 288.0
+
+[node name="PassengerBody" type="VBoxContainer" parent="HUD/PassengerPanel"]
+layout_mode = 2
+
+[node name="PassengerTitle" type="Label" parent="HUD/PassengerPanel/PassengerBody"]
+layout_mode = 2
+text = "PASSENGER  |  P1 Ink proof"
+
+[node name="PassengerText" type="Label" parent="HUD/PassengerPanel/PassengerBody"]
+custom_minimum_size = Vector2(350, 120)
+layout_mode = 2
+text = "Loading story..."
+autowrap_mode = 3
+
+[node name="ChoicePanel" type="PanelContainer" parent="HUD"]
+offset_left = 18.0
+offset_top = 448.0
+offset_right = 525.0
+offset_bottom = 636.0
+
+[node name="ChoiceList" type="VBoxContainer" parent="HUD/ChoicePanel"]
+layout_mode = 2

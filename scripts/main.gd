@@ -3,12 +3,18 @@ extends Node2D
 @onready var _world: WorldView = $WorldView
 @onready var _camera: Camera2D = $Camera2D
 @onready var _status: Label = $HUD/InfoPanel/InfoLabel
+@onready var _passenger_label: Label = $HUD/PassengerPanel/PassengerBody/PassengerText
+@onready var _choice_list: VBoxContainer = $HUD/ChoicePanel/ChoiceList
+
+const INK_PROBE_PATH: String = "res://stories/p1_probe.ink.json"
+var _ink: InkBridge
 
 var _ride: TaxiRide
 
 
 func _ready() -> void:
 	_restart()
+	_start_ink()
 
 
 func _process(delta: float) -> void:
@@ -35,6 +41,39 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
 		_restart()
+		_start_ink()
+
+
+func _start_ink() -> void:
+	var story_json: String = FileAccess.get_file_as_string(INK_PROBE_PATH)
+	if story_json.is_empty():
+		_passenger_label.text = "Compiled Ink is missing. Compile stories/p1_probe.ink first."
+		return
+	_ink = InkBridge.new()
+	if not _ink.open_compiled(story_json, get_tree()):
+		_passenger_label.text = "Could not load the Ink story."
+		return
+	_show_ink(_ink.advance())
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='true'", true)
+
+
+func _show_ink(line: Dictionary) -> void:
+	_passenger_label.text = str(line["text"])
+	for child in _choice_list.get_children():
+		child.queue_free()
+	var options: Array = line["choices"]
+	for i in range(options.size()):
+		var button: Button = Button.new()
+		button.text = str(options[i])
+		button.pressed.connect(_on_choice.bind(i))
+		_choice_list.add_child(button)
+	if options.is_empty() and bool(line["ended"]):
+		_passenger_label.text += "\n[Conversation ended]"
+
+
+func _on_choice(index: int) -> void:
+	_show_ink(_ink.choose(index))
 
 
 func _restart() -> void:
