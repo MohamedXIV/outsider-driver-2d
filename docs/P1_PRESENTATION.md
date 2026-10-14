@@ -25,3 +25,17 @@ A targeted Godot 4.7.2 native/Web run must prove:
 5. No Web export or scene runtime errors.
 
 P1 ride lifecycle, arrival, fare, authoritative suspicion/facts and save/load remain pending. Never conflate these with UI proof.
+
+## Verified evidence — 2026-10-14
+
+[CI run #38623106414](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38623106414): **PASS**, Godot 4.7.2 on Linux.
+
+- Godot import/parser, authored Ink branch tests, headless scene, Linux x86_64 export/boot, and Web export/Chromium run passed.
+- Godot rendered the SVG 4-frame atlas and illustrated cabin background. UI frames were inspected.
+- Browser test clicked the actual `Show taxi cabin frame` control twice, saw the state change through the Godot UI callback, then clicked the first Ink dialogue option successfully.
+- [Screenshots: framed, avatar-only, and first choice](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38623106414/artifacts/11921814853).
+- Taxi visibly continues along route between the captured screens; panel position and portrait expression are legible.
+
+The `ConfigFile` store is implemented but **persistence across a browser restart has not been acceptance-tested yet**. That is a UI settings durability check for a later pass, not a claim that this artifact proves restart persistence.
+
+Art, styling, scaling on small screens and character catalog remain open production work. This milestone proves only **replaceable rendering with a working visual preference**, not the final passenger UI.
