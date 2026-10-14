@@ -73,7 +73,10 @@ func _show_ink(line: Dictionary) -> void:
 
 
 func _on_choice(index: int) -> void:
-	_show_ink(_ink.choose(index))
+	var consequence: Dictionary = _ink.choose(index)
+	_show_ink(consequence)
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("document.documentElement.dataset.inkChoice='selected'", true)
 
 
 func _restart() -> void:
