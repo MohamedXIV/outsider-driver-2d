@@ -19,3 +19,9 @@ The existing Godot 4.7.2 native/Web test flow remains the release gate. Download
 ## Explicitly not included in P2.0
 
 The physical walkable garage/apartment, recurring jobs, shift returns, repair costs and daily expenses belong to later P2 increments tracked in [P2 Issue #11](https://github.com/MohamedXIV/outsider-driver-2d/issues/11). The existing P1 human playtest [Issue #3](https://github.com/MohamedXIV/outsider-driver-2d/issues/3) remains open. No additional dialogue line has been authored in Ink for the devices yet; this slice gives player-visible information and persisted knowledge, not a new mission branch.
+
+## Verified implementation evidence — October 15, 2026
+
+- [Successful Web/Desktop gate #38645631850](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38645631850) at `5772c3bf0d0ae081250f8a2a9b6a209ce4c3138a`: Ink source/compiler parity, Godot import, native Ink/session assertions, real scene boot, Linux x86_64 export/boot, Windows x86_64 export, visible Linux native walkthrough, and genuine Chromium Web click/save/reload/arrival/dropoff journey all passed.
+- The run provides **outsider-driver-playtest-builds** (21 days) with Windows, Linux and Web archives, plus **playable-ride-evidence** screenshots including `shift-prepared.png` and `native/prepared.png`. Screenshots were inspected to confirm the actual on-screen setup and its disappearance on pickup.
+- Automated tests verify the mechanics, **not** final art, human readability/pacing, Windows execution or a physical walkable garage. See remaining [P1 human gate #3](https://github.com/MohamedXIV/outsider-driver-2d/issues/3).
