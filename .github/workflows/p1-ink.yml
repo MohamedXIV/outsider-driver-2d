@@ -1,10 +1,11 @@
-name: P1 Ink Web and native compatibility gate
+name: P1 passenger presentation Web/Desktop gate
 
 on:
   push:
-    branches: [feat/p1-ink-runtime]
+    branches: [feat/p1-passenger-ui]
     paths:
       - 'addons/inkgd/**'
+      - 'assets/passengers/**'
       - 'scripts/**'
       - 'scenes/**'
       - 'stories/**'

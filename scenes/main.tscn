@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_view.gd" id="2_view"]
+[ext_resource type="Script" path="res://scripts/presentation/passenger_presenter.gd" id="3_presenter"]
+[ext_resource type="Texture2D" path="res://assets/passengers/taxi_seat_frame.svg" id="4_seat"]
 
 [node name="OutsiderDriver" type="Node2D"]
 script = ExtResource("1_main")
@@ -39,7 +41,7 @@ text = "Taxi follows authored route  •  R: restart  •  Bridge: below then ab
 offset_left = 885.0
 offset_top = 82.0
 offset_right = 1255.0
-offset_bottom = 288.0
+offset_bottom = 422.0
 
 [node name="PassengerBody" type="VBoxContainer" parent="HUD/PassengerPanel"]
 layout_mode = 2
@@ -48,8 +50,34 @@ layout_mode = 2
 layout_mode = 2
 text = "PASSENGER  |  P1 Ink proof"
 
+
+[node name="FrameToggle" type="CheckButton" parent="HUD/PassengerPanel/PassengerBody"]
+layout_mode = 2
+text = "Show taxi cabin frame"
+button_pressed = true
+
+[node name="AvatarCanvas" type="Control" parent="HUD/PassengerPanel/PassengerBody"]
+custom_minimum_size = Vector2(350, 112)
+layout_mode = 2
+script = ExtResource("3_presenter")
+
+[node name="SeatFrame" type="TextureRect" parent="HUD/PassengerPanel/PassengerBody/AvatarCanvas"]
+offset_right = 350.0
+offset_bottom = 110.0
+texture = ExtResource("4_seat")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AvatarTexture" type="TextureRect" parent="HUD/PassengerPanel/PassengerBody/AvatarCanvas"]
+offset_left = 8.0
+offset_top = 7.0
+offset_right = 104.0
+offset_bottom = 103.0
+expand_mode = 1
+stretch_mode = 5
+
 [node name="PassengerText" type="Label" parent="HUD/PassengerPanel/PassengerBody"]
-custom_minimum_size = Vector2(350, 120)
+custom_minimum_size = Vector2(350, 92)
 layout_mode = 2
 text = "Loading story..."
 autowrap_mode = 3

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="350" height="110" viewBox="0 0 350 110">
+<!-- A decorative 2D taxi-cabin hint, not a 3D character placement. -->
+<rect x="0" y="0" width="350" height="110" rx="8" fill="#2d3842"/>
+<path d="M210 5 L340 5 L340 95 L220 95 Z" fill="#56636d" stroke="#9bada9" stroke-width="3"/>
+<path d="M238 15 L335 15 L335 66 L238 66 Z" fill="#284957" stroke="#91abae" stroke-width="2"/>
+<path d="M234 68 Q268 58 317 68 L331 104 L223 104 Z" fill="#b48b6b" stroke="#dcc5a5" stroke-width="2"/>
+<path d="M220 109 L220 0" stroke="#bd9b75" stroke-width="6"/>
+<path d="M320 3 L333 108" stroke="#465661" stroke-width="5"/>
+</svg>
