@@ -17,7 +17,7 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Download official Godot 4.6.3 standard Linux editor
@@ -66,11 +66,48 @@ jobs:
           frames = sorted(glob.glob('/tmp/p0-frames/*.png'))
           if len(frames) < 10:
               raise SystemExit(f'Expected rendered PNGs; found {len(frames)}')
-          for label, i in [('start',0), ('underpass',len(frames)//4),
-                           ('ramp',2*len(frames)//3),('end',len(frames)-1)]:
+          for label, i in [('start',0), ('underpass',67),
+                           ('ramp',205),('elevated',245),('end',len(frames)-1)]:
               shutil.copyfile(frames[i], f'artifacts/p0/{label}.png')
-          print('Captured',len(frames),'frames; sampled 4')
+          print('Captured',len(frames),'frames; sampled 5')
           PY
+      - name: Install only needed Godot export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 3 \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz \
+            -o /tmp/godot-templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          unzip -j -q -o /tmp/godot-templates.tpz \
+            templates/linux_release.x86_64 templates/linux_debug.x86_64 \
+            templates/web_release.zip templates/web_debug.zip \
+            -d "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          rm -f /tmp/godot-templates.tpz
+      - name: Export and smoke Linux desktop build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/linux build/web
+          /tmp/godot --headless --path . --export-release Linux build/linux/outsider-driver.x86_64 2>&1 | tee /tmp/export-linux.log
+          test -s build/linux/outsider-driver.x86_64
+          chmod +x build/linux/outsider-driver.x86_64
+          build/linux/outsider-driver.x86_64 --headless --quit-after 80 2>&1 | tee /tmp/linux-play.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/linux-play.log; then exit 1; fi
+      - name: Export and smoke Web build in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/export-web.log
+          test -s build/web/index.html
+          test -n "$(find build/web -maxdepth 1 -name '*.wasm' -print -quit)"
+          mkdir -p /tmp/p0-playwright
+          npm --prefix /tmp/p0-playwright install --no-save --no-audit --no-fund playwright@1.56.0
+          /tmp/p0-playwright/node_modules/.bin/playwright install chromium
+          python3 -m http.server 8765 --directory build/web >/tmp/p0-web-server.log 2>&1 &
+          web_server_pid=$!
+          trap 'kill "$web_server_pid" || true' EXIT
+          NODE_PATH=/tmp/p0-playwright/node_modules node tests/web_smoke.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -27,6 +27,7 @@ func _draw() -> void:
 	_draw_support(Vector3(2, 0, -4))
 	_draw_support(Vector3(2, 0, 3))
 	_draw_road(Vector3(2, 1, -7), Vector3(2, 1, 7), 4.1, Color("778c90"))
+	_draw_bridge_skirting(Vector3(2, 1, -7), Vector3(2, 1, 7), 4.1)
 	_draw_road_line(Vector3(2, 1, -6), Vector3(2, 1, 6), Color("e6bd74"))
 	_draw_bridge_edge(Vector3(2, 1, -7), Vector3(2, 1, 7))
 	if taxi_world.y >= 0.50:
@@ -66,6 +67,20 @@ func _draw_support(base: Vector3) -> void:
 	var top: Vector2 = IsoProjection.project(base + Vector3(0, 1, 0))
 	draw_line(p, top, Color("343e45"), 15.0)
 	draw_line(p + Vector2(-5, 0), top + Vector2(-5, 0), Color("93a0a0"), 4.0)
+
+
+# A thin visible side face makes the 2D bridge read as supported infrastructure.
+# Geometry stays authored 2D polygons; no mesh or 3D renderer.
+func _draw_bridge_skirting(a: Vector3, b: Vector3, width: float) -> void:
+	var quad: PackedVector2Array = IsoProjection.road_quad(a, b, width)
+	if quad.size() != 4:
+		return
+	var thickness: Vector2 = Vector2(0, 14)
+	var side: PackedVector2Array = PackedVector2Array([
+		quad[2], quad[3], quad[3] + thickness, quad[2] + thickness
+	])
+	draw_colored_polygon(side, Color("52626a"))
+	draw_line(quad[2] + thickness, quad[3] + thickness, Color("a4adad"), 2.0)
 
 
 func _draw_bridge_edge(a: Vector3, b: Vector3) -> void:

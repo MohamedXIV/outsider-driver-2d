@@ -1,28 +1,28 @@
-# P0 Evidence and Validation
+# P0 Validation — evidence log
 
-## Currently executed
-Not yet run. A targeted GitHub Actions smoke job exists solely because this environment has no local Godot binary, internet downloads, or active ShellWarden tunnel.
+## Godot 4.6.3 Linux editor: verified (2026-10-14)
 
-The job imports the project in Godot 4.6.3, runs the domain/projection test script, starts the scene headlessly, and attempts software-rendered PNG capture through Xvfb. The job runs only on relevant changes to the P0 branch, or manually.
+[Targeted CI run #38611865760](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38611865760), head `40412ac`:
+- Godot 4.6.3 stable downloaded and started.
+- Headless import/parse **PASS**.
+- `tests/test_core.gd` **PASS** (including road footprint overlap at crossing).
+- Headless scene startup **PASS**.
+- Xvfb/software GL captured 360 genuine rendering frames, archived as four snapshots.
 
-**CI execution ≠ game acceptance.** Review resulting images for camera framing, bridge occlusion, taxi position and the ramp. Desktop/Web exports remain separate gates.
+Visual review of first capture: close follow, road network, flat bridge, and taxi on elevated road are visible. **Remaining:** capture exact crossing (first sampling landed just past it); distinguish bridge thickness/supports; validate exports on Linux/Web.
 
-### Commands
-```sh
-godot --headless --path . --import
-godot --headless --path . --script res://tests/test_core.gd
-godot --headless --path . --quit-after 90
-```
+## Next targeted pass
 
-## Visual checks
+The next run samples the **actual underpass** near frame 67, ramp near frame 205 and elevated deck near frame 245, plus start/end. It also attempts Linux executable export and Web export/browser smoke. These checks are **PENDING** until run results are inspected; don't mark them PASS from workflow configuration alone.
 
-- Crossing on ground should go *behind* bridge deck but not disappear at unrelated positions.
-- Taxi should climb a continuous authored ramp and reappear *above* the bridge.
-- Camera follows direction with moderate look-ahead and zooms out at intersections.
-- The current placeholders are vector polygons, not final art; visually judge geometry and legibility only.
+## Acceptance
 
-## Export gates
+- Correct occlusion at exact ground-level crossing.
+- Continuous ramp with no teleport; taxi above deck after climb.
+- Camera follow and framing legible on representative frames.
+- Valid Linux desktop executable and Web build tested in a browser.
+- Placeholder vector scene **does not constitute final visuals**.
 
-Browser and desktop builds require official Godot export templates and actual launch/smoke on each target; **neither can be inferred from headless CI**.
+The connected local ShellWarden tunnel was unavailable; a single targeted CI job is used for required engine validation. Minimize repeated GitHub Actions runs after evidence is collected.
 
 See [Issue #1](https://github.com/MohamedXIV/outsider-driver-2d/issues/1).
