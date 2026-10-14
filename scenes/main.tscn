@@ -1,0 +1,36 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world_view.gd" id="2_view"]
+
+[node name="OutsiderDriver" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="WorldView" type="Node2D" parent="."]
+script = ExtResource("2_view")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+zoom = Vector2(0.9, 0.9)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="InfoPanel" type="PanelContainer" parent="HUD"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 530.0
+offset_bottom = 72.0
+
+[node name="InfoLabel" type="Label" parent="HUD/InfoPanel"]
+layout_mode = 2
+text = "OUTSIDER DRIVER 2D — P0 camera/elevation proof"
+
+[node name="HintPanel" type="PanelContainer" parent="HUD"]
+offset_left = 18.0
+offset_top = 656.0
+offset_right = 650.0
+offset_bottom = 706.0
+
+[node name="HintLabel" type="Label" parent="HUD/HintPanel"]
+layout_mode = 2
+text = "Taxi follows authored route  •  R: restart  •  Bridge: below then above"
