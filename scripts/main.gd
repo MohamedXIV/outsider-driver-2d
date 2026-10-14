@@ -171,7 +171,7 @@ func _on_save() -> void:
 func _on_load() -> void:
 	var payload: Dictionary = RideSave.load()
 	if payload.is_empty():
-		_notice = "No valid v1 save exists."
+		_notice = "No valid v2 save exists."
 		_refresh_ui()
 		return
 	var restored: GameSession = GameSession.new()
