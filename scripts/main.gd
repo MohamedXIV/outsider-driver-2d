@@ -15,11 +15,13 @@ extends Node2D
 @onready var _prep_panel: PanelContainer = $HUD/PrepPanel
 @onready var _prep_help: Label = $HUD/PrepPanel/PrepContent/PrepHelp
 @onready var _prep_detail: Label = $HUD/PrepPanel/PrepContent/PrepDetail
+@onready var _service_button: Button = $HUD/PrepPanel/PrepContent/Service
 @onready var _hint_label: Label = $HUD/HintPanel/HintLabel
 @onready var _pickup_button: Button = $HUD/RideBar/RideContent/Actions/Pickup
 @onready var _arrival_button: Button = $HUD/RideBar/RideContent/Actions/Arrived
 @onready var _save_button: Button = $HUD/RideBar/RideContent/Actions/Save
 @onready var _load_button: Button = $HUD/RideBar/RideContent/Actions/Load
+@onready var _return_button: Button = $HUD/RideBar/RideContent/Actions/Return
 
 const STORY_PATH: String = "res://stories/p1_probe.ink.json"
 const PRESENTATION_PREFS: String = "user://passenger_presentation.cfg"
@@ -34,6 +36,8 @@ func _ready() -> void:
 	$HUD/PrepPanel/PrepContent/PrepChoices/GPS.pressed.connect(_on_select_starter.bind("gps"))
 	$HUD/PrepPanel/PrepContent/PrepChoices/Translator.pressed.connect(_on_select_starter.bind("translator"))
 	$HUD/PrepPanel/PrepContent/PrepChoices/Radio.pressed.connect(_on_select_starter.bind("radio"))
+	_service_button.pressed.connect(_on_service)
+	_return_button.pressed.connect(_on_return_to_garage)
 	_pickup_button.pressed.connect(_on_pickup)
 	_arrival_button.pressed.connect(_on_arrived)
 	_save_button.pressed.connect(_on_save)
@@ -73,6 +77,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.keycode == KEY_R:
 		_restart()
 		return
+	if _session.phase == GameSession.RidePhase.COMPLETED and event.keycode == KEY_E:
+		_on_return_to_garage()
+		return
 	if _session.phase != GameSession.RidePhase.WAITING:
 		return
 	var movement: Vector2 = Vector2.ZERO
@@ -96,13 +103,18 @@ func _unhandled_input(event: InputEvent) -> void:
 func _interact_in_garage() -> void:
 	match _session.nearest_garage_station():
 		"workbench":
-			_notice = "Choose one working device on the bench."
+			if _session.service_due:
+				_on_service()
+			else:
+				_notice = "Choose one working device on the bench."
 		"noticeboard":
 			if _session.read_garage_notice():
 				_notice = "SHIFT NOTICE: The southern inspection arch is staffed after dusk."
 		"taxi":
 			if _session.starter_device.is_empty():
 				_notice = "Prepare one device at the workbench before departure."
+			elif _session.service_due:
+				_notice = "Service is due. Return to the workbench before driving."
 			else:
 				_on_pickup()
 	_refresh_ui()
@@ -124,6 +136,29 @@ func _on_select_starter(device_id: String) -> void:
 	if not _session.select_starter_device(device_id):
 		return
 	_notice = "Prepared %s. You can now take the fare." % device_id.to_upper()
+	_refresh_ui()
+
+
+func _on_service() -> void:
+	if not _session.service_vehicle():
+		return
+	_on_save()
+	_notice = "Paid %d cr garage upkeep/repair. Taxi ready." % GameSession.SERVICE_COST
+	_refresh_ui()
+
+
+func _on_return_to_garage() -> void:
+	if not _session.return_to_garage():
+		return
+	_ink = null
+	_passenger_label.text = ""
+	_portrait.set_expression("neutral")
+	_camera.position = Vector2.ZERO
+	_camera.zoom = Vector2.ONE
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='false'", true)
+	_on_save()
+	_notice = "Back at the garage. Visit the workbench for upkeep before your next shift."
 	_refresh_ui()
 
 
@@ -185,7 +220,9 @@ func _on_choice(index: int) -> void:
 		return
 	var choosing_arrival: bool = _ink.current_frame().get("tags", []).has("arrival:offer")
 	var result: Dictionary = _ink.choose(index)
-	var event_id: String = "first-ride:arrival-choice" if choosing_arrival else "first-ride:passenger-choice"
+	var ride_number: int = _session.completed_rides + 1
+	var event_id: String = "ride:%d:arrival-choice" % ride_number if choosing_arrival else \
+			"ride:%d:passenger-choice" % ride_number
 	_session.apply_story_tags(event_id, result["tags"])
 	_show_ink(result)
 	if result["tags"].has("fact:docks-route"):
@@ -221,7 +258,7 @@ func _on_save() -> void:
 func _on_load() -> void:
 	var payload: Dictionary = RideSave.load()
 	if payload.is_empty():
-		_notice = "No valid v3 save exists."
+		_notice = "No valid v4 save exists."
 		_refresh_ui()
 		return
 	var restored: GameSession = GameSession.new()
@@ -249,12 +286,16 @@ func _refresh_ui() -> void:
 	var at_taxi: bool = _session.near_garage_station("taxi")
 	_prep_panel.visible = in_garage and at_bench
 	var device_chosen: bool = not _session.starter_device.is_empty()
-	_prep_help.text = "Equipment locked for this shift." if device_chosen else "One working device. Choose before taking your first passenger."
+	_prep_help.text = "Upkeep due: %d cr. Press E or Service taxi." % GameSession.SERVICE_COST if _session.service_due else \
+			("Equipment locked. Ready for the taxi." if device_chosen else "Choose one starter device before your first fare.")
 	_prep_detail.text = _starter_information()
+	_service_button.visible = _session.service_due
+	_service_button.disabled = not at_bench or _session.credits < GameSession.SERVICE_COST
 	for button in $HUD/PrepPanel/PrepContent/PrepChoices.get_children():
 		(button as Button).disabled = device_chosen or not at_bench
 	_pickup_button.visible = _session.phase == GameSession.RidePhase.WAITING
-	_pickup_button.disabled = not device_chosen or not at_taxi
+	_pickup_button.disabled = not device_chosen or not at_taxi or _session.service_due
+	_return_button.visible = _session.phase == GameSession.RidePhase.COMPLETED
 	var arrival_offered: bool = _ink != null and _ink.current_frame().get("tags", []).has("arrival:offer")
 	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED and not arrival_offered
 	_passenger_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
@@ -267,27 +308,35 @@ func _refresh_ui() -> void:
 			"NIGHT SHIFT | %s | %02d:%02d" % [status_text, minute_of_day / 60, minute_of_day % 60]
 	var route_hint: String = "KNOWN" if _session.known_facts.has("docks-route") else "UNKNOWN"
 	var passenger_hint: String = "WATCHFUL" if _session.suspicion > 0 else "CALM"
-	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Visitor %s" % [
-		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint
+	var service_hint: String = "%d cr due" % GameSession.SERVICE_COST if _session.service_due else "READY"
+	_ride_state.text = "Day %d | Rides %d | Fare %d cr | Wallet %d cr | Service %s | Visitor %s" % [
+		_session.day_number(), _session.completed_rides, GameSession.FARE_CREDITS,
+		_session.credits, service_hint, passenger_hint
 	]
 	if in_garage:
 		match _session.nearest_garage_station():
 			"workbench":
-				_hint_label.text = "WORKBENCH  |  Choose equipment  |  WASD move  |  E inspect"
+				_hint_label.text = "WORKBENCH | E pay %d cr upkeep/repair" % GameSession.SERVICE_COST if _session.service_due else \
+						"WORKBENCH | Choose starter equipment | WASD move"
 			"noticeboard":
 				_hint_label.text = "SHIFT NOTICE  |  E read notice  |  WASD move"
 			"taxi":
-				_hint_label.text = "TAXI DOOR  |  E begin fare (after prep)  |  WASD move"
+				_hint_label.text = "TAXI DOOR | Service required at workbench" if _session.service_due else \
+						"TAXI DOOR | E begin fare | WASD move"
 			_:
 				_hint_label.text = "DOCKSIDE GARAGE  |  WASD / arrows move  |  Approach bench, notice or taxi"
+	elif _session.phase == GameSession.RidePhase.COMPLETED:
+		_hint_label.text = "FARE SETTLED | Return to garage (E) to start another day"
 	else:
 		_hint_label.text = _starter_information()
 	_notice_label.text = _notice
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()
-		var web_state: String = "Object.assign(document.documentElement.dataset,{starterDevice:'%s',garageX:'%.2f',garageZ:'%.2f',garageStation:'%s',noticeRead:'%s',ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{starterDevice:'%s',garageX:'%.2f',garageZ:'%.2f',garageStation:'%s',noticeRead:'%s',rideCount:'%d',dayNumber:'%d',serviceDue:'%s',serviceCount:'%d',ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
 			_session.starter_device, _session.garage_position.x, _session.garage_position.y,
-			_session.nearest_garage_station(), str(_session.known_facts.has("notice:inspection-shift")).to_lower(), phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
+			_session.nearest_garage_station(), str(_session.known_facts.has("notice:inspection-shift")).to_lower(),
+			_session.completed_rides, _session.day_number(), str(_session.service_due).to_lower(),
+			_session.service_count, phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
 			_session.world_minutes, str(_passenger_panel.visible).to_lower(),
 			str(_choice_panel.visible).to_lower(),
 			_ink.current_frame().get("choices", []).size() if _ink != null else 0,
