@@ -12,3 +12,7 @@ The player's first shift now starts **inside one authored 2D isometric garage**.
 Position, station distances and knowledge are authoritative in `GameSession`. `GarageView` contains only authored placeholder vector art and player representation; it does not decide whether an interaction is possible. Save schema moves to v3 (fresh saves only; no old-save migration).
 
 P2.2 still needs **return to garage, repairs/upkeep and another shift**. P2.1 is not a complete day loop. P1 human pacing and real Windows gameplay acceptance remain pending.
+
+## Extra persistence and camera checks
+
+The garage walkthrough now saves after reading the notice and committing GPS, reloads the actual exported Web page, verifies the same noticeboard position and facts, then walks to the parked taxi. On departure the follow camera cuts immediately to the route's starting taxi rather than easing in from the room origin. P1 Ink mid-ride save/reload and completion remain part of the same browser gate.

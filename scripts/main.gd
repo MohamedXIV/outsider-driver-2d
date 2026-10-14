@@ -142,6 +142,9 @@ func _on_pickup() -> void:
 	if not _session.pickup():
 		return
 	_notice = "Passenger picked up."
+	# The garage and road are different local spaces: cut to the taxi immediately.
+	_camera.position = IsoProjection.project(_session.ride.world_position())
+	_camera.zoom = Vector2.ONE * 1.45
 	_start_ink()
 	_refresh_ui()
 
@@ -236,6 +239,7 @@ func _on_load() -> void:
 		_start_ink(payload["ink"])
 	_notice = "Game loaded."
 	_camera.position = Vector2.ZERO if _session.phase == GameSession.RidePhase.WAITING else IsoProjection.project(_session.ride.world_position())
+	_camera.zoom = Vector2.ONE if _session.phase == GameSession.RidePhase.WAITING else Vector2.ONE * 1.45
 	_refresh_ui()
 
 

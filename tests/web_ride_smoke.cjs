@@ -30,6 +30,17 @@ const { chromium } = require('playwright');
     await page.keyboard.press('e');
     await page.waitForFunction(() => document.documentElement.dataset.noticeRead === 'true', null, { timeout: 15000 });
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/garage-notice.png' });
+    // Save/load a partially prepared shift while still on foot, not just mid-ride.
+    await page.mouse.click(691, 615); // Save at the garage's fixed RideBar.
+    await page.waitForTimeout(2200);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await phase('waiting');
+    await page.mouse.click(743, 615); // Load the garage position and knowledge.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.garageStation === 'noticeboard' && d.starterDevice === 'gps' && d.noticeRead === 'true';
+    }, null, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/restored-garage.png' });
     for (let i = 0; i < 4; i++) await page.keyboard.press('d');
     for (let i = 0; i < 5; i++) await page.keyboard.press('s');
     await page.waitForFunction(() => document.documentElement.dataset.garageStation === 'taxi', null, { timeout: 15000 });
