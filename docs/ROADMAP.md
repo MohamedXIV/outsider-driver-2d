@@ -31,7 +31,7 @@ Each milestone produces a playable improvement using production-quality code. Pl
 **P2.1 implemented and native/Web validated:** bounded on-foot garage, proximity-gated equipment, read-once shift notice and taxi-door departure, including browser refresh/save recovery ([P2.1 evidence](P2_GARAGE.md); [CI #38650014827](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38650014827)). The garage uses **placeholder art**, Windows runtime and human pacing remain unverified. P2.2 follows with return-to-garage and day-by-day servicing.
 
 
-**P2.2 implementation on branch:** after a completed fare, return to the authored garage, advance to next morning, service the car at the workbench for 6 credits and drive the next shift; first two fares gross 36, upkeep 6, wallet 30. A fresh v4 save keeps the economy, notice, starter gear and repeated Ink consequences. [Daily-loop design and evidence](P2_DAILY_LOOP.md). Do not mark complete before native/Web end-to-end checks.
+**P2.2 implemented and Web/Linux validated (PR #14):** after a completed fare, return to the authored garage and next morning, service at the workbench for 6 credits and drive another authored shift. Two fares gross 36, one service 6, wallet 30. Fresh v4 saves preserve recurring economy, gear, knowledge and ride-scoped Ink results. [Daily-loop evidence](P2_DAILY_LOOP.md); [successful CI #38652590394](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38652590394). The *same* short authored passenger/route repeats for now, with placeholder art. P2.3 and human/Windows-runtime acceptance remain pending.
 
 - Small apartment/garage scene with basic on-foot interaction.
 - Shift preparation, jobs, repairs, expenses and return.
