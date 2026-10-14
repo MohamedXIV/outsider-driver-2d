@@ -10,6 +10,7 @@ extends Node2D
 @onready var _portrait: PassengerPresenter = $HUD/PassengerPanel/PassengerBody/AvatarCanvas
 @onready var _frame_toggle: CheckButton = $HUD/PassengerPanel/PassengerBody/FrameToggle
 @onready var _ride_state: Label = $HUD/RideBar/RideContent/RideState
+@onready var _notice_label: Label = $HUD/RideBar/RideContent/Notice
 @onready var _pickup_button: Button = $HUD/RideBar/RideContent/Actions/Pickup
 @onready var _arrival_button: Button = $HUD/RideBar/RideContent/Actions/Arrived
 @onready var _save_button: Button = $HUD/RideBar/RideContent/Actions/Save
@@ -181,9 +182,10 @@ func _refresh_ui() -> void:
 	]
 	var route_hint: String = "KNOWN" if _session.known_facts.has("docks-route") else "UNKNOWN"
 	var passenger_hint: String = "WATCHFUL" if _session.suspicion > 0 else "CALM"
-	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Passenger %s\n%s" % [
-		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint, _notice
+	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Visitor %s" % [
+		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint
 	]
+	_notice_label.text = _notice
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()
 		var web_state: String = "Object.assign(document.documentElement.dataset,{ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [

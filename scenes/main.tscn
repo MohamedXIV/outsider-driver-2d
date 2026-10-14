@@ -122,3 +122,7 @@ text = "Save"
 [node name="Load" type="Button" parent="HUD/RideBar/RideContent/Actions"]
 layout_mode = 2
 text = "Load"
+
+[node name="Notice" type="Label" parent="HUD/RideBar/RideContent"]
+layout_mode = 2
+text = ""
