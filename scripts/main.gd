@@ -114,8 +114,10 @@ func _on_choice(index: int) -> void:
 	_show_ink(result)
 	if result["tags"].has("fact:docks-route"):
 		_portrait.set_expression("curious")
+		_notice = "Learned: northern service road."
 	elif result["tags"].has("suspicion:1"):
 		_portrait.set_expression("uneasy")
+		_notice = "The visitor watches your dashboard closely."
 	if choosing_arrival and result["tags"].has("arrival:complete") and _session.drop_off():
 		_notice = "Passenger dropped off. Fare settled."
 		_on_save()
@@ -174,12 +176,13 @@ func _refresh_ui() -> void:
 			or _session.phase == GameSession.RidePhase.ARRIVED
 	var status_text: String = ["WAITING", "TRAVELING", "ARRIVED", "COMPLETED"][int(_session.phase)]
 	var minute_of_day: int = int(_session.world_minutes) % 1440
-	_status.text = "OUTSIDER DRIVER 2D | %s | %02d:%02d" % [
+	_status.text = "NIGHT SHIFT | %s | %02d:%02d" % [
 		status_text, minute_of_day / 60, minute_of_day % 60
 	]
-	_ride_state.text = "Fare %d cr | Wallet %d cr | Suspicion %d | Facts %d | %s" % [
-		GameSession.FARE_CREDITS, _session.credits, _session.suspicion,
-		_session.known_facts.size(), _notice
+	var route_hint: String = "KNOWN" if _session.known_facts.has("docks-route") else "UNKNOWN"
+	var passenger_hint: String = "WATCHFUL" if _session.suspicion > 0 else "CALM"
+	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Passenger %s\n%s" % [
+		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint, _notice
 	]
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()

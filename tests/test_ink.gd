@@ -11,7 +11,7 @@ func _initialize() -> void:
 	var bridge: InkBridge = InkBridge.new()
 	assert(bridge.open_compiled(json_text, self))
 	var opening: Dictionary = bridge.advance()
-	assert(str(opening.text).contains("harbor lights"), "Story did not run.")
+	assert(str(opening.text).contains("clinic token"), "Story did not run.")
 	assert(opening.choices.size() == 2, "Expected two authored Ink choices.")
 	var resume_snapshot: Dictionary = bridge.snapshot()
 	var resume: InkBridge = InkBridge.new()
