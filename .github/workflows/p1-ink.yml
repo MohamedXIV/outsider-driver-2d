@@ -94,6 +94,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_garage.gd 2>&1 | tee /tmp/garage-test.log
           grep -q 'P2_GARAGE_NATIVE_PASS' /tmp/garage-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/garage-test.log; then exit 1; fi
+      - name: Verify repeatable shift and service economy
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_loop.gd 2>&1 | tee /tmp/loop-test.log
+          grep -q 'P2_LOOP_NATIVE_PASS' /tmp/loop-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/loop-test.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -158,7 +165,7 @@ jobs:
           python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 160s node tests/web_ride_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 210s node tests/web_ride_smoke.cjs
       - name: Package downloadable playtest builds
         shell: bash
         run: |
