@@ -1,6 +1,7 @@
 extends Node2D
 
 @onready var _world: WorldView = $WorldView
+@onready var _garage: GarageView = $GarageView
 @onready var _camera: Camera2D = $Camera2D
 @onready var _status: Label = $HUD/InfoPanel/InfoLabel
 @onready var _passenger_label: Label = $HUD/PassengerPanel/PassengerBody/PassengerText
@@ -42,24 +43,69 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_session.advance(delta)
-	var taxi_world: Vector3 = _session.ride.world_position()
-	var heading: Vector2 = _session.ride.screen_heading()
-	_world.taxi_world = taxi_world
-	_world.taxi_heading = heading
-	_world.queue_redraw()
-	var destination: Vector2 = IsoProjection.project(taxi_world) + heading * 80.0
-	var follow: float = 1.0 - exp(-delta * 2.8)
-	_camera.position = _camera.position.lerp(destination, follow)
-	var crossing_distance: float = Vector2(taxi_world.x - 2.0, taxi_world.z).length()
-	var target_zoom: float = 1.18 if crossing_distance < 5.0 or taxi_world.y > 0.05 else 1.45
-	_camera.zoom = _camera.zoom.lerp(Vector2.ONE * target_zoom, follow)
+	var in_garage: bool = _session.phase == GameSession.RidePhase.WAITING
+	_world.visible = not in_garage
+	_garage.visible = in_garage
+	if in_garage:
+		_garage.character_position = _session.garage_position
+		_garage.selected_device = _session.starter_device
+		_garage.queue_redraw()
+		_camera.position = Vector2.ZERO
+		_camera.zoom = Vector2.ONE
+	else:
+		var taxi_world: Vector3 = _session.ride.world_position()
+		var heading: Vector2 = _session.ride.screen_heading()
+		_world.taxi_world = taxi_world
+		_world.taxi_heading = heading
+		_world.queue_redraw()
+		var destination: Vector2 = IsoProjection.project(taxi_world) + heading * 80.0
+		var follow: float = 1.0 - exp(-delta * 2.8)
+		_camera.position = _camera.position.lerp(destination, follow)
+		var crossing_distance: float = Vector2(taxi_world.x - 2.0, taxi_world.z).length()
+		var target_zoom: float = 1.18 if crossing_distance < 5.0 or taxi_world.y > 0.05 else 1.45
+		_camera.zoom = _camera.zoom.lerp(Vector2.ONE * target_zoom, follow)
 	_refresh_ui()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_R:
 		_restart()
+		return
+	if _session.phase != GameSession.RidePhase.WAITING:
+		return
+	var movement: Vector2 = Vector2.ZERO
+	match event.keycode:
+		KEY_A, KEY_LEFT:
+			movement.x = -1
+		KEY_D, KEY_RIGHT:
+			movement.x = 1
+		KEY_W, KEY_UP:
+			movement.y = -1
+		KEY_S, KEY_DOWN:
+			movement.y = 1
+		KEY_E:
+			_interact_in_garage()
+			return
+	if movement != Vector2.ZERO:
+		_session.move_in_garage(movement)
+		_refresh_ui()
 
+
+func _interact_in_garage() -> void:
+	match _session.nearest_garage_station():
+		"workbench":
+			_notice = "Choose one working device on the bench."
+		"noticeboard":
+			if _session.read_garage_notice():
+				_notice = "SHIFT NOTICE: The southern inspection arch is staffed after dusk."
+		"taxi":
+			if _session.starter_device.is_empty():
+				_notice = "Prepare one device at the workbench before departure."
+			else:
+				_on_pickup()
+	_refresh_ui()
 
 func _restart() -> void:
 	_session = GameSession.new()
@@ -67,7 +113,8 @@ func _restart() -> void:
 	_notice = ""
 	_passenger_label.text = "Pick up the visitor to begin."
 	_portrait.set_expression("neutral")
-	_camera.position = IsoProjection.project(_session.ride.world_position())
+	_camera.position = Vector2.ZERO
+	_camera.zoom = Vector2.ONE
 	_refresh_ui()
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='false';document.documentElement.dataset.inkChoice='none'", true)
@@ -95,6 +142,9 @@ func _on_pickup() -> void:
 	if not _session.pickup():
 		return
 	_notice = "Passenger picked up."
+	# The garage and road are different local spaces: cut to the taxi immediately.
+	_camera.position = IsoProjection.project(_session.ride.world_position())
+	_camera.zoom = Vector2.ONE * 1.45
 	_start_ink()
 	_refresh_ui()
 
@@ -171,7 +221,7 @@ func _on_save() -> void:
 func _on_load() -> void:
 	var payload: Dictionary = RideSave.load()
 	if payload.is_empty():
-		_notice = "No valid v2 save exists."
+		_notice = "No valid v3 save exists."
 		_refresh_ui()
 		return
 	var restored: GameSession = GameSession.new()
@@ -188,19 +238,23 @@ func _on_load() -> void:
 	if _session.phase == GameSession.RidePhase.TRAVELING or _session.phase == GameSession.RidePhase.ARRIVED:
 		_start_ink(payload["ink"])
 	_notice = "Game loaded."
-	_camera.position = IsoProjection.project(_session.ride.world_position())
+	_camera.position = Vector2.ZERO if _session.phase == GameSession.RidePhase.WAITING else IsoProjection.project(_session.ride.world_position())
+	_camera.zoom = Vector2.ONE if _session.phase == GameSession.RidePhase.WAITING else Vector2.ONE * 1.45
 	_refresh_ui()
 
 
 func _refresh_ui() -> void:
-	_prep_panel.visible = _session.phase == GameSession.RidePhase.WAITING
+	var in_garage: bool = _session.phase == GameSession.RidePhase.WAITING
+	var at_bench: bool = _session.near_garage_station("workbench")
+	var at_taxi: bool = _session.near_garage_station("taxi")
+	_prep_panel.visible = in_garage and at_bench
 	var device_chosen: bool = not _session.starter_device.is_empty()
 	_prep_help.text = "Equipment locked for this shift." if device_chosen else "One working device. Choose before taking your first passenger."
 	_prep_detail.text = _starter_information()
 	for button in $HUD/PrepPanel/PrepContent/PrepChoices.get_children():
-		(button as Button).disabled = device_chosen
+		(button as Button).disabled = device_chosen or not at_bench
 	_pickup_button.visible = _session.phase == GameSession.RidePhase.WAITING
-	_pickup_button.disabled = not device_chosen
+	_pickup_button.disabled = not device_chosen or not at_taxi
 	var arrival_offered: bool = _ink != null and _ink.current_frame().get("tags", []).has("arrival:offer")
 	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED and not arrival_offered
 	_passenger_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
@@ -209,20 +263,31 @@ func _refresh_ui() -> void:
 			or _session.phase == GameSession.RidePhase.ARRIVED
 	var status_text: String = ["WAITING", "TRAVELING", "ARRIVED", "COMPLETED"][int(_session.phase)]
 	var minute_of_day: int = int(_session.world_minutes) % 1440
-	_status.text = "NIGHT SHIFT | %s | %02d:%02d" % [
-		status_text, minute_of_day / 60, minute_of_day % 60
-	]
+	_status.text = "DOCKSIDE GARAGE  |  %02d:%02d" % [minute_of_day / 60, minute_of_day % 60] if in_garage else \
+			"NIGHT SHIFT | %s | %02d:%02d" % [status_text, minute_of_day / 60, minute_of_day % 60]
 	var route_hint: String = "KNOWN" if _session.known_facts.has("docks-route") else "UNKNOWN"
 	var passenger_hint: String = "WATCHFUL" if _session.suspicion > 0 else "CALM"
 	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Visitor %s" % [
 		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint
 	]
-	_hint_label.text = "DOCKSIDE GARAGE  |  Choose equipment to begin" if not device_chosen else _starter_information()
+	if in_garage:
+		match _session.nearest_garage_station():
+			"workbench":
+				_hint_label.text = "WORKBENCH  |  Choose equipment  |  WASD move  |  E inspect"
+			"noticeboard":
+				_hint_label.text = "SHIFT NOTICE  |  E read notice  |  WASD move"
+			"taxi":
+				_hint_label.text = "TAXI DOOR  |  E begin fare (after prep)  |  WASD move"
+			_:
+				_hint_label.text = "DOCKSIDE GARAGE  |  WASD / arrows move  |  Approach bench, notice or taxi"
+	else:
+		_hint_label.text = _starter_information()
 	_notice_label.text = _notice
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()
-		var web_state: String = "Object.assign(document.documentElement.dataset,{starterDevice:'%s',ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
-			_session.starter_device, phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
+		var web_state: String = "Object.assign(document.documentElement.dataset,{starterDevice:'%s',garageX:'%.2f',garageZ:'%.2f',garageStation:'%s',noticeRead:'%s',ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
+			_session.starter_device, _session.garage_position.x, _session.garage_position.y,
+			_session.nearest_garage_station(), str(_session.known_facts.has("notice:inspection-shift")).to_lower(), phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
 			_session.world_minutes, str(_passenger_panel.visible).to_lower(),
 			str(_choice_panel.visible).to_lower(),
 			_ink.current_frame().get("choices", []).size() if _ink != null else 0,

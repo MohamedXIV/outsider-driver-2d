@@ -31,11 +31,20 @@ func _walkthrough() -> void:
 	await RenderingServer.frame_post_draw
 	_capture("waiting.png")
 
+	_walk_to(session, GameSession.WORKBENCH)
+	scene.call("_refresh_ui")
+	assert(scene.get_node("HUD/PrepPanel").visible, "Workbench UI is not present at the station.")
 	var prep: Button = scene.get_node("HUD/PrepPanel/PrepContent/PrepChoices/GPS") as Button
 	prep.pressed.emit()
 	await process_frame
 	assert(session.starter_device == "gps")
 	assert(session.known_facts.has("map:inspection-arch"))
+	assert(pickup.disabled, "Pickup is still physically too far away.")
+	_walk_to(session, GameSession.NOTICEBOARD)
+	scene.call("_interact_in_garage")
+	assert(session.known_facts.has("notice:inspection-shift"), "Garage notice wasn't read.")
+	_walk_to(session, GameSession.TAXI_DOOR)
+	scene.call("_refresh_ui")
 	assert(not pickup.disabled)
 	await RenderingServer.frame_post_draw
 	_capture("prepared.png")
@@ -88,6 +97,7 @@ func _walkthrough() -> void:
 	assert(restored.credits == GameSession.FARE_CREDITS)
 	assert(restored.known_facts.has("docks-route"))
 	assert(restored.known_facts.has("map:inspection-arch"))
+	assert(restored.known_facts.has("notice:inspection-shift"))
 	assert(restored.starter_device == "gps")
 	assert(not restored.drop_off(), "Native Load allowed duplicate fare.")
 	print("P1_DESKTOP_NATIVE_PASS")
@@ -100,3 +110,11 @@ func _capture(filename: String) -> void:
 		"Native rendering did not produce a valid desktop frame.")
 	assert(shot.save_png(EVIDENCE_DIR.path_join(filename)) == OK,
 		"Could not save desktop screenshot.")
+
+
+func _walk_to(state: GameSession, goal: Vector2) -> void:
+	for step in range(40):
+		if state.garage_position.distance_to(goal) <= 0.38:
+			break
+		assert(state.move_in_garage(goal - state.garage_position))
+	assert(state.garage_position.distance_to(goal) <= GameSession.INTERACT_RADIUS)

@@ -1,15 +1,20 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/world_view.gd" id="2_view"]
 [ext_resource type="Script" path="res://scripts/presentation/passenger_presenter.gd" id="3_presenter"]
 [ext_resource type="Texture2D" path="res://assets/passengers/taxi_seat_frame.svg" id="4_seat"]
+[ext_resource type="Script" path="res://scripts/garage_view.gd" id="5_garage"]
 
 [node name="OutsiderDriver" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="WorldView" type="Node2D" parent="."]
 script = ExtResource("2_view")
+
+[node name="GarageView" type="Node2D" parent="."]
+position = Vector2(95, 0)
+script = ExtResource("5_garage")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 enabled = true
