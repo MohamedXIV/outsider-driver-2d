@@ -5,6 +5,10 @@ extends Node2D
 @onready var _status: Label = $HUD/InfoPanel/InfoLabel
 @onready var _passenger_label: Label = $HUD/PassengerPanel/PassengerBody/PassengerText
 @onready var _choice_list: VBoxContainer = $HUD/ChoicePanel/ChoiceList
+@onready var _portrait: PassengerPresenter = $HUD/PassengerPanel/PassengerBody/AvatarCanvas
+@onready var _frame_toggle: CheckButton = $HUD/PassengerPanel/PassengerBody/FrameToggle
+
+const PRESENTATION_PREFS: String = "user://passenger_presentation.cfg"
 
 const INK_PROBE_PATH: String = "res://stories/p1_probe.ink.json"
 var _ink: InkBridge
@@ -13,6 +17,7 @@ var _ride: TaxiRide
 
 
 func _ready() -> void:
+	_initialize_presentation()
 	_restart()
 	# Godot is still registering children inside _ready. Ink's singleton is
 	# created only after the scene tree completes this initialization pass.
@@ -55,6 +60,7 @@ func _start_ink() -> void:
 	if not _ink.open_compiled(story_json, get_tree()):
 		_passenger_label.text = "Could not load the Ink story."
 		return
+	_portrait.set_expression("neutral")
 	_show_ink(_ink.advance())
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='true'", true)
@@ -77,8 +83,39 @@ func _show_ink(line: Dictionary) -> void:
 func _on_choice(index: int) -> void:
 	var consequence: Dictionary = _ink.choose(index)
 	_show_ink(consequence)
+	var tags: Array = consequence["tags"]
+	if tags.has("fact:docks-route"):
+		_portrait.set_expression("curious")
+	elif tags.has("suspicion:1"):
+		_portrait.set_expression("uneasy")
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkChoice='selected'", true)
+
+
+func _initialize_presentation() -> void:
+	var settings: ConfigFile = ConfigFile.new()
+	settings.load(PRESENTATION_PREFS)
+	var framed: bool = bool(settings.get_value("passenger", "framed", true))
+	_frame_toggle.set_pressed_no_signal(framed)
+	_portrait.set_framed(framed)
+	_frame_toggle.toggled.connect(_on_frame_toggled)
+	_publish_frame_mode(framed)
+
+
+func _on_frame_toggled(framed: bool) -> void:
+	_portrait.set_framed(framed)
+	var settings: ConfigFile = ConfigFile.new()
+	settings.set_value("passenger", "framed", framed)
+	var result: Error = settings.save(PRESENTATION_PREFS)
+	if result != OK:
+		push_warning("Passenger presentation preferences could not be saved.")
+	_publish_frame_mode(framed)
+
+
+func _publish_frame_mode(framed: bool) -> void:
+	if OS.has_feature("web"):
+		var value: String = "framed" if framed else "avatar"
+		JavaScriptBridge.eval("document.documentElement.dataset.cabinFrame='%s'" % value, true)
 
 
 func _restart() -> void:
