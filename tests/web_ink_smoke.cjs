@@ -15,12 +15,22 @@ const { chromium } = require('playwright');
     await page.waitForFunction(() => document.documentElement.dataset.inkReady === 'true',
       null, { timeout: 60000 });
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/ink-web-opening.png' });
+    await page.waitForFunction(() => !!document.documentElement.dataset.cabinFrame,
+      null, { timeout: 15000 });
+    const initialFrame = await page.evaluate(() => document.documentElement.dataset.cabinFrame);
+    await page.mouse.click(1030, 119);
+    await page.waitForFunction(expected => document.documentElement.dataset.cabinFrame !== expected,
+      initialFrame, { timeout: 15000 });
+    await page.screenshot({ path: '/tmp/od2d-ink-evidence/avatar-only.png' });
+    await page.mouse.click(1030, 119);
+    await page.waitForFunction(expected => document.documentElement.dataset.cabinFrame === expected,
+      initialFrame, { timeout: 15000 });
     await page.mouse.click(170, 470);
     await page.waitForFunction(() => document.documentElement.dataset.inkChoice === 'selected',
       null, { timeout: 15000 });
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/ink-web-choice.png' });
     if (errors.length) throw new Error(errors.join('\n'));
-    console.log('P1_INK_WEB_PASS: real Godot Web Ink story and player choice');
+    console.log('P1_PRESENTATION_WEB_PASS: Ink choice and persistent cabin-frame setting toggled');
   } finally {
     await browser.close();
   }
