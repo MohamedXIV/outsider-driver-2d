@@ -90,3 +90,35 @@ offset_bottom = 636.0
 
 [node name="ChoiceList" type="VBoxContainer" parent="HUD/ChoicePanel"]
 layout_mode = 2
+
+[node name="RideBar" type="PanelContainer" parent="HUD"]
+offset_left = 551.0
+offset_top = 573.0
+offset_right = 1255.0
+offset_bottom = 707.0
+
+[node name="RideContent" type="VBoxContainer" parent="HUD/RideBar"]
+layout_mode = 2
+
+[node name="RideState" type="Label" parent="HUD/RideBar/RideContent"]
+layout_mode = 2
+text = "Waiting for a shift."
+
+[node name="Actions" type="HBoxContainer" parent="HUD/RideBar/RideContent"]
+layout_mode = 2
+
+[node name="Pickup" type="Button" parent="HUD/RideBar/RideContent/Actions"]
+layout_mode = 2
+text = "Pick up visitor"
+
+[node name="Arrived" type="Button" parent="HUD/RideBar/RideContent/Actions"]
+layout_mode = 2
+text = "We've arrived"
+
+[node name="Save" type="Button" parent="HUD/RideBar/RideContent/Actions"]
+layout_mode = 2
+text = "Save"
+
+[node name="Load" type="Button" parent="HUD/RideBar/RideContent/Actions"]
+layout_mode = 2
+text = "Load"
