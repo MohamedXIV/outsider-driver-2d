@@ -75,3 +75,10 @@ func restore_snapshot(saved: Dictionary) -> bool:
 
 func current_frame() -> Dictionary:
 	return _last_frame.duplicate(true)
+
+
+# An explicit player-initiated jump to an authored safe-exit knot.
+func jump_to(knot: String) -> Dictionary:
+	assert(_story != null, "No Ink story is open.")
+	_story.choose_path_string(knot)
+	return advance()

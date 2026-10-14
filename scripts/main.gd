@@ -62,7 +62,7 @@ func _restart() -> void:
 	_camera.position = IsoProjection.project(_session.ride.world_position())
 	_refresh_ui()
 	if OS.has_feature("web"):
-		JavaScriptBridge.eval("document.documentElement.dataset.ridePhase='waiting'", true)
+		JavaScriptBridge.eval("document.documentElement.dataset.inkReady='false';document.documentElement.dataset.inkChoice='none'", true)
 
 
 func _on_pickup() -> void:
@@ -105,28 +105,33 @@ func _show_ink(frame: Dictionary) -> void:
 
 
 func _on_choice(index: int) -> void:
-	if _ink == null:
+	if _ink == null or _session.phase == GameSession.RidePhase.COMPLETED:
 		return
+	var choosing_arrival: bool = _ink.current_frame().get("tags", []).has("arrival:offer")
 	var result: Dictionary = _ink.choose(index)
-	_session.apply_story_tags("first-ride:passenger-choice", result["tags"])
+	var event_id: String = "first-ride:arrival-choice" if choosing_arrival else "first-ride:passenger-choice"
+	_session.apply_story_tags(event_id, result["tags"])
 	_show_ink(result)
 	if result["tags"].has("fact:docks-route"):
 		_portrait.set_expression("curious")
 	elif result["tags"].has("suspicion:1"):
 		_portrait.set_expression("uneasy")
+	if choosing_arrival and result["tags"].has("arrival:complete") and _session.drop_off():
+		_notice = "Passenger dropped off. Fare settled."
+		_on_save()
 	_refresh_ui()
 	if OS.has_feature("web"):
 		JavaScriptBridge.eval("document.documentElement.dataset.inkChoice='selected'", true)
 
 
 func _on_arrived() -> void:
-	if not _session.drop_off():
+	if _session.phase != GameSession.RidePhase.ARRIVED or _ink == null:
 		return
-	_notice = "We've arrived. Fare paid once."
+	# Player deliberately opens the short authored arrival scene, even if the
+	# earlier conversation was left unanswered. This never auto-cuts a line.
+	_show_ink(_ink.jump_to("arrival"))
+	_notice = "The visitor is ready to disembark."
 	_refresh_ui()
-	_on_save()
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("document.documentElement.dataset.ridePhase='completed'", true)
 
 
 func _on_save() -> void:
@@ -139,14 +144,20 @@ func _on_load() -> void:
 	var payload: Dictionary = RideSave.load()
 	if payload.is_empty():
 		_notice = "No valid v1 save exists."
+		_refresh_ui()
 		return
 	var restored: GameSession = GameSession.new()
 	if not restored.restore_snapshot(payload["game"]):
 		_notice = "Save contains an invalid ride."
+		_refresh_ui()
+		return
+	if (restored.phase == GameSession.RidePhase.TRAVELING or restored.phase == GameSession.RidePhase.ARRIVED) and payload["ink"].is_empty():
+		_notice = "Save is missing its active conversation."
+		_refresh_ui()
 		return
 	_session = restored
 	_ink = null
-	if _session.phase != GameSession.RidePhase.WAITING:
+	if _session.phase == GameSession.RidePhase.TRAVELING or _session.phase == GameSession.RidePhase.ARRIVED:
 		_start_ink(payload["ink"])
 	_notice = "Game loaded."
 	_camera.position = IsoProjection.project(_session.ride.world_position())
@@ -155,7 +166,8 @@ func _on_load() -> void:
 
 func _refresh_ui() -> void:
 	_pickup_button.visible = _session.phase == GameSession.RidePhase.WAITING
-	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED
+	var arrival_offered: bool = _ink != null and _ink.current_frame().get("tags", []).has("arrival:offer")
+	_arrival_button.visible = _session.phase == GameSession.RidePhase.ARRIVED and not arrival_offered
 	_passenger_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
 			or _session.phase == GameSession.RidePhase.ARRIVED
 	_choice_panel.visible = _session.phase == GameSession.RidePhase.TRAVELING \
@@ -171,7 +183,14 @@ func _refresh_ui() -> void:
 	]
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()
-		JavaScriptBridge.eval("document.documentElement.dataset.ridePhase='%s'" % phase_name, true)
+		var web_state: String = "Object.assign(document.documentElement.dataset,{ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [
+			phase_name, _session.credits, _session.suspicion, _session.known_facts.size(),
+			_session.world_minutes, str(_passenger_panel.visible).to_lower(),
+			str(_choice_panel.visible).to_lower(),
+			_ink.current_frame().get("choices", []).size() if _ink != null else 0,
+			str(arrival_offered).to_lower()
+		]
+		JavaScriptBridge.eval(web_state, true)
 
 
 func _initialize_presentation() -> void:

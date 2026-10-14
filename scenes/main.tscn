@@ -48,7 +48,7 @@ layout_mode = 2
 
 [node name="PassengerTitle" type="Label" parent="HUD/PassengerPanel/PassengerBody"]
 layout_mode = 2
-text = "PASSENGER  |  P1 Ink proof"
+text = "PASSENGER  |  Docks visitor"
 
 
 [node name="FrameToggle" type="CheckButton" parent="HUD/PassengerPanel/PassengerBody"]
@@ -113,7 +113,7 @@ text = "Pick up visitor"
 
 [node name="Arrived" type="Button" parent="HUD/RideBar/RideContent/Actions"]
 layout_mode = 2
-text = "We've arrived"
+text = "Talk at destination"
 
 [node name="Save" type="Button" parent="HUD/RideBar/RideContent/Actions"]
 layout_mode = 2

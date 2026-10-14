@@ -35,6 +35,18 @@ func _initialize() -> void:
 	assert(restored.known_facts.has("docks-route"))
 	assert(restored.ride.world_position() == state.ride.world_position())
 	assert(not restored.drop_off(), "Restore allowed double payment.")
+	var after_dropoff: float = restored.world_minutes
+	restored.advance(2.0)
+	assert(restored.world_minutes > after_dropoff, "Completed ride froze the world.")
+	var traveling: GameSession = GameSession.new()
+	assert(traveling.pickup())
+	traveling.advance(2.0)
+	var unfinished_path: String = "user://p1-unfinished-fixture.json"
+	assert(RideSave.save(traveling, {"runtime_state": "ink-state", "frame": {"choices": ["A", "B"]}}, unfinished_path))
+	var unfinished: GameSession = GameSession.new()
+	assert(unfinished.restore_snapshot(RideSave.load(unfinished_path)["game"]))
+	assert(unfinished.phase == GameSession.RidePhase.TRAVELING)
+	assert(unfinished.credits == 0 and unfinished.ride.world_position() == traveling.ride.world_position())
 
 	print("P1_SESSION_NATIVE_PASS")
 	quit(0)

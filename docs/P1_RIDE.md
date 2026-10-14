@@ -3,15 +3,15 @@
 One authored job/passenger and taxi route through the existing Godot world.
 
 ## Contract
-- `GameSession` owns world clock, pickup/arrival/completion phase, taxi progress, credits, knowledge, suspicion and idempotent story-event application.
-- `InkBridge` owns only an interpreter state/presentation snapshot, never credits, relationships or taxi status. Ink tags become explicit player consequences through `GameSession.apply_story_tags`.
-- World time continues each frame (including pending dialogue and after arrival); taxi stops at the destination without freezing the world.
-- `We've arrived` is an intentional safe-exit action. No arbitrary cut-off of a dialogue line.
-- `drop_off` succeeds once, credits +18 once, subsequent calls return false.
-- Fresh schema v1 saves `GameSession` state plus exact Ink interpreter state through `RideSave`. No backward compatibility burden.
-- The current road and passenger graphics remain placeholders; real story content is intentionally small.
+- `GameSession` owns clock, pickup/arrival/completion phase, route progress, credits, knowledge, suspicion and duplicate-safe consequences.
+- `InkBridge` owns interpreter state and the current choice frame, not game truth. All `fact:` and `suspicion:` tags apply through `GameSession`.
+- World time continues through active dialogue and after arrival. The taxi stops on arrival, while the clock keeps advancing.
+- At the destination, the player explicitly chooses **Talk at destination** to transition into Ink's short authored `arrival` knot. Unanswered earlier choices are not cut automatically. Ink provides **We've arrived** and **Take your time** replies, and only their authored `arrival:complete` tags settle the fare.
+- Completed drop-off hides passenger and dialogue presentation; `drop_off` awards 18 credits exactly once.
+- Fresh v1 `RideSave` persists authoritative session and active Ink frame/state. No compatibility burden from the old 3D project.
+- Passenger, taxi and roadway graphics are placeholders, not approved final artwork.
 
-## Validation
-Pending targeted Godot 4.7.2 integration: native session/idempotency/persistence tests, Ink state-restoration tests, exported Linux/Web and an actual browser trip from pickup through dialogue to arrival and completion.
-
-Do not claim P1 complete before a real ride runs end to end.
+## Evidence and acceptance
+- [Earlier baseline: successful native and Chromium run #38624638579](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38624638579) at `d05dbcf8`; screenshots showed passenger hidden after drop-off and 18 credits/1 known fact restored after browser reload.
+- New targeted regression checks include unfinished choice recovery after browser reload, Ink-authored arrival ending, clock advancement while stopped, idempotent fare and repeated Load, restored consequence values, and hidden passenger/choice UI.
+- **New acceptance not yet verified** until the updated commit's native tests, Web Chromium run, visual evidence and Linux export complete. Human pacing/legibility acceptance remains a separate gate; placeholders do not constitute finished art.
