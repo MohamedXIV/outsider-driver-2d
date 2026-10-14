@@ -34,6 +34,8 @@ jobs:
           fi
           /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
             -o stories/p1_probe.ink.json stories/p1_probe.ink
+          # inkjs writes a UTF-8 BOM; normalize generated JSON to match Git.
+          python3 -c 'from pathlib import Path; p=Path("stories/p1_probe.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
           if test -f /tmp/tracked-ink.json; then
             cmp -s /tmp/tracked-ink.json stories/p1_probe.ink.json || {
               echo "Committed Ink JSON drifted from the authored .ink source"
