@@ -16,3 +16,10 @@ P2.2 still needs **return to garage, repairs/upkeep and another shift**. P2.1 is
 ## Extra persistence and camera checks
 
 The garage walkthrough now saves after reading the notice and committing GPS, reloads the actual exported Web page, verifies the same noticeboard position and facts, then walks to the parked taxi. On departure the follow camera cuts immediately to the route's starting taxi rather than easing in from the room origin. P1 Ink mid-ride save/reload and completion remain part of the same browser gate.
+
+## Validation evidence — October 15, 2026
+
+- [Successful Godot 4.7.2 cross-platform CI #38650014827](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38650014827), gameplay head `40af8da8d7fbb864d8b5e03802e18413777701d1`. Editor import/parse, Ink compiler parity, native session + garage tests, Linux scene/export/boot, Windows export, real visible Linux native ride and Chromium Web gameplay all passed.
+- Exported browser drove real WASD keys to each interactive station, selected GPS, read notice with E, saved while standing at the notice, reloaded the page, restored the *same garage position*, drove to taxi, and completed/loaded the original Ink ride. Web screenshots `garage-workbench.png`, `garage-notice.png`, `restored-garage.png`, `garage-taxi.png`, `ride-with-passenger.png` inspected.
+- Action artifacts: **playable-ride-evidence** (screenshots), **outsider-driver-playtest-builds** (Windows x86_64, Linux x86_64, Web; 21-day retention).
+- This is **functional technical/visual evidence** for a placeholder room, not a claim of finished character art, lived-in environmental richness, human pacing acceptance, or tested Windows execution. Issue #3 remains open.
