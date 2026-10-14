@@ -6,7 +6,7 @@ A narrative social-stealth taxi game set in an alien city that prohibits humans.
 
 ## Direction
 
-- **Engine:** Godot 4.x; **language:** typed GDScript; **renderer:** 2D Compatibility (Web + desktop).
+- **Engine:** Godot 4.7.2 stable; **language:** typed GDScript; **renderer:** 2D Compatibility (Web + desktop).
 - **World:** close-follow isometric/axonometric camera, illustrated environments, authored taxi routes, grounded traffic, and multi-elevation bridges/ramps.
 - **Driving:** semi-autonomous, not real-time manual driving.
 - **Narrative:** authored Ink, subject to a Godot/Web integration gate. The game domain owns state and consequences.
@@ -29,7 +29,7 @@ The old [Outsider Driver repository](https://github.com/MohamedXIV/outsider-driv
 
 ## Run
 
-Open `project.godot` in Godot 4.6.3 and press **F5**. The first playable scene is a vector-art P0 route/camera proof: taxi passes under an elevated crossing, follows an authored ramp and drives above it. Press **R** to restart.
+Open `project.godot` in Godot 4.7.2 and press **F5**. The first playable scene is a vector-art P0 route/camera proof: taxi passes under an elevated crossing, follows an authored ramp and drives above it. Press **R** to restart.
 
 For repeatable headless verification:
 
