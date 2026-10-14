@@ -10,6 +10,7 @@ extends Node2D
 @onready var _portrait: PassengerPresenter = $HUD/PassengerPanel/PassengerBody/AvatarCanvas
 @onready var _frame_toggle: CheckButton = $HUD/PassengerPanel/PassengerBody/FrameToggle
 @onready var _ride_state: Label = $HUD/RideBar/RideContent/RideState
+@onready var _notice_label: Label = $HUD/RideBar/RideContent/Notice
 @onready var _pickup_button: Button = $HUD/RideBar/RideContent/Actions/Pickup
 @onready var _arrival_button: Button = $HUD/RideBar/RideContent/Actions/Arrived
 @onready var _save_button: Button = $HUD/RideBar/RideContent/Actions/Save
@@ -114,8 +115,10 @@ func _on_choice(index: int) -> void:
 	_show_ink(result)
 	if result["tags"].has("fact:docks-route"):
 		_portrait.set_expression("curious")
+		_notice = "Learned: northern service road."
 	elif result["tags"].has("suspicion:1"):
 		_portrait.set_expression("uneasy")
+		_notice = "The visitor watches your dashboard closely."
 	if choosing_arrival and result["tags"].has("arrival:complete") and _session.drop_off():
 		_notice = "Passenger dropped off. Fare settled."
 		_on_save()
@@ -174,13 +177,15 @@ func _refresh_ui() -> void:
 			or _session.phase == GameSession.RidePhase.ARRIVED
 	var status_text: String = ["WAITING", "TRAVELING", "ARRIVED", "COMPLETED"][int(_session.phase)]
 	var minute_of_day: int = int(_session.world_minutes) % 1440
-	_status.text = "OUTSIDER DRIVER 2D | %s | %02d:%02d" % [
+	_status.text = "NIGHT SHIFT | %s | %02d:%02d" % [
 		status_text, minute_of_day / 60, minute_of_day % 60
 	]
-	_ride_state.text = "Fare %d cr | Wallet %d cr | Suspicion %d | Facts %d | %s" % [
-		GameSession.FARE_CREDITS, _session.credits, _session.suspicion,
-		_session.known_facts.size(), _notice
+	var route_hint: String = "KNOWN" if _session.known_facts.has("docks-route") else "UNKNOWN"
+	var passenger_hint: String = "WATCHFUL" if _session.suspicion > 0 else "CALM"
+	_ride_state.text = "Clinic fare %d cr  |  Wallet %d cr  |  Route %s  |  Visitor %s" % [
+		GameSession.FARE_CREDITS, _session.credits, route_hint, passenger_hint
 	]
+	_notice_label.text = _notice
 	if OS.has_feature("web"):
 		var phase_name: String = status_text.to_lower()
 		var web_state: String = "Object.assign(document.documentElement.dataset,{ridePhase:'%s',rideCredits:'%d',rideSuspicion:'%d',rideFacts:'%d',rideClock:'%.3f',passengerVisible:'%s',choiceVisible:'%s',choiceCount:'%d',arrivalOffer:'%s'})" % [

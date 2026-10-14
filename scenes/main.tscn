@@ -35,7 +35,7 @@ offset_bottom = 706.0
 
 [node name="HintLabel" type="Label" parent="HUD/HintPanel"]
 layout_mode = 2
-text = "Taxi follows authored route  •  R: restart  •  Bridge: below then above"
+text = "DOCKSIDE  →  NIGHT CLINIC    •    R: restart shift"
 
 [node name="PassengerPanel" type="PanelContainer" parent="HUD"]
 offset_left = 885.0
@@ -122,3 +122,7 @@ text = "Save"
 [node name="Load" type="Button" parent="HUD/RideBar/RideContent/Actions"]
 layout_mode = 2
 text = "Load"
+
+[node name="Notice" type="Label" parent="HUD/RideBar/RideContent"]
+layout_mode = 2
+text = ""
