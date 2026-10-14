@@ -35,6 +35,7 @@ offset_bottom = 706.0
 
 [node name="HintLabel" type="Label" parent="HUD/HintPanel"]
 layout_mode = 2
+autowrap_mode = 3
 text = "DOCKSIDE  →  NIGHT CLINIC    •    R: restart shift"
 
 [node name="PrepPanel" type="PanelContainer" parent="HUD"]

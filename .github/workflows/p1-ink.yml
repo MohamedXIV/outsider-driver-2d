@@ -1,8 +1,8 @@
-name: P1 first authentic ride Web/Desktop gate
+name: Playable ride Web/Desktop gate
 
 on:
   push:
-    branches: ['feat/p1-*']
+    branches: ['feat/p1-*', 'feat/p2-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -148,7 +148,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
           NODE_PATH=/tmp/ink-tools/node_modules node tests/web_ride_smoke.cjs
-      - name: Package downloadable P1 playtest builds
+      - name: Package downloadable playtest builds
         shell: bash
         run: |
           set -euo pipefail
@@ -156,23 +156,23 @@ jobs:
           test -s build/windows/outsider-driver.exe
           test -s build/web/index.html
           mkdir -p dist
-          tar -czf dist/outsider-driver-p1-linux-x86_64.tar.gz -C build/linux .
-          (cd build/windows && zip -qr ../../dist/outsider-driver-p1-windows-x86_64.zip .)
-          (cd build/web && zip -qr ../../dist/outsider-driver-p1-web.zip .)
-          test -s dist/outsider-driver-p1-linux-x86_64.tar.gz
-          test -s dist/outsider-driver-p1-windows-x86_64.zip
-          test -s dist/outsider-driver-p1-web.zip
+          tar -czf dist/outsider-driver-playtest-linux-x86_64.tar.gz -C build/linux .
+          (cd build/windows && zip -qr ../../dist/outsider-driver-playtest-windows-x86_64.zip .)
+          (cd build/web && zip -qr ../../dist/outsider-driver-playtest-web.zip .)
+          test -s dist/outsider-driver-playtest-linux-x86_64.tar.gz
+          test -s dist/outsider-driver-playtest-windows-x86_64.zip
+          test -s dist/outsider-driver-playtest-web.zip
           ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: outsider-driver-p1-playtest-builds
+          name: outsider-driver-playtest-playtest-builds
           path: dist/*
           if-no-files-found: error
           retention-days: 21
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: p1-ink-web-evidence
+          name: playable-ride-evidence
           path: |
             /tmp/od2d-ink-evidence/
           if-no-files-found: warn
