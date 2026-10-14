@@ -22,6 +22,8 @@ Each milestone produces a playable improvement using production-quality code. Pl
 - World/time continue throughout dialogue; arrival-aware choices and safe exits.
 - Fare and one meaningful suspicion/knowledge consequence; fresh save/load.
 
+**P1 implementation status (October 2026):** P1.1/P1.2/P1.3/P1.4/P1.5 are merged; first taxi ride gameplay and Web/Linux automated end-to-end checks are verified. P1.6 exports and packages the same slice for Web, Linux x86_64 and Windows x86_64 ([build and instructions](P1_PLAYTEST.md)). **Human pacing/legibility and real Windows gameplay remain unverified.** Keep [P1 parent #3](https://github.com/MohamedXIV/outsider-driver-2d/issues/3) open for qualitative acceptance; placeholder artwork is not a final visual acceptance. Do not start P2 by pretending that unfinished playtest evidence is a PASS.
+
 ## P2 — Daily loop with personal spaces
 
 - Small apartment/garage scene with basic on-foot interaction.
