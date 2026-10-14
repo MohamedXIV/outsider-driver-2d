@@ -1,0 +1,122 @@
+name: P0 targeted Godot validation
+
+on:
+  push:
+    branches: [feat/p0-godot-2d-foundation]
+    paths:
+      - 'project.godot'
+      - 'scenes/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/p0-godot-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official Godot 4.6.3 standard Linux editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 2 \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_linux.x86_64.zip \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.6.3-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          /tmp/godot --version
+      - name: Import and parse project
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --import 2>&1 | tee /tmp/import.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/import.log; then exit 1; fi
+      - name: Execute deterministic core checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --script res://tests/test_core.gd 2>&1 | tee /tmp/tests.log
+          grep -q 'P0 core checks passed' /tmp/tests.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/tests.log; then exit 1; fi
+      - name: Run Godot scene headlessly
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --quit-after 90 2>&1 | tee /tmp/scene.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/scene.log; then exit 1; fi
+      - name: Capture real rendered frames with software OpenGL
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+          mkdir -p /tmp/p0-frames /tmp/p0-evidence
+          timeout 180s xvfb-run -a -s '-screen 0 1280x720x24' \
+            env LIBGL_ALWAYS_SOFTWARE=1 \
+            /tmp/godot --path . --write-movie /tmp/p0-frames/p0.png \
+            --fixed-fps 15 --quit-after 360 2>&1 | tee /tmp/capture.log
+          python3 - <<'PY'
+          import glob, os, shutil
+          frames = sorted(glob.glob('/tmp/p0-frames/*.png'))
+          if len(frames) < 10:
+              raise SystemExit(f'Expected rendered PNGs; found {len(frames)}')
+          for label, i in [('start',0), ('underpass',67),
+                           ('ramp',205),('elevated',245),('end',len(frames)-1)]:
+              shutil.copyfile(frames[i], f'/tmp/p0-evidence/{label}.png')
+          print('Captured',len(frames),'frames; sampled 5')
+          PY
+      - name: Confirm capture evidence cannot enter exported game
+        shell: bash
+        run: |
+          test -d /tmp/p0-evidence
+          test ! -d artifacts/p0
+      - name: Install only needed Godot export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 3 \
+            https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz \
+            -o /tmp/godot-templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          unzip -j -q -o /tmp/godot-templates.tpz \
+            templates/linux_release.x86_64 templates/linux_debug.x86_64 \
+            templates/web_nothreads_release.zip templates/web_nothreads_debug.zip \
+            -d "$HOME/.local/share/godot/export_templates/4.6.3.stable"
+          rm -f /tmp/godot-templates.tpz
+      - name: Export and smoke Linux desktop build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/linux build/web
+          /tmp/godot --headless --path . --export-release Linux build/linux/outsider-driver.x86_64 2>&1 | tee /tmp/export-linux.log
+          test -s build/linux/outsider-driver.x86_64
+          chmod +x build/linux/outsider-driver.x86_64
+          build/linux/outsider-driver.x86_64 --headless --quit-after 80 2>&1 | tee /tmp/linux-play.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/linux-play.log; then exit 1; fi
+      - name: Export and smoke Web build in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/export-web.log
+          test -s build/web/index.html
+          test -n "$(find build/web -maxdepth 1 -name '*.wasm' -print -quit)"
+          mkdir -p /tmp/p0-playwright
+          npm --prefix /tmp/p0-playwright install --no-save --no-audit --no-fund playwright@1.56.0
+          /tmp/p0-playwright/node_modules/.bin/playwright install chromium
+          python3 -m http.server 8765 --directory build/web >/tmp/p0-web-server.log 2>&1 &
+          web_server_pid=$!
+          trap 'kill "$web_server_pid" || true' EXIT
+          NODE_PATH=/tmp/p0-playwright/node_modules node tests/web_smoke.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p0-validation-evidence
+          path: |
+            /tmp/p0-evidence/
+          if-no-files-found: warn

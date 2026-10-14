@@ -1,25 +1,19 @@
-# Godot 4.2+ specific ignores
-~*.dll
-
-# Godot 4+ specific ignores
+# Godot-generated
 .godot/
-.nomedia
-
-# Godot-specific ignores
 .import/
-export.cfg
-export_credentials.cfg
-*.tmp
-
-# Imported translations (automatically generated from CSV files)
-*.translation
-
-# Mono-specific ignores
 .mono/
+~*.dll
+*.tmp
+*.translation
+.nomedia
 data_*/
 mono_crash.*.json
 
-# Export outputs
+# Local exports and secrets (export presets without credentials may be versioned later)
+build/
+dist/
+export.cfg
+export_credentials.cfg
 *.exe
-# Uncomment if your project does not version PCK files as runtime dependencies.
-# *.pck
+*.pck
+.DS_Store
