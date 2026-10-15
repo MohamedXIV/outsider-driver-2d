@@ -85,3 +85,127 @@ static func valid_history(meetings: Array, residents: Array, offers: Array,
 		if not invite or (["completed", "left", "missed", "declined", "expired", "cancelled"].has(status) and not terminal):
 			return false
 	return true
+
+
+static func maybe_invite(world: SandboxWorld, npc: Dictionary, source: String) -> void:
+	for existing in world.meetings:
+		if existing["npc_id"] == npc["id"]:
+			return # One bounded first off-duty meeting per person in this slice.
+	var invitation: Dictionary = propose(npc, world.minute, source)
+	if invitation.is_empty():
+		return
+	world.meetings.append(invitation)
+	world._record("meeting_invited", str(invitation["id"]), {
+		"npc_id": npc["id"], "source": source, "venue": invitation["location"],
+		"slot": invitation["slot"], "deadline": invitation["deadline"]
+	})
+
+
+static func find(world: SandboxWorld, meeting_id: String) -> Dictionary:
+	for meeting in world.meetings:
+		if meeting["id"] == meeting_id:
+			return meeting
+	return {}
+
+
+static func accept(world: SandboxWorld, meeting_id: String) -> bool:
+	var meeting: Dictionary = find(world, meeting_id)
+	if meeting.is_empty() or meeting["status"] != "invited" \
+			or world.minute >= int(meeting["slot"]) or not world.active_offer_id.is_empty():
+		return false
+	for other in world.meetings:
+		if ["accepted", "in_progress"].has(other["status"]):
+			return false
+	var npc: Dictionary = world.resident(str(meeting["npc_id"]))
+	if npc.is_empty() or npc["location"] != meeting["location"] \
+			or npc["activity"] == "travelling":
+		return false
+	for offer in world.offers:
+		if offer["npc_id"] == npc["id"] and ["open", "accepted"].has(offer["status"]):
+			return false
+	meeting["status"] = "accepted"
+	# An accepted personal commitment takes precedence over new trip demand.
+	npc["cooldown_until"] = maxi(int(npc["cooldown_until"]), int(meeting["deadline"]) + 10)
+	world._record("meeting_accepted", meeting_id, {
+		"npc_id": npc["id"], "venue": meeting["location"], "slot": meeting["slot"]
+	})
+	return true
+
+
+static func decline(world: SandboxWorld, meeting_id: String) -> bool:
+	var meeting: Dictionary = find(world, meeting_id)
+	if meeting.is_empty() or meeting["status"] != "invited":
+		return false
+	meeting["status"] = "declined"
+	world._record("meeting_declined", meeting_id, {"npc_id": meeting["npc_id"]})
+	return true
+
+
+static func on_tick(world: SandboxWorld) -> void:
+	for meeting in world.meetings:
+		var status: String = str(meeting["status"])
+		if status == "invited" and world.minute >= int(meeting["slot"]):
+			meeting["status"] = "expired"
+			world._record("meeting_expired", str(meeting["id"]), {
+				"reason": "invitation_unanswered"
+			})
+		elif status == "accepted" and world.minute >= int(meeting["slot"]):
+			var npc: Dictionary = world.resident(str(meeting["npc_id"]))
+			if npc.is_empty() or npc["location"] != meeting["location"] \
+					or npc["activity"] != "available":
+				meeting["status"] = "cancelled"
+				world._record("meeting_cancelled", str(meeting["id"]), {
+					"reason": "npc_unavailable", "npc_id": meeting["npc_id"]
+				})
+			elif world.minute > int(meeting["deadline"]):
+				meeting["status"] = "missed"
+				npc["trust"] = int(npc["trust"]) - 1
+				world._record("meeting_missed", str(meeting["id"]), {
+					"npc_id": npc["id"], "trust_delta": -1,
+					"deadline": meeting["deadline"]
+				})
+
+
+static func start(world: SandboxWorld, meeting_id: String) -> bool:
+	var meeting: Dictionary = find(world, meeting_id)
+	if meeting.is_empty() or meeting["status"] != "accepted" \
+			or not world.active_offer_id.is_empty() \
+			or world.player_district != meeting["location"] \
+			or world.minute < int(meeting["slot"]) or world.minute > int(meeting["deadline"]):
+		return false
+	var npc: Dictionary = world.resident(str(meeting["npc_id"]))
+	if npc.is_empty() or npc["location"] != meeting["location"] \
+			or npc["activity"] != "available":
+		return false
+	meeting["status"] = "in_progress"
+	meeting["late"] = world.minute > int(meeting["slot"]) + 10
+	world._record("meeting_started", meeting_id, {
+		"npc_id": npc["id"], "venue": meeting["location"],
+		"late": meeting["late"], "source": meeting["source"]
+	})
+	return true
+
+
+static func finish(world: SandboxWorld, meeting_id: String, choice: String) -> bool:
+	var meeting: Dictionary = find(world, meeting_id)
+	if meeting.is_empty() or meeting["status"] != "in_progress" \
+			or not ["listen", "brief", "leave"].has(choice):
+		return false
+	var npc: Dictionary = world.resident(str(meeting["npc_id"]))
+	if npc.is_empty():
+		return false
+	var duration: int = 10 if choice == "leave" else MEETING_MINUTES
+	var trust_delta: int = -1 if choice == "leave" else (2 if choice == "listen" else 1)
+	if bool(meeting["late"]) and choice != "leave":
+		trust_delta -= 1
+	meeting["status"] = "left" if choice == "leave" else "completed"
+	# Consume real world time; another passenger's offer can expire meanwhile.
+	if not world.advance(duration):
+		return false
+	npc["trust"] = int(npc["trust"]) + trust_delta
+	world._record("meeting_%s" % meeting["status"], meeting_id, {
+		"npc_id": npc["id"], "venue": meeting["location"],
+		"choice": choice, "duration": duration, "late": meeting["late"],
+		"trust_delta": trust_delta
+	})
+	return true
