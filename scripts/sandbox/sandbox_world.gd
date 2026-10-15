@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 7
+const SCHEMA_VERSION: int = 8
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -24,6 +24,7 @@ var route_segment: int = 0
 var route_edge_elapsed: int = 0
 var pending_route_nodes: Array[String] = []
 var rider_route_request: Dictionary = {}
+var meetings: Array[Dictionary] = []
 
 
 func _init(world_seed: int = 1) -> void:
@@ -108,6 +109,7 @@ func advance(minutes: int) -> bool:
 		_record_changes(SandboxPopulation.step(residents, minute))
 		_record_changes(SandboxAutonomy.finish_arrivals(residents, minute))
 		_apply_peer_contact(SandboxSocial.pick(residents, minute))
+		SandboxMeetings.on_tick(self)
 		var expired: Array[String] = SandboxDispatch.expire(residents, offers, minute)
 		for id in expired:
 			_record("offer_expired", id)
@@ -322,6 +324,9 @@ func _complete_active_trip() -> void:
 	_record("fare_settled", str(offer["id"]), {"credits": fare, "npc_id": npc["id"], "to": player_district})
 	SandboxDriverMemory.remember(npc, SandboxDriverMemory.COMPLETED,
 		str(offer["id"]), str(events.back()["id"]), minute)
+	# The source remains the actual fare settlement, not a fabricated NPC quest.
+	var fare_source: String = str(events.back()["id"])
+	SandboxMeetings.maybe_invite(self, npc, fare_source)
 	active_offer_id = ""
 	route_nodes.clear()
 	route_segment = 0
@@ -340,14 +345,16 @@ func snapshot() -> Dictionary:
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
 		"pending_route_nodes": pending_route_nodes.duplicate(),
-		"rider_route_request": rider_route_request.duplicate(true)
+		"rider_route_request": rider_route_request.duplicate(true),
+		"meetings": meetings.duplicate(true)
 	}
 
 
 func restore_snapshot(value: Dictionary) -> bool:
 	if int(value.get("version", -1)) != SCHEMA_VERSION:
 		return false
-	if not (value.get("residents") is Array) or not (value.get("offers") is Array) or not (value.get("events") is Array):
+	if not (value.get("residents") is Array) or not (value.get("offers") is Array) or not (value.get("events") is Array) \
+			or not (value.get("meetings") is Array):
 		return false
 	var district: String = str(value.get("player_district", ""))
 	var remaining: int = int(value.get("remaining_minutes", -1))
@@ -425,6 +432,9 @@ func restore_snapshot(value: Dictionary) -> bool:
 					break
 			if not found_source:
 				return false
+	if not SandboxMeetings.valid_history(value["meetings"], value["residents"],
+			value["offers"], value["events"], int(value["minute"])):
+		return false
 	var offered: Dictionary = {}
 	var actual_active: int = 0
 	for offer in value["offers"]:
@@ -511,4 +521,28 @@ func restore_snapshot(value: Dictionary) -> bool:
 	route_edge_elapsed = elapsed
 	pending_route_nodes = pending.duplicate()
 	rider_route_request = request.duplicate(true)
+	meetings.clear()
+	for meeting in value["meetings"]:
+		meetings.append((meeting as Dictionary).duplicate(true))
 	return true
+
+
+# Off-duty social interaction is not a second scene/world authority.
+func meeting_by_id(meeting_id: String) -> Dictionary:
+	return SandboxMeetings.find(self, meeting_id)
+
+
+func accept_meeting(meeting_id: String) -> bool:
+	return SandboxMeetings.accept(self, meeting_id)
+
+
+func decline_meeting(meeting_id: String) -> bool:
+	return SandboxMeetings.decline(self, meeting_id)
+
+
+func start_meeting(meeting_id: String) -> bool:
+	return SandboxMeetings.start(self, meeting_id)
+
+
+func finish_meeting(meeting_id: String, choice: String) -> bool:
+	return SandboxMeetings.finish(self, meeting_id, choice)
