@@ -17,6 +17,12 @@ func _walkthrough() -> void:
 	var list: ItemList = scene.get_node("HUD/DockPanel/Content/Offers") as ItemList
 	var accept: Button = scene.get_node("HUD/DockPanel/Content/Actions/Accept") as Button
 	assert(world.residents.size() == 9 and list.item_count > 1)
+	var translator: Button = scene.get_node("HUD/GearPanel/Content/Devices/Translator") as Button
+	assert(not translator.disabled)
+	translator.pressed.emit()
+	await process_frame
+	assert(world.starter_device == "translator" and world.knowledge.size() == 1)
+	assert(translator.disabled)
 	assert(not accept.disabled, "No accessible generated demand at the starting district.")
 	var talk: Button = scene.get_node("HUD/DockPanel/Content/Actions/Talk") as Button
 	var dialogue: PanelContainer = scene.get_node("HUD/DialoguePanel") as PanelContainer
@@ -33,6 +39,8 @@ func _walkthrough() -> void:
 	(choice_list.get_child(0) as Button).pressed.emit()
 	await process_frame
 	assert(conversation.current_frame()["tags"].has("intent:ask_destination"))
+	assert(world.knows(SandboxKnowledge.ROUTE_MARKER))
+	assert(not conversation.current_frame()["text"].contains(str(world.offer_by_id(conversation.offer_id)["destination"])))
 	assert(choice_list.get_child_count() == 2, "Ask destination did not keep valid actions.")
 	scene.call("_on_save")
 	var old_offer_id: String = conversation.offer_id
@@ -42,6 +50,15 @@ func _walkthrough() -> void:
 	assert(resumed.current_frame()["tags"].has("intent:ask_destination"))
 	await RenderingServer.frame_post_draw
 	_capture("restored-ink-choice.png")
+	scene.call("_on_talk") # Revisit the *same live request* after learning a bounded phrase.
+	await process_frame
+	var calibrated: SandboxConversation = scene.get("_conversation") as SandboxConversation
+	assert(calibrated.recognizes_route() and not calibrated.understood())
+	(choice_list.get_child(0) as Button).pressed.emit()
+	await process_frame
+	assert(calibrated.current_frame()["text"].contains(str(world.offer_by_id(calibrated.offer_id)["destination"])))
+	await RenderingServer.frame_post_draw
+	_capture("learned-route-marker.png")
 	(choice_list.get_child(0) as Button).pressed.emit()
 	await process_frame
 	assert(scene.get("_conversation") == null)

@@ -12,6 +12,7 @@ var _ink: InkBridge
 var _frame: Dictionary = {}
 var _outcome: String = ""
 var _understood: bool = false
+var _partial_route: bool = false
 
 
 func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool:
@@ -24,8 +25,10 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	var compiled: String = FileAccess.get_file_as_string(STORY_PATH)
 	if compiled.is_empty():
 		return false
-	var understood: bool = str(npc["language"]) == "trade"
+	var understood: bool = SandboxKnowledge.understands(str(npc["language"]), world.knowledge)
+	var partial_route: bool = SandboxKnowledge.recognizes_route_marker(str(npc["language"]), world.knowledge)
 	var globals: Dictionary = {
+		"knows_local_route": partial_route,
 		"understands_speaker": understood,
 		"urgent": int(npc["need"]) >= 70,
 		"temperament": str(npc["temperament"]),
@@ -38,6 +41,7 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	_ink = bridge
 	offer_id = requested_offer
 	_understood = understood
+	_partial_route = partial_route
 	_outcome = ""
 	_frame = _ink.advance()
 	return true
@@ -60,6 +64,9 @@ func choose(index: int, world: SandboxWorld) -> bool:
 	var result: Dictionary = _ink.choose(index)
 	_frame = result
 	var tags: Array = result.get("tags", [])
+	# This can only learn a bounded phrase after a real language observation.
+	if tags.has("intent:ask_destination"):
+		world.observe_route_language(offer_id)
 	# Ink tags describe a proposed speech act. World validates & owns the effect.
 	if tags.has(ACTION_ACCEPT):
 		_outcome = "accepted" if world.accept(offer_id) else "blocked"
@@ -78,6 +85,10 @@ func outcome() -> String:
 
 func understood() -> bool:
 	return _understood
+
+
+func recognizes_route() -> bool:
+	return _partial_route
 
 
 func is_finished() -> bool:

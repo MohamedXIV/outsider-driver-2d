@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 1
+const SCHEMA_VERSION: int = 2
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -12,6 +12,8 @@ var minute: int = START_MINUTE
 var player_district: String = "docks"
 var credits: int = 12
 var risk: int = 0
+var starter_device: String = ""
+var knowledge: Array[String] = []
 var residents: Array[Dictionary] = []
 var offers: Array[Dictionary] = []
 var events: Array[Dictionary] = []
@@ -33,6 +35,42 @@ func _record(kind: String, subject: String, detail: Dictionary = {}) -> void:
 		"subject": subject,
 		"detail": detail.duplicate(true)
 	})
+
+
+func select_starter_device(device: String) -> bool:
+	if not starter_device.is_empty() or not SandboxKnowledge.DEVICES.has(device) \
+			or not active_offer_id.is_empty():
+		return false
+	starter_device = device
+	_grant_fact(str(SandboxKnowledge.FIRST_FACT[device]), "starter:%s" % device)
+	_record("starter_selected", "player", {"device": device})
+	return true
+
+
+func knows(fact: String) -> bool:
+	return SandboxKnowledge.has_fact(knowledge, fact)
+
+
+func _grant_fact(fact: String, source: String) -> bool:
+	if knowledge.has(fact):
+		return false
+	knowledge.append(fact)
+	_record("knowledge_learned", "player", {"fact": fact, "source": source})
+	return true
+
+
+func observe_route_language(offer_id: String) -> bool:
+	# Observing a real live response unlocks a single reusable *route marker*.
+	# Merely owning a translator is not equivalent to already knowing it.
+	var offer: Dictionary = offer_by_id(offer_id)
+	if offer.is_empty() or offer.get("status") != "open" \
+			or offer.get("origin") != player_district or not active_offer_id.is_empty():
+		return false
+	var npc: Dictionary = resident(str(offer["npc_id"]))
+	if npc.is_empty() or not SandboxKnowledge.can_observe_route(
+			starter_device, str(npc.get("language", "")), SandboxKnowledge.ROUTE_MARKER):
+		return false
+	return _grant_fact(SandboxKnowledge.ROUTE_MARKER, "offer:%s" % offer_id)
 
 
 func resident(npc_id: String) -> Dictionary:
@@ -136,6 +174,7 @@ func snapshot() -> Dictionary:
 	return {
 		"version": SCHEMA_VERSION, "seed": seed, "minute": minute,
 		"player_district": player_district, "credits": credits, "risk": risk,
+		"starter_device": starter_device, "knowledge": knowledge.duplicate(),
 		"residents": residents.duplicate(true), "offers": offers.duplicate(true),
 		"events": events.duplicate(true), "active_offer_id": active_offer_id,
 		"remaining_minutes": remaining_minutes
@@ -153,6 +192,21 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if not SandboxRoads.DISTRICTS.has(district) or remaining < 0 or int(value.get("minute", -1)) < START_MINUTE:
 		return false
 	if int(value.get("credits", -1)) < 0 or int(value.get("risk", -1)) < 0:
+		return false
+	var device: String = str(value.get("starter_device", ""))
+	if not (device.is_empty() or SandboxKnowledge.DEVICES.has(device)) \
+			or not (value.get("knowledge") is Array):
+		return false
+	var restored_knowledge: Array[String] = []
+	for item in value["knowledge"]:
+		if not (item is String) or restored_knowledge.has(item):
+			return false
+		restored_knowledge.append(item)
+	if device.is_empty() and not restored_knowledge.is_empty():
+		return false
+	if not device.is_empty() and not restored_knowledge.has(str(SandboxKnowledge.FIRST_FACT[device])):
+		return false
+	if restored_knowledge.has(SandboxKnowledge.ROUTE_MARKER) and device != "translator":
 		return false
 	if value["residents"].size() != 9:
 		return false
@@ -176,6 +230,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 	player_district = district
 	credits = int(value["credits"])
 	risk = int(value["risk"])
+	starter_device = device
+	knowledge = restored_knowledge.duplicate()
 	residents.clear()
 	for npc in value["residents"]:
 		residents.append((npc as Dictionary).duplicate(true))
