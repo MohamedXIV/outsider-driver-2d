@@ -16,6 +16,11 @@ extends Node2D
 @onready var _dialogue_title: Label = $HUD/DialoguePanel/Content/Title
 @onready var _dialogue_text: Label = $HUD/DialoguePanel/Content/Line
 @onready var _dialogue_choices: VBoxContainer = $HUD/DialoguePanel/Content/Choices
+@onready var _gear_panel: PanelContainer = $HUD/GearPanel
+@onready var _gear_info: Label = $HUD/GearPanel/Content/Info
+@onready var _gps: Button = $HUD/GearPanel/Content/Devices/GPS
+@onready var _translator: Button = $HUD/GearPanel/Content/Devices/Translator
+@onready var _radio: Button = $HUD/GearPanel/Content/Devices/Radio
 
 const REAL_SECONDS_PER_STEP: float = 10.0
 
@@ -34,6 +39,9 @@ func _ready() -> void:
 		_districts.add_item(district.capitalize())
 	_districts.select(0)
 	_offers.item_selected.connect(_on_selected)
+	_gps.pressed.connect(_on_starter_device.bind("gps"))
+	_translator.pressed.connect(_on_starter_device.bind("translator"))
+	_radio.pressed.connect(_on_starter_device.bind("radio"))
 	_talk.pressed.connect(_on_talk)
 	_accept.pressed.connect(_on_accept)
 	_decline.pressed.connect(_on_decline)
@@ -55,6 +63,15 @@ func _process(delta: float) -> void:
 
 func _on_selected(index: int) -> void:
 	_selected_id = str(_offers.get_item_metadata(index))
+	_render()
+
+
+func _on_starter_device(device: String) -> void:
+	if _world.select_starter_device(device):
+		_notice_text = "Equipped %s. This only reveals its own kind of evidence." % device.to_upper()
+		_conversation = null # Re-read live context on the next conversation.
+	else:
+		_notice_text = "Only one starter device per world; equipment already selected."
 	_render()
 
 
@@ -222,6 +239,24 @@ func _render() -> void:
 			maxi(0, int(chosen["expires_at"]) - _world.minute)
 		]
 	_notice.text = _notice_text
+	_gear_panel.visible = true
+	var gear_selected: bool = not _world.starter_device.is_empty()
+	_gps.disabled = gear_selected
+	_translator.disabled = gear_selected
+	_radio.disabled = gear_selected
+	match _world.starter_device:
+		"gps":
+			_gear_info.text = "GPS active: district graph known. To %s: %d road hops." % [
+				str(chosen.get("destination", _world.player_district)),
+				SandboxRoads.hops(_world.player_district, str(chosen.get("destination", _world.player_district)))
+			]
+		"translator":
+			_gear_info.text = "Translator: local route marker LEARNED; other speech unknown." if _world.knows(SandboxKnowledge.ROUTE_MARKER) else \
+					"Translator: uncalibrated. Ask a local speaker for a route to learn one marker."
+		"radio":
+			_gear_info.text = "Alien radio: 'Sha-ruu ... vekk nai ...' (no translation; local signal pattern recognized)."
+		_:
+			_gear_info.text = "Choose ONE starter: GPS (maps), Translator (limited phrases), Radio (alien broadcasts)."
 	_dialogue_panel.visible = _conversation != null
 	for button in _dialogue_choices.get_children():
 		button.queue_free()
@@ -229,7 +264,8 @@ func _render() -> void:
 		var speaker_offer: Dictionary = _world.offer_by_id(_conversation.offer_id)
 		var speaker: Dictionary = _world.resident(str(speaker_offer.get("npc_id", "")))
 		_dialogue_title.text = "SPEAKING  |  %s  |  %s" % [
-			speaker["id"], "trade speech" if _conversation.understood() else "unfamiliar alien language"
+			speaker["id"], "trade speech" if _conversation.understood() else \
+					("local speech / route marker recognized" if _conversation.recognizes_route() else "unfamiliar alien language")
 		]
 		var frame: Dictionary = _conversation.current_frame()
 		_dialogue_text.text = str(frame.get("text", ""))
@@ -251,7 +287,7 @@ func _render() -> void:
 			route["origin"], route["destination"], _world.remaining_minutes
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -259,7 +295,9 @@ func _render() -> void:
 			_conversation.current_frame().get("choices", []).size() if _conversation != null else 0,
 			str(_conversation.understood()).to_lower() if _conversation != null else "false",
 			_conversation.offer_id if _conversation != null else "",
-			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else "")
+			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else ""),
+			_world.starter_device, _world.knowledge.size(), str(_world.knows(SandboxKnowledge.ROUTE_MARKER)).to_lower(),
+			JSON.stringify(_gear_info.text)
 		]
 		JavaScriptBridge.eval(web_state, true)
 
