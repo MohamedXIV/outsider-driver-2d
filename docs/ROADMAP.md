@@ -1,4 +1,7 @@
-# Gameplay-First Roadmap
+# Archived P0–P2 Prototype Roadmap
+
+> **Frozen October 15, 2026.** The chronology below records what the technical prototype proved. It is **not** an active roadmap and must not be used to justify implementing P2.3 or additional authored taxi scenarios. See [current Sandbox Game DNA](SANDBOX_GAME_DNA.md), [P0–P2 closeout](PROTOTYPE_CLOSEOUT.md), and [new active foundation issue #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). The old automated Web/Linux gates passed; human UX and actual Windows play were NOT tested and are deferred to the new sandbox.
+
 
 Each milestone produces a playable improvement using production-quality code. Placeholder graphics are allowed; disposable architectures are not.
 
@@ -38,7 +41,7 @@ Each milestone produces a playable improvement using production-quality code. Pl
 - GPS / Translator / Radio choices provide differentiated information.
 - Repeatable daily loop and deterministic integration tests.
 
-## P3 — Content expansion & living city
+## P3 — Former candidate content expansion (superseded by sandbox-first architecture)
 
 - Multiple routes/districts, a recurring character, radio content, legal/underground job paths and relationship/lie callbacks.
 - Repeatable art-production workflow measured on actual added scenes.
