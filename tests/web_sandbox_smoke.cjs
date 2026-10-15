@@ -22,7 +22,41 @@ const { chromium } = require('playwright');
         d.sandboxResidents === '9' && d.sandboxAccepted === 'true';
     }, 'No systemic local offers at bootstrap.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-initial.png'});
-    await page.mouse.click(125, 455); // Accept selected local offer.
+    await page.mouse.click(337, 455); // Talk to the actual local NPC behind selected offer.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.sandboxDialogue === 'true' && d.sandboxDialogueChoices === '3' &&
+        d.sandboxDialogueUnderstood === 'false' &&
+        d.sandboxDialogueIntent === 'request_trip';
+    }, null, {timeout:15000});
+    await check(() => document.documentElement.dataset.sandboxDialogueText.includes("Rru'ka"),
+      'The local-language passenger magically speaks English.');
+    await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-unknown-speech.png'});
+    await page.mouse.click(700, 534); // Ink: Ask where they need to go.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.sandboxDialogueIntent === 'ask_destination' &&
+        d.sandboxDialogueChoices === '2';
+    }, null, {timeout:15000});
+    await check(() => document.documentElement.dataset.sandboxDialogueText.includes('Vrek shaa'),
+      'Destination question incorrectly translated local alien dialogue.');
+    await page.mouse.click(95, 610); // Save WORLD + unanswered Ink frame.
+    await page.waitForTimeout(2200); // Persist Godot Web filesystem.
+    await page.reload({waitUntil:'domcontentloaded'});
+    await ready();
+    await page.mouse.click(250, 610); // Restore the same live resident and Ink decision.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.sandboxDialogue === 'true' && d.sandboxDialogueChoices === '2' &&
+        d.sandboxDialogueIntent === 'restored';
+    }, null, {timeout:15000});
+    await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-restored-dialogue.png'});
+    await page.mouse.click(700, 534); // Ink accept speech act -> authoritative SandboxWorld.
+    await page.waitForFunction(() => document.documentElement.dataset.sandboxPhase === 'enroute' &&
+      document.documentElement.dataset.sandboxDialogueOutcome === 'accepted',
+      null, {timeout:15000});
+    await page.waitForFunction(() => document.documentElement.dataset.sandboxDialogue === 'false',
+      null, {timeout:15000});
     await page.waitForFunction(() => document.documentElement.dataset.sandboxPhase === 'enroute',
       null, {timeout:15000});
     await check(() => document.documentElement.dataset.sandboxSettlements === '0',
@@ -49,6 +83,6 @@ const { chromium } = require('playwright');
       'New seed inherited settled ride.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-seed9.png'});
     if (errors.length) throw new Error(errors.join('\n'));
-    console.log('SANDBOX_WEB_PASS: independent offers, one-time fare, persisted world and reseeded city');
+    console.log('SANDBOX_WEB_PASS: systemic NPC contextual Ink, alien fallback, mid-dialogue restore, settlement and reseed');
   } finally { await browser.close(); }
 })().catch(e => { console.error(e); process.exitCode = 1; });
