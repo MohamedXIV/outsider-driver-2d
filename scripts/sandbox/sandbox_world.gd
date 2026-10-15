@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 3
+const SCHEMA_VERSION: int = 4
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -19,6 +19,9 @@ var offers: Array[Dictionary] = []
 var events: Array[Dictionary] = []
 var active_offer_id: String = ""
 var remaining_minutes: int = 0
+var route_nodes: Array[String] = []
+var route_segment: int = 0
+var route_edge_elapsed: int = 0
 
 
 func _init(world_seed: int = 1) -> void:
@@ -107,9 +110,7 @@ func advance(minutes: int) -> bool:
 			_record("offer_expired", id)
 		_record_changes(SandboxAutonomy.begin_expired_trips(residents, offers, expired, minute, seed))
 		if not active_offer_id.is_empty():
-			remaining_minutes = maxi(0, remaining_minutes - STEP_MINUTES)
-			if remaining_minutes == 0:
-				_complete_active_trip()
+			_step_player_route()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 	return true
 
@@ -145,7 +146,7 @@ func decline(offer_id: String) -> bool:
 	return true
 
 
-func accept(offer_id: String) -> bool:
+func accept(offer_id: String, waypoint: String = "") -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
 	if not active_offer_id.is_empty() or offer.is_empty() or offer["status"] != "open":
 		return false
@@ -154,11 +155,46 @@ func accept(offer_id: String) -> bool:
 	var npc: Dictionary = resident(str(offer["npc_id"]))
 	if npc.is_empty() or int(npc["cash"]) < int(offer["fare"]) or npc["location"] != offer["origin"]:
 		return false
+	var route: Array[String] = SandboxRoads.path(str(offer["origin"]), str(offer["destination"]), waypoint)
+	if not SandboxRoads.valid_path(route) or credits < SandboxRoads.path_expense(route):
+		return false
 	offer["status"] = "accepted"
 	active_offer_id = offer_id
-	remaining_minutes = SandboxRoads.travel_minutes(str(offer["origin"]), str(offer["destination"]))
-	_record("offer_accepted", offer_id)
+	route_nodes = route.duplicate()
+	route_segment = 0
+	route_edge_elapsed = 0
+	remaining_minutes = SandboxRoads.minutes_left(route_nodes, route_segment, route_edge_elapsed)
+	_record("offer_accepted", offer_id, {
+		"nodes": route.duplicate(), "minutes": remaining_minutes,
+		"anticipated_expense": SandboxRoads.path_expense(route)
+	})
 	return true
+
+
+func _step_player_route() -> void:
+	# Advance the same authoritative physical route used by the presenter.
+	if route_nodes.size() < 2 or route_segment >= route_nodes.size() - 1:
+		return
+	var from: String = route_nodes[route_segment]
+	var to: String = route_nodes[route_segment + 1]
+	route_edge_elapsed += STEP_MINUTES
+	if route_edge_elapsed >= SandboxRoads.edge_minutes(from, to):
+		route_segment += 1
+		route_edge_elapsed = 0
+		player_district = to
+		var expense: int = SandboxRoads.edge_expense(from, to)
+		var exposure: int = SandboxRoads.edge_exposure(from, to)
+		credits -= expense
+		risk += exposure
+		_record("route_segment_completed", active_offer_id, {
+			"from": from, "to": to, "expense": expense,
+			"exposure": exposure
+		})
+		if route_segment == route_nodes.size() - 1:
+			remaining_minutes = 0
+			_complete_active_trip()
+			return
+	remaining_minutes = SandboxRoads.minutes_left(route_nodes, route_segment, route_edge_elapsed)
 
 
 func _complete_active_trip() -> void:
@@ -176,6 +212,9 @@ func _complete_active_trip() -> void:
 	offer["status"] = "completed"
 	_record("fare_settled", str(offer["id"]), {"credits": fare, "npc_id": npc["id"], "to": player_district})
 	active_offer_id = ""
+	route_nodes.clear()
+	route_segment = 0
+	route_edge_elapsed = 0
 
 
 func snapshot() -> Dictionary:
@@ -185,7 +224,8 @@ func snapshot() -> Dictionary:
 		"starter_device": starter_device, "knowledge": knowledge.duplicate(),
 		"residents": residents.duplicate(true), "offers": offers.duplicate(true),
 		"events": events.duplicate(true), "active_offer_id": active_offer_id,
-		"remaining_minutes": remaining_minutes
+		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
+		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed
 	}
 
 
@@ -259,6 +299,32 @@ func restore_snapshot(value: Dictionary) -> bool:
 				return false
 	if actual_active != (1 if not active.is_empty() else 0):
 		return false
+	if not (value.get("route_nodes") is Array):
+		return false
+	var route: Array[String] = []
+	for node in value["route_nodes"]:
+		if not (node is String):
+			return false
+		route.append(node)
+	var segment: int = int(value.get("route_segment", -1))
+	var elapsed: int = int(value.get("route_edge_elapsed", -1))
+	if active.is_empty():
+		if not route.is_empty() or segment != 0 or elapsed != 0 or remaining != 0:
+			return false
+	else:
+		if not SandboxRoads.valid_path(route):
+			return false
+		var accepted_offer: Dictionary = {}
+		for offer in value["offers"]:
+			if offer["id"] == active:
+				accepted_offer = offer
+				break
+		if accepted_offer.is_empty() or route[0] != accepted_offer["origin"] \
+				or route.back() != accepted_offer["destination"] \
+				or segment < 0 or segment >= route.size() - 1 \
+				or route[segment] != district \
+				or remaining != SandboxRoads.minutes_left(route, segment, elapsed):
+			return false
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
 	player_district = district
@@ -277,4 +343,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 		events.append((event as Dictionary).duplicate(true))
 	active_offer_id = active
 	remaining_minutes = remaining
+	route_nodes = route.duplicate()
+	route_segment = segment
+	route_edge_elapsed = elapsed
 	return true

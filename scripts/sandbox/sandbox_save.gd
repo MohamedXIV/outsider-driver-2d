@@ -1,8 +1,8 @@
 class_name SandboxSave
 extends RefCounted
 
-const PATH: String = "user://outsider_driver_sandbox_v4.json"
-const VERSION: int = 4
+const PATH: String = "user://outsider_driver_sandbox_v5.json"
+const VERSION: int = 5
 
 
 static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: Dictionary = {}) -> bool:
