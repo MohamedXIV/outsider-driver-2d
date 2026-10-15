@@ -4,7 +4,7 @@
 >
 > **Status legend:** **Agreed direction** = repeated design intent accepted as a working principle; **Recommended / pending** = assistant proposal or unresolved implementation choice, not locked by explicit approval; **Current proof** = verified in the repository; **Future** = not implemented.
 >
-> Primary game contract: [SANDBOX_GAME_DNA.md](SANDBOX_GAME_DNA.md). Active tracking: [foundation #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15), [living NPCs #22](https://github.com/MohamedXIV/outsider-driver-2d/issues/22), [languages/equipment #23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23). Archived authored clinic ride is a technical regression fixture, never the NPC content structure.
+> Primary game contract: [SANDBOX_GAME_DNA.md](SANDBOX_GAME_DNA.md). Active tracking: [foundation #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15), [living NPCs #22](https://github.com/MohamedXIV/outsider-driver-2d/issues/22), [languages/equipment #23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23), [route selection #24](https://github.com/MohamedXIV/outsider-driver-2d/issues/24). Archived authored clinic ride is a technical regression fixture, never the NPC content structure.
 
 ## 1. The fantasy and the scope ceiling
 
@@ -143,7 +143,7 @@ Time and social bonds compete meaningfully: taking a safe long detour might make
 
 **Languages, hardware, accessibility / [#23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23):** stable three-language lexicon/script, binary language modules from actual physical shops, common-language negotiation, localized glyph-to-translation transition (incl. Arabic RTL and reduced-motion), assistive knowledge-only headgear. Replace S2 partial translator when this becomes an executable slice.
 
-**Routes (separate follow-on):** live journey with 2+ valid graph alternatives, default map-pin routing, a player-set waypoint, legal mid-trip reroute at a junction, route/time/risk/event provenance, NPC route request and verified state recovery. Do not add only a route-list UI atop the current instant-settlement timer.
+**Routes / [#24](https://github.com/MohamedXIV/outsider-driver-2d/issues/24):** live journey with 2+ valid graph alternatives, default map-pin routing, a player-set waypoint, legal mid-trip reroute at a junction, route/time/risk/event provenance, NPC route request and verified state recovery. Do not add only a route-list UI atop the current instant-settlement timer.
 
 **Significant relationships (incremental follow-on):** repeated encounter recognition without requiring unmasking, real promises/appointments, one off-duty location interaction and save/reload. Romance remains an **optional extension** on top of general relationship machinery, not an S3 foundational gate.
 
