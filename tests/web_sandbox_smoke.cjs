@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
         d.sandboxResidents === '9' && d.sandboxAccepted === 'true';
     }, 'No systemic local offers at bootstrap.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-initial.png'});
-    await page.mouse.click(730, 94); // Pick Translator; one starter device only.
+    await page.mouse.click(730, 66); // Actual Translator button center from 1280x720 Chromium screenshot.
     await page.waitForFunction(() => {
       const d = document.documentElement.dataset;
       return d.sandboxDevice === 'translator' && d.sandboxKnowledge === '1' &&
