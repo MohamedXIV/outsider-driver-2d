@@ -57,7 +57,7 @@ The same authored response/intent can serve very different passengers because **
 
 ## Active implementation roadmap
 
-The post-S2 implementation order and issue-level acceptance are in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md). [S3 #26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26) is the immediate next playable slice; follow with route choice/actual movement before expanding long-term social life and language UI. [Design conclusions](LIVING_CITY_DESIGN_CONCLUSIONS.md) keep proposals separate from code already proven.
+The post-S2 implementation order and issue-level acceptance are in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md). [S3 #26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26) is **merged and verified**; [#27 selectable actual taxi routes](https://github.com/MohamedXIV/outsider-driver-2d/issues/27) is the **next ready playable slice**, then #28 mid-trip rerouting, before expanding social life/language UI. [Design conclusions](LIVING_CITY_DESIGN_CONCLUSIONS.md) keep proposals separate from code already proven.
 
 ## First meaningful systemic acceptance
 
