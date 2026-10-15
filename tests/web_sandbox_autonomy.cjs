@@ -17,19 +17,12 @@ const { chromium } = require('playwright');
       return {seed:d.sandboxSeed, counts:d.sandboxAltDepartures};
     });
     if(origin.seed!=='8'||origin.counts!=='0')throw new Error('Expected fresh city without alternative trips.');
+    // The initial Godot _ready() diagnostics predate VBox layout and its
+    // rect is stale. Use the real fixed-viewport button center from the
+    // native 1280x720 screenshot, as the historical Web tests do.
     const clickObserve = async () => {
-      // HTML dataset coerces the JS Array to CSV; read back its numeric bounds.
-      const r = await page.evaluate(() => document.documentElement.dataset.sandboxObserveRect.split(',').map(Number));
-      if(r.length!==4||r.some(v=>!Number.isFinite(v))||r[2]<=0||r[3]<=0)
-        throw new Error('Observer button has invalid rendered bounds: '+JSON.stringify(r));
-      await page.mouse.click(r[0]+r[2]/2,r[1]+r[3]/2);
-      await page.waitForTimeout(150);
-      console.log('S3_BROWSER_CLICK', JSON.stringify(r), JSON.stringify(await page.evaluate(() => ({
-        depart:document.documentElement.dataset.sandboxAltDepartures,
-        arrive:document.documentElement.dataset.sandboxAltArrivals,
-        events:document.documentElement.dataset.sandboxEvents,
-        clock:document.documentElement.dataset.sandboxClock
-      }))));
+      await page.mouse.click(1137, 354);
+      await page.waitForTimeout(160);
     };
     for(let i=0;i<4;i++)await clickObserve();
     await page.waitForFunction(() => {
