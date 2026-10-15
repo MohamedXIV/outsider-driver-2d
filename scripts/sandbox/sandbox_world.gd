@@ -182,8 +182,10 @@ func decline(offer_id: String) -> bool:
 	var npc: Dictionary = resident(str(offer["npc_id"]))
 	npc["cooldown_until"] = minute + 30
 	_record("offer_declined", offer_id)
-	SandboxDriverMemory.remember(npc, SandboxDriverMemory.REFUSED,
-		offer_id, str(events.back()["id"]), minute)
+	# Only a locally witnessed decline creates a driver memory.
+	if npc["location"] == player_district and offer["origin"] == player_district:
+		SandboxDriverMemory.remember(npc, SandboxDriverMemory.REFUSED,
+			offer_id, str(events.back()["id"]), minute)
 	return true
 
 
