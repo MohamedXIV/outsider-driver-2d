@@ -8,43 +8,41 @@ VAR destination = "docks"
 VAR purpose = "supplies"
 
 === intro ===
-# intent:request_trip
 { understands_speaker:
     { urgent:
         { temperament == "cautious":
-            "Please. I need a ride, but keep us away from trouble."
+            "Please. I need a ride, but keep us away from trouble." # intent:request_trip
         - else:
-            "I need a ride now. Can you move quickly?"
+            "I need a ride now. Can you move quickly?" # intent:request_trip
         }
     - else:
         { temperament == "cautious":
-            "Are you taking passengers? I would rather keep this quiet."
+            "Are you taking passengers? I would rather keep this quiet." # intent:request_trip
         - else:
-            "Hey, driver! Got room? I need to get moving."
+            "Hey, driver! Got room? I need to get moving." # intent:request_trip
         }
     }
 - else:
-    "Rru'ka shen vorr. Teka-rii?" The stranger points at your taxi.
+    "Rru'ka shen vorr. Teka-rii?" The stranger points at your taxi. # intent:request_trip
 }
 + [Ask where they need to go.]
-    # intent:ask_destination
     { understands_speaker:
-        "I'm heading to {destination} for {purpose}."
+        "I'm heading to {destination} for {purpose}." # intent:ask_destination
     - else:
-        "Vrek shaa. Tir-ka." They gesture toward a location marker you cannot read aloud.
+        "Vrek shaa. Tir-ka." They gesture toward a location marker you cannot read aloud. # intent:ask_destination
     }
     -> decide
 + [Agree to the trip.]
-    # action:accept_offer
+    You signal that you can take the fare. # action:accept_offer
     -> END
 + [Turn them down.]
-    # action:decline_offer
+    You refuse the fare. # action:decline_offer
     -> END
 
 === decide ===
 + [Agree to the trip.]
-    # action:accept_offer
+    You signal that you can take the fare. # action:accept_offer
     -> END
 + [Turn them down.]
-    # action:decline_offer
+    You refuse the fare. # action:decline_offer
     -> END
