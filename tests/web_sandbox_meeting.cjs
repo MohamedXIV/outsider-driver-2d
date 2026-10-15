@@ -53,11 +53,18 @@ const { chromium } = require('playwright');
   if(+(await value('sandboxMeetingChoices'))!==3 || !(await value('sandboxMeetingText')).includes('kiosk'))
     throw Error('Off-duty Ink scene did not present real choices');
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-together-web.png'});
-  await page.mouse.click(90,610); // Save with the encounter still in progress
+  await clickNative('sandboxSavePoint'); // Real Save World button during the encounter
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',null,{timeout:45000});
-  await page.mouse.click(250,610); // Load
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
+  await clickNative('sandboxLoadPoint'); // Real Load World button after reload
+  try {
+   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
+  } catch (e) {
+   throw Error('Meeting Save/Load did not restore: '+JSON.stringify({
+    status:await value('sandboxMeetingStatus'),count:await value('sandboxMeetingCount'),
+    choices:await value('sandboxMeetingChoices'),minute:await value('sandboxMinute')
+   })+'; '+e.message);
+  }
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-restored-web.png'});
   await clickNative('sandboxMeetingChoicePoint'); // Authored 'listen' choice in visible meeting scene
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='completed',null,{timeout:15000});
