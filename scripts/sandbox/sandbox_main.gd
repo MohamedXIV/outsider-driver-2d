@@ -28,6 +28,16 @@ extends Node2D
 @onready var _gps: Button = $HUD/GearPanel/Content/Devices/GPS
 @onready var _translator: Button = $HUD/GearPanel/Content/Devices/Translator
 @onready var _radio: Button = $HUD/GearPanel/Content/Devices/Radio
+@onready var _meeting_selector: OptionButton = $HUD/WorldPanel/Content/MeetingSelect
+@onready var _meeting_info: Label = $HUD/WorldPanel/Content/MeetingInfo
+@onready var _meeting_accept: Button = $HUD/WorldPanel/Content/MeetingActions/AcceptMeeting
+@onready var _meeting_decline: Button = $HUD/WorldPanel/Content/MeetingActions/DeclineMeeting
+@onready var _meeting_attend: Button = $HUD/WorldPanel/Content/MeetingActions/AttendMeeting
+@onready var _meeting_panel: PanelContainer = $HUD/MeetingPanel
+@onready var _meeting_stage: SandboxMeetingStage = $HUD/MeetingPanel/Content/Stage
+@onready var _meeting_title: Label = $HUD/MeetingPanel/Content/Title
+@onready var _meeting_text: Label = $HUD/MeetingPanel/Content/Line
+@onready var _meeting_choices: VBoxContainer = $HUD/MeetingPanel/Content/Choices
 
 const REAL_SECONDS_PER_STEP: float = 10.0
 
@@ -40,6 +50,8 @@ var _last_intent: String = ""
 var _last_outcome: String = ""
 var _route_waypoint: String = ""
 var _route_for_offer: String = ""
+var _selected_meeting_id: String = ""
+var _meeting_dialogue: SandboxMeetingDialogue
 
 
 func _ready() -> void:
@@ -56,6 +68,10 @@ func _ready() -> void:
 	_gps.pressed.connect(_on_starter_device.bind("gps"))
 	_translator.pressed.connect(_on_starter_device.bind("translator"))
 	_radio.pressed.connect(_on_starter_device.bind("radio"))
+	_meeting_selector.item_selected.connect(_on_meeting_selected)
+	_meeting_accept.pressed.connect(_on_meeting_accept)
+	_meeting_decline.pressed.connect(_on_meeting_decline)
+	_meeting_attend.pressed.connect(_on_meeting_attend)
 	_talk.pressed.connect(_on_talk)
 	_accept.pressed.connect(_on_accept)
 	_decline.pressed.connect(_on_decline)
@@ -77,6 +93,47 @@ func _process(delta: float) -> void:
 	if not _world.active_offer_id.is_empty():
 		_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 		_city.queue_redraw()
+
+
+func _on_meeting_selected(index: int) -> void:
+	_selected_meeting_id = str(_meeting_selector.get_item_metadata(index))
+	_render()
+
+
+func _on_meeting_accept() -> void:
+	_notice_text = "Appointment accepted; travel to the stated district before the deadline." if \
+			_world.accept_meeting(_selected_meeting_id) else "Cannot confirm: the contact has other plans or the window passed."
+	_render()
+
+
+func _on_meeting_decline() -> void:
+	_notice_text = "Invitation declined; no meeting was simulated." if \
+			_world.decline_meeting(_selected_meeting_id) else "No pending invitation to decline."
+	_render()
+
+
+func _on_meeting_attend() -> void:
+	if FileAccess.get_file_as_string(SandboxMeetingDialogue.STORY_PATH).is_empty() \
+			or not _world.start_meeting(_selected_meeting_id):
+		_notice_text = "Meet here at the actual time, while the contact is present and free."
+		_render()
+		return
+	_conversation = null
+	_meeting_dialogue = SandboxMeetingDialogue.new()
+	if not _meeting_dialogue.open(_world, _selected_meeting_id, get_tree()):
+		_meeting_dialogue = null
+		_notice_text = "The meeting dialogue is unavailable."
+	_render()
+
+
+func _on_meeting_choice(index: int) -> void:
+	if _meeting_dialogue == null or not _meeting_dialogue.choose(index, _world):
+		_notice_text = "Meeting action invalid."
+	else:
+		var meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
+		_notice_text = "Off-duty meeting: %s. World time and trust were updated." % meeting["status"]
+		_meeting_dialogue = null
+	_render()
 
 
 func _on_selected(index: int) -> void:
@@ -213,6 +270,8 @@ func _on_new_seed() -> void:
 	_selected_id = ""
 	_route_waypoint = ""
 	_route_for_offer = ""
+	_selected_meeting_id = ""
+	_meeting_dialogue = null
 	_elapsed = 0.0
 	_notice_text = "Fresh independent simulated city seed."
 	_render()
@@ -244,6 +303,8 @@ func _on_load() -> void:
 	_conversation = restored
 	_selected_id = restored.offer_id if restored != null else ""
 	_route_for_offer = _selected_id
+	_selected_meeting_id = ""
+	_meeting_dialogue = null
 	_route_waypoint = ""
 	_elapsed = 0.0
 	_last_intent = "restored" if restored != null else ""
@@ -331,7 +392,8 @@ func _render() -> void:
 			_gear_info.text = "Alien radio: 'Sha-ruu ... vekk nai ...' (no translation; local signal pattern recognized)."
 		_:
 			_gear_info.text = "Choose ONE starter: GPS (maps), Translator (limited phrases), Radio (alien broadcasts)."
-	_dialogue_panel.visible = _conversation != null
+	_render_meetings()
+	_dialogue_panel.visible = _conversation != null and not _meeting_panel.visible
 	for button in _dialogue_choices.get_children():
 		button.queue_free()
 	if _conversation != null:
@@ -423,6 +485,86 @@ func _render() -> void:
 			str(_conversation.recognizes_driver()).to_lower() if _conversation != null else "false"
 		]
 		JavaScriptBridge.eval(web_state, true)
+
+
+func _render_meetings() -> void:
+	_meeting_selector.clear()
+	var idx: int = 0
+	var selected: int = -1
+	for meeting in _world.meetings:
+		_meeting_selector.add_item("%s / %s" % [meeting["npc_id"], meeting["status"]])
+		_meeting_selector.set_item_metadata(idx, str(meeting["id"]))
+		if meeting["id"] == _selected_meeting_id:
+			selected = idx
+		idx += 1
+	if selected < 0 and idx > 0:
+		selected = 0
+		_selected_meeting_id = str(_meeting_selector.get_item_metadata(0))
+	if selected >= 0:
+		_meeting_selector.select(selected)
+	var meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
+	if meeting.is_empty():
+		_meeting_info.text = "Repeat genuine rides can lead to an invitation. No contacts yet."
+		_meeting_accept.disabled = true
+		_meeting_decline.disabled = true
+		_meeting_attend.disabled = true
+		_meeting_panel.visible = false
+		return
+	var npc: Dictionary = _world.resident(str(meeting["npc_id"]))
+	var slot: int = int(meeting["slot"])
+	_meeting_info.text = "%s | %s\n%s  Day %d %02d:%02d\nWindow +%dm | %s" % [
+		meeting["npc_id"], meeting["status"], str(meeting["location"]).capitalize(),
+		int(slot / 1440) + 1, (slot % 1440) / 60, slot % 60,
+		SandboxMeetings.WINDOW_MINUTES,
+		"Present" if npc.get("location") == meeting["location"] else "Elsewhere"
+	]
+	var invited: bool = meeting["status"] == "invited"
+	_meeting_accept.disabled = not invited or _world.minute >= slot \
+			or not _world.active_offer_id.is_empty()
+	_meeting_decline.disabled = not invited
+	_meeting_attend.disabled = meeting["status"] != "accepted" \
+			or _world.player_district != meeting["location"] \
+			or _world.minute < slot or _world.minute > int(meeting["deadline"]) \
+			or not _world.active_offer_id.is_empty() \
+			or npc.get("location") != meeting["location"] or npc.get("activity") != "available"
+	_meeting_panel.visible = meeting["status"] == "in_progress"
+	if not _meeting_panel.visible:
+		_meeting_dialogue = null
+		return
+	if _meeting_dialogue == null or _meeting_dialogue.meeting_id != _selected_meeting_id:
+		_meeting_dialogue = SandboxMeetingDialogue.new()
+		if not _meeting_dialogue.open(_world, _selected_meeting_id, get_tree()):
+			_meeting_dialogue = null
+			_meeting_text.text = "Cannot load off-duty Ink dialogue."
+			return
+	_meeting_stage.venue = str(meeting["location"])
+	_meeting_stage.companion = str(meeting["npc_id"])
+	_meeting_stage.queue_redraw()
+	_meeting_title.text = "OFF DUTY  |  %s  |  %s" % [
+		str(meeting["location"]).to_upper(), str(meeting["npc_id"])]
+	_meeting_text.text = str(_meeting_dialogue.current_frame().get("text", ""))
+	for child in _meeting_choices.get_children():
+		child.queue_free()
+	var choices: Array = _meeting_dialogue.current_frame().get("choices", [])
+	for i in range(choices.size()):
+		var button: Button = Button.new()
+		button.text = str(choices[i])
+		button.pressed.connect(_on_meeting_choice.bind(i))
+		_meeting_choices.add_child(button)
+
+
+	if OS.has_feature("web"):
+		var active_meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
+		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s})" % [
+			_world.meetings.size(), JSON.stringify(_selected_meeting_id),
+			JSON.stringify(str(active_meeting.get("status", ""))),
+			JSON.stringify(str(active_meeting.get("location", ""))),
+			int(active_meeting.get("slot", 0)), int(active_meeting.get("deadline", 0)),
+			str(not _meeting_attend.disabled).to_lower(),
+			_meeting_dialogue.current_frame().get("choices", []).size() if _meeting_dialogue != null else 0,
+			JSON.stringify(_meeting_text.text if _meeting_panel.visible else "")
+		]
+		JavaScriptBridge.eval(state, true)
 
 
 func _settled_count() -> int:
