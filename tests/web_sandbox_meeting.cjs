@@ -76,6 +76,11 @@ const { chromium } = require('playwright');
    })+'; '+e.message);
   }
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-restored-web.png'});
+  await page.waitForFunction(()=>{
+   const d=document.documentElement.dataset;
+   const p=JSON.parse(d.sandboxMeetingChoicePoint||'[0,0]');
+   return d.sandboxMeetingChoices==='3' && p[0]>=510 && p[0]<=1006 && p[1]>=590 && p[1]<=720;
+  },null,{timeout:7000});
   await clickNative('sandboxMeetingChoicePoint'); // Authored 'listen' choice in visible meeting scene
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='completed',null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-completed-web.png'});
