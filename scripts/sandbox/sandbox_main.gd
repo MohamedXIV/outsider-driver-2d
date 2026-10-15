@@ -256,7 +256,7 @@ func _render() -> void:
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
 			str(_conversation != null).to_lower(),
-			_dialogue_choices.get_child_count() if _conversation != null else 0,
+			_conversation.current_frame().get("choices", []).size() if _conversation != null else 0,
 			str(_conversation.understood()).to_lower() if _conversation != null else "false",
 			_conversation.offer_id if _conversation != null else "",
 			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else "")

@@ -61,10 +61,11 @@ func _initialize() -> void:
 	var second: SandboxWorld = SandboxWorld.new(9)
 	var source_offer: Dictionary = {}
 	for candidate in second.open_offers():
-		if candidate["origin"] == "docks" and second.resident(candidate["npc_id"])["language"] == "trade":
+		if second.resident(str(candidate["npc_id"]))["language"] == "trade" and candidate["channel"] != "official":
 			source_offer = candidate
 			break
 	assert(not source_offer.is_empty())
+	assert(second.reposition(str(source_offer["origin"])))
 	var second_dialogue: SandboxConversation = SandboxConversation.new()
 	assert(second_dialogue.open(second, str(source_offer["id"]), self))
 	assert(second_dialogue.understood())
