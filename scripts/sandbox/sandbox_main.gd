@@ -393,7 +393,7 @@ func _render_route_picker(offer: Dictionary) -> void:
 	if not _world.active_offer_id.is_empty():
 		_city.preview_nodes = _world.route_nodes.duplicate()
 		_route_preview.text = "Travel in progress: %s · %d minutes left" % [
-			" → ".join(_world.route_nodes), _world.remaining_minutes
+			" > ".join(_world.route_nodes), _world.remaining_minutes
 		]
 		return
 	if offer.is_empty():
@@ -425,6 +425,6 @@ func _render_route_picker(offer: Dictionary) -> void:
 	if _world.knows("map:district-graph"):
 		exposure = " · known checkpoint exposure %d" % SandboxRoads.path_exposure(route)
 	_route_preview.text = "%s · %d min · %d cr road cost%s" % [
-		" → ".join(route), SandboxRoads.path_minutes(route),
+		" > ".join(route), SandboxRoads.path_minutes(route),
 		SandboxRoads.path_expense(route), exposure
 	]
