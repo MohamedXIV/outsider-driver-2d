@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 5
+const SCHEMA_VERSION: int = 6
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -107,6 +107,7 @@ func advance(minutes: int) -> bool:
 		minute += STEP_MINUTES
 		_record_changes(SandboxPopulation.step(residents, minute))
 		_record_changes(SandboxAutonomy.finish_arrivals(residents, minute))
+		_apply_peer_contact(SandboxSocial.pick(residents, minute))
 		var expired: Array[String] = SandboxDispatch.expire(residents, offers, minute)
 		for id in expired:
 			_record("offer_expired", id)
@@ -115,6 +116,42 @@ func advance(minutes: int) -> bool:
 			_step_player_route()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 	return true
+
+
+# Commit a bounded contact only if two actual residents are co-present and
+# mutually intelligible at this tick. Event ID is the fact's provenance.
+func _apply_peer_contact(intent: Dictionary) -> void:
+	if intent.is_empty():
+		return
+	var actor: Dictionary = resident(str(intent["actor"]))
+	var recipient: Dictionary = resident(str(intent["recipient"]))
+	if actor.is_empty() or recipient.is_empty() or actor["location"] != recipient["location"] \
+			or actor["language"] != recipient["language"] \
+			or actor["activity"] == "travelling" or recipient["activity"] == "travelling":
+		return
+	var day: int = (minute - START_MINUTE) / 1440
+	if int(actor["last_peer_day"]) >= day or int(recipient["last_peer_day"]) >= day:
+		return
+	var credits_shared: int = 2 if int(actor["cash"]) >= 35 and int(recipient["need"]) >= 53 else 0
+	actor["cash"] = int(actor["cash"]) - credits_shared
+	recipient["cash"] = int(recipient["cash"]) + credits_shared
+	actor["last_peer_day"] = day
+	recipient["last_peer_day"] = day
+	var a_contacts: Dictionary = actor["contacts"]
+	var r_contacts: Dictionary = recipient["contacts"]
+	a_contacts[recipient["id"]] = int(a_contacts.get(recipient["id"], 0)) + 1
+	r_contacts[actor["id"]] = int(r_contacts.get(actor["id"], 0)) + 1
+	var fact: String = "residence:%s" % str(actor["id"])
+	_record("npc_peer_contact", str(actor["id"]), {
+		"recipient": str(recipient["id"]), "district": actor["location"],
+		"language": actor["language"], "fact": fact, "value": actor["home"],
+		"credits_shared": credits_shared, "affinity": intent["affinity"],
+		"rivalry": intent["rivalry"]
+	})
+	recipient["peer_knowledge"][fact] = {
+		"value": str(actor["home"]), "source": str(events.back()["id"]),
+		"speaker": str(actor["id"])
+	}
 
 
 func _record_changes(changes: Array[Dictionary]) -> void:
@@ -342,6 +379,12 @@ func restore_snapshot(value: Dictionary) -> bool:
 		resident_ids[npc_id] = true
 		if not ["available", "resting", "working", "travelling"].has(npc.get("activity")):
 			return false
+		if not ["kind:a", "kind:b", "kind:c", "kind:d"].has(npc.get("species")) \
+				or not ["harbor", "exchange", "newcomer"].has(npc.get("community")) \
+				or not (npc.get("peer_knowledge") is Dictionary) \
+				or not (npc.get("contacts") is Dictionary) \
+				or int(npc.get("last_peer_day", -2)) < -1:
+			return false
 		var travel_until: int = int(npc.get("transit_until", -1))
 		if travel_until < 0:
 			return false
@@ -356,6 +399,23 @@ func restore_snapshot(value: Dictionary) -> bool:
 				or not str(npc.get("transit_from_offer", "")).is_empty() \
 				or not str(npc.get("transit_method", "")).is_empty():
 			return false
+	# A learned fact needs a genuine source in the same world event ledger.
+		for fact in npc["peer_knowledge"]:
+			var claim: Variant = npc["peer_knowledge"][fact]
+			if not (claim is Dictionary) or not str(fact).begins_with("residence:") \
+					or not (claim.get("value") is String) or not (claim.get("source") is String):
+				return false
+			var found_source: bool = false
+			for evt in value["events"]:
+				if evt.get("kind", "") == "npc_peer_contact" \
+						and evt.get("id") == claim["source"] \
+						and evt.get("detail", {}).get("recipient") == npc["id"] \
+						and evt.get("detail", {}).get("fact") == fact \
+						and evt.get("detail", {}).get("value") == claim["value"]:
+					found_source = true
+					break
+			if not found_source:
+				return false
 	var offered: Dictionary = {}
 	var actual_active: int = 0
 	for offer in value["offers"]:
