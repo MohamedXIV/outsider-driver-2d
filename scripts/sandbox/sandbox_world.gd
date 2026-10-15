@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 6
+const SCHEMA_VERSION: int = 7
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -182,6 +182,8 @@ func decline(offer_id: String) -> bool:
 	var npc: Dictionary = resident(str(offer["npc_id"]))
 	npc["cooldown_until"] = minute + 30
 	_record("offer_declined", offer_id)
+	SandboxDriverMemory.remember(npc, SandboxDriverMemory.REFUSED,
+		offer_id, str(events.back()["id"]), minute)
 	return true
 
 
@@ -316,6 +318,8 @@ func _complete_active_trip() -> void:
 		risk += 1
 	offer["status"] = "completed"
 	_record("fare_settled", str(offer["id"]), {"credits": fare, "npc_id": npc["id"], "to": player_district})
+	SandboxDriverMemory.remember(npc, SandboxDriverMemory.COMPLETED,
+		str(offer["id"]), str(events.back()["id"]), minute)
 	active_offer_id = ""
 	route_nodes.clear()
 	route_segment = 0
@@ -378,6 +382,9 @@ func restore_snapshot(value: Dictionary) -> bool:
 			return false
 		resident_ids[npc_id] = true
 		if not ["available", "resting", "working", "travelling"].has(npc.get("activity")):
+			return false
+		if not SandboxDriverMemory.valid_history(npc, value["offers"], value["events"],
+				int(value["minute"])):
 			return false
 		if not ["kind:a", "kind:b", "kind:c", "kind:d"].has(npc.get("species")) \
 				or not ["harbor", "exchange", "newcomer"].has(npc.get("community")) \

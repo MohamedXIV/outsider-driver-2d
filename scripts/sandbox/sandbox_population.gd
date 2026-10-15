@@ -30,6 +30,8 @@ static func create(seed: int) -> Array[Dictionary]:
 			"need": 30 + posmod(seed * 3 + i * 17, 51),
 			"cash": 24 + posmod(seed * 5 + i * 13, 40),
 			"trust": 0,
+			"driver_memories": [],
+			"driver_identity_facts": {},
 			"cooldown_until": 0,
 			# Provisional social identity. Distinct species can share a language,
 			# and co-resident communities are not automatic faction clones.
