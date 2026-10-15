@@ -14,9 +14,9 @@ const { chromium } = require('playwright');
     if(!initial.includes('docks')||!initial.includes('shelter')||!initial.includes('20 min'))
       throw new Error('Initial route preview is not a real connected map-pin route: '+initial);
     await page.screenshot({path:'/tmp/od2d-ink-evidence/route-default-web.png'});
-    await page.mouse.click(734,260); // Route panel waypoint selector.
-    await page.keyboard.press('End');
-    await page.keyboard.press('Enter');
+    // Route selection through the ACTUAL map pin, not synthetic JS/UI state.
+    // Native 1280x720 screenshot verifies Depot node at (485,400).
+    await page.mouse.click(485,400);
     await page.waitForFunction(()=>{
       const d=document.documentElement.dataset;
       return d.sandboxRouteWaypoint==='depot' && d.sandboxRoutePreview.includes('30 min');
