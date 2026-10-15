@@ -197,22 +197,47 @@ text = "Select one working device."
 offset_left = 510.0
 offset_top = 207.0
 offset_right = 1006.0
-offset_bottom = 377.0
+offset_bottom = 391.0
 
 [node name="Content" type="VBoxContainer" parent="HUD/RoutePanel"]
 layout_mode = 2
-theme_override_constants/separation = 7
+theme_override_constants/separation = 3
 
 [node name="Heading" type="Label" parent="HUD/RoutePanel/Content"]
 layout_mode = 2
-text = "TRIP ROUTE  |  SELECT WAYPOINT BEFORE ACCEPT"
+text = "TRIP ROUTE  |  WAYPOINTS AND JUNCTION REROUTE"
 
 [node name="Via" type="OptionButton" parent="HUD/RoutePanel/Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(465, 38)
+custom_minimum_size = Vector2(465, 29)
 
 [node name="Preview" type="Label" parent="HUD/RoutePanel/Content"]
 layout_mode = 2
-custom_minimum_size = Vector2(460, 72)
+custom_minimum_size = Vector2(460, 42)
 autowrap_mode = 3
 text = "Select a request to preview connected roads."
+
+[node name="RiderInfo" type="Label" parent="HUD/RoutePanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(460, 24)
+autowrap_mode = 3
+text = "Passenger route preference."
+
+[node name="RouteActions" type="HBoxContainer" parent="HUD/RoutePanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Apply" type="Button" parent="HUD/RoutePanel/Content/RouteActions"]
+layout_mode = 2
+custom_minimum_size = Vector2(142, 30)
+text = "Queue reroute"
+
+[node name="Honor" type="Button" parent="HUD/RoutePanel/Content/RouteActions"]
+layout_mode = 2
+custom_minimum_size = Vector2(142, 30)
+text = "Honor rider"
+
+[node name="Refuse" type="Button" parent="HUD/RoutePanel/Content/RouteActions"]
+layout_mode = 2
+custom_minimum_size = Vector2(142, 30)
+text = "Refuse rider"
