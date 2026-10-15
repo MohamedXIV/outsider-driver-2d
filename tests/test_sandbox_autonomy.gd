@@ -44,7 +44,19 @@ func _initialize() -> void:
 		var recovered: SandboxWorld = SandboxSave.load_world(save_path)
 		assert(recovered != null and recovered.minute == split.minute)
 		assert(recovered.advance(720))
-		assert(JSON.stringify(recovered.snapshot()) == JSON.stringify(a.snapshot()))
+		# JSON roundtrips can change the int/float representation of integral
+		# dictionary fields. Compare typed world meaning, not JSON formatting.
+		var expected: Dictionary = a.snapshot()
+		var actual: Dictionary = recovered.snapshot()
+		if actual != expected:
+			for key in expected.keys():
+				if actual.get(key) != expected[key]:
+					print("S3_REPLAY_DIFF seed=", seed, " key=", key,
+						" actual=", JSON.stringify(actual.get(key)).substr(0, 1200),
+						" expected=", JSON.stringify(expected[key]).substr(0, 1200))
+			push_error("S3 mid-day world continuation diverged.")
+			quit(3)
+			return
 		# Forged incomplete in-flight state must not load.
 		var forged: Dictionary = a.snapshot()
 		forged["residents"][0]["transit_until"] = a.minute + 20
