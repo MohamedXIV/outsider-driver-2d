@@ -309,6 +309,8 @@ func _render() -> void:
 			chosen["purpose"], npc["need"], npc["cash"], npc["language"],
 			maxi(0, int(chosen["expires_at"]) - _world.minute)
 		]
+	if not npc.is_empty() and SandboxDriverMemory.recognizes(npc):
+		_details.text += " | RETURNING CAB"
 	_notice.text = _notice_text
 	_render_route_picker(chosen)
 	_gear_panel.visible = true
@@ -364,6 +366,17 @@ func _render() -> void:
 				peer_event["detail"]["district"]
 			]
 			break
+	var known_drivers: int = 0
+	for resident in _world.residents:
+		if SandboxDriverMemory.recognizes(resident):
+			known_drivers += 1
+	var returning_index: int = -1
+	for i in range(available.size()):
+		var offer: Dictionary = available[i]
+		if offer["origin"] == _world.player_district and offer["channel"] != "official" \
+				and SandboxDriverMemory.recognizes(_world.resident(str(offer["npc_id"]))):
+			returning_index = i
+			break
 	var working: int = _count_activity("working")
 	var resting: int = _count_activity("resting")
 	var moving: int = _count_activity("travelling")
@@ -373,8 +386,8 @@ func _render() -> void:
 		if str(event["kind"]).begins_with("npc_alternative_"):
 			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
 			break
-	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d | PEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
-		available.size(), _world.offers.size(), _world.residents.size(),
+	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d | KNOWN CABS %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d | PEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
+		available.size(), _world.offers.size(), _world.residents.size(), known_drivers,
 		working, resting, moving, departed, arrived, peer_count, peer_facts,
 		_world.events.size(), recent_contact, recent, phase.to_upper()
 	]
@@ -385,7 +398,7 @@ func _render() -> void:
 			_world.route_segment + 1, _world.route_nodes.size() - 1
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s,sandboxKnownCabs:'%d',sandboxReturningIndex:'%d',sandboxSelectedRecognizes:'%s',sandboxSelectedMemories:'%d',sandboxDialogueRecognizes:'%s'})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -403,7 +416,11 @@ func _render() -> void:
 			str(_world.rider_route_request.get("via", "")),
 			int(_world.resident(str(_world.offer_by_id(_world.active_offer_id).get("npc_id", ""))).get("trust", 0)),
 			str(not _apply_route.disabled).to_lower(), JSON.stringify(_rider_info.text),
-			peer_count, peer_facts, JSON.stringify(recent_contact)
+			peer_count, peer_facts, JSON.stringify(recent_contact),
+			known_drivers, returning_index,
+			str(not npc.is_empty() and SandboxDriverMemory.recognizes(npc)).to_lower(),
+			npc.get("driver_memories", []).size(),
+			str(_conversation.recognizes_driver()).to_lower() if _conversation != null else "false"
 		]
 		JavaScriptBridge.eval(web_state, true)
 

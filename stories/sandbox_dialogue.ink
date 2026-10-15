@@ -3,6 +3,7 @@
 // Local alien speech is *not* translated without language knowledge.
 VAR understands_speaker = true
 VAR knows_local_route = false
+VAR recognizes_driver = false
 VAR urgent = false
 VAR temperament = "cautious"
 VAR destination = "docks"
@@ -12,7 +13,10 @@ VAR purpose = "supplies"
 
 === intro ===
 { understands_speaker:
-    { urgent:
+    { recognizes_driver:
+        "You again. I remember this cab; last time you got me there." # intent:request_trip
+    - else:
+        { urgent:
         { temperament == "cautious":
             "Please. I need a ride, but keep us away from trouble." # intent:request_trip
         - else:
@@ -24,9 +28,14 @@ VAR purpose = "supplies"
         - else:
             "Hey, driver! Got room? I need to get moving." # intent:request_trip
         }
+        }
     }
 - else:
-    "Rru'ka shen vorr. Teka-rii?" The stranger points at your taxi. # intent:request_trip
+    { recognizes_driver:
+        "Rru'ka shen vorr. Teka-rii?" The passenger recognizes your taxi, but their words remain untranslated. # intent:request_trip
+    - else:
+        "Rru'ka shen vorr. Teka-rii?" The stranger points at your taxi. # intent:request_trip
+    }
 }
 + [Ask where they need to go.]
     { understands_speaker:

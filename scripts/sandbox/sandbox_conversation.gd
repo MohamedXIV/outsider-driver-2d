@@ -13,6 +13,7 @@ var _frame: Dictionary = {}
 var _outcome: String = ""
 var _understood: bool = false
 var _partial_route: bool = false
+var _recognizes_driver: bool = false
 
 
 func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool:
@@ -29,6 +30,7 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	var partial_route: bool = SandboxKnowledge.recognizes_route_marker(str(npc["language"]), world.knowledge)
 	var globals: Dictionary = {
 		"knows_local_route": partial_route,
+		"recognizes_driver": SandboxDriverMemory.recognizes(npc),
 		"understands_speaker": understood,
 		"urgent": int(npc["need"]) >= 70,
 		"temperament": str(npc["temperament"]),
@@ -42,6 +44,7 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	offer_id = requested_offer
 	_understood = understood
 	_partial_route = partial_route
+	_recognizes_driver = SandboxDriverMemory.recognizes(npc)
 	_outcome = ""
 	_frame = _ink.advance()
 	return true
@@ -89,6 +92,10 @@ func understood() -> bool:
 
 func recognizes_route() -> bool:
 	return _partial_route
+
+
+func recognizes_driver() -> bool:
+	return _recognizes_driver
 
 
 func is_finished() -> bool:
