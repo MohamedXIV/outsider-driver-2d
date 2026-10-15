@@ -45,7 +45,7 @@ func _record(kind: String, subject: String, detail: Dictionary = {}) -> void:
 
 func select_starter_device(device: String) -> bool:
 	if not starter_device.is_empty() or not SandboxKnowledge.DEVICES.has(device) \
-			or not active_offer_id.is_empty():
+			or not active_offer_id.is_empty() or meeting_in_progress():
 		return false
 	starter_device = device
 	_grant_fact(str(SandboxKnowledge.FIRST_FACT[device]), "starter:%s" % device)
@@ -102,7 +102,7 @@ func open_offers() -> Array[Dictionary]:
 
 
 func advance(minutes: int) -> bool:
-	if minutes <= 0 or minutes % STEP_MINUTES != 0:
+	if meeting_in_progress() or minutes <= 0 or minutes % STEP_MINUTES != 0:
 		return false
 	for i in range(minutes / STEP_MINUTES):
 		minute += STEP_MINUTES
@@ -162,7 +162,7 @@ func _record_changes(changes: Array[Dictionary]) -> void:
 
 
 func reposition(destination: String) -> bool:
-	if not active_offer_id.is_empty() or not SandboxRoads.DISTRICTS.has(destination) or destination == player_district:
+	if meeting_in_progress() or not active_offer_id.is_empty() or not SandboxRoads.DISTRICTS.has(destination) or destination == player_district:
 		return false
 	var hops: int = SandboxRoads.hops(player_district, destination)
 	var move_cost: int = hops
@@ -178,7 +178,7 @@ func reposition(destination: String) -> bool:
 
 func decline(offer_id: String) -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
-	if offer.is_empty() or offer["status"] != "open":
+	if meeting_in_progress() or offer.is_empty() or offer["status"] != "open":
 		return false
 	offer["status"] = "declined"
 	var npc: Dictionary = resident(str(offer["npc_id"]))
@@ -193,7 +193,7 @@ func decline(offer_id: String) -> bool:
 
 func accept(offer_id: String, waypoint: String = "") -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
-	if not active_offer_id.is_empty() or offer.is_empty() or offer["status"] != "open":
+	if meeting_in_progress() or not active_offer_id.is_empty() or offer.is_empty() or offer["status"] != "open":
 		return false
 	if offer["origin"] != player_district or offer["channel"] == "official":
 		return false # Illegally resident: no access to licensed ride apps.
@@ -546,3 +546,10 @@ func start_meeting(meeting_id: String) -> bool:
 
 func finish_meeting(meeting_id: String, choice: String) -> bool:
 	return SandboxMeetings.finish(self, meeting_id, choice)
+
+
+func meeting_in_progress() -> bool:
+	for meeting in meetings:
+		if meeting.get("status") == "in_progress":
+			return true
+	return false
