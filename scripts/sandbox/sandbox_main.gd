@@ -567,7 +567,7 @@ func _expose_meeting_web() -> void:
 		var choice_center: Vector2 = Vector2.ZERO
 		if _meeting_choices.get_child_count() > 0:
 			choice_center = (_meeting_choices.get_child(0) as Button).get_global_rect().get_center()
-		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s,sandboxMeetingAcceptPoint:%s,sandboxMeetingAttendPoint:%s,sandboxMeetingChoicePoint:%s,sandboxSavePoint:%s,sandboxLoadPoint:%s})" % [
+		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s,sandboxMeetingAcceptPoint:%s,sandboxMeetingAttendPoint:%s,sandboxMeetingChoicePoint:%s,sandboxSavePoint:%s,sandboxLoadPoint:%s,sandboxSaveExists:'%s',sandboxSaveBytes:'%d',sandboxNotice:%s})" % [
 			_world.minute, _world.meetings.size(), JSON.stringify(_selected_meeting_id),
 			JSON.stringify(str(active_meeting.get("status", ""))),
 			JSON.stringify(str(active_meeting.get("location", ""))),
@@ -579,7 +579,10 @@ func _expose_meeting_web() -> void:
 			JSON.stringify(JSON.stringify([roundi(attend_center.x), roundi(attend_center.y)])),
 			JSON.stringify(JSON.stringify([roundi(choice_center.x), roundi(choice_center.y)])),
 			JSON.stringify(JSON.stringify([roundi(save_center.x), roundi(save_center.y)])),
-			JSON.stringify(JSON.stringify([roundi(load_center.x), roundi(load_center.y)]))
+			JSON.stringify(JSON.stringify([roundi(load_center.x), roundi(load_center.y)])),
+			str(FileAccess.file_exists(SandboxSave.PATH)).to_lower(),
+			FileAccess.get_file_as_string(SandboxSave.PATH).length() if FileAccess.file_exists(SandboxSave.PATH) else 0,
+			JSON.stringify(_notice.text)
 		]
 		JavaScriptBridge.eval(state, true)
 
