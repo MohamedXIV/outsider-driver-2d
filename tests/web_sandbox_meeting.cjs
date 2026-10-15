@@ -54,6 +54,8 @@ const { chromium } = require('playwright');
     throw Error('Off-duty Ink scene did not present real choices');
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-together-web.png'});
   await clickNative('sandboxSavePoint'); // Real Save World button during the encounter
+  // Match the existing proven Web save smoke: allow browser filesystem sync.
+  await page.waitForTimeout(2200);
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',null,{timeout:45000});
   await clickNative('sandboxLoadPoint'); // Real Load World button after reload
