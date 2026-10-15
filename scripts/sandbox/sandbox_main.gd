@@ -351,6 +351,19 @@ func _render() -> void:
 	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
 	var departed: int = _count_events("npc_alternative_departed")
 	var arrived: int = _count_events("npc_alternative_arrived")
+	var peer_count: int = _count_events("npc_peer_contact")
+	var peer_facts: int = 0
+	var recent_contact: String = "No witnessed peer contact yet"
+	for resident in _world.residents:
+		peer_facts += resident["peer_knowledge"].size()
+	for j in range(_world.events.size() - 1, -1, -1):
+		var peer_event: Dictionary = _world.events[j]
+		if peer_event["kind"] == "npc_peer_contact":
+			recent_contact = "%s met %s at %s" % [
+				peer_event["subject"], peer_event["detail"]["recipient"],
+				peer_event["detail"]["district"]
+			]
+			break
 	var working: int = _count_activity("working")
 	var resting: int = _count_activity("resting")
 	var moving: int = _count_activity("travelling")
@@ -360,9 +373,10 @@ func _render() -> void:
 		if str(event["kind"]).begins_with("npc_alternative_"):
 			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
 			break
-	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nEVENTS %d\n%s\n\nNo player input required.\nSTATUS %s" % [
+	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d\nPEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
 		available.size(), _world.offers.size(), _world.residents.size(),
-		working, resting, moving, departed, arrived, _world.events.size(), recent, phase.to_upper()
+		working, resting, moving, departed, arrived, peer_count, peer_facts,
+		_world.events.size(), recent_contact, recent, phase.to_upper()
 	]
 	if not _world.active_offer_id.is_empty():
 		var route: Dictionary = _world.offer_by_id(_world.active_offer_id)
@@ -371,7 +385,7 @@ func _render() -> void:
 			_world.route_segment + 1, _world.route_nodes.size() - 1
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -388,7 +402,8 @@ func _render() -> void:
 			str(_world.rider_route_request.get("status", "")),
 			str(_world.rider_route_request.get("via", "")),
 			int(_world.resident(str(_world.offer_by_id(_world.active_offer_id).get("npc_id", ""))).get("trust", 0)),
-			str(not _apply_route.disabled).to_lower(), JSON.stringify(_rider_info.text)
+			str(not _apply_route.disabled).to_lower(), JSON.stringify(_rider_info.text),
+			peer_count, peer_facts, JSON.stringify(recent_contact)
 		]
 		JavaScriptBridge.eval(web_state, true)
 
