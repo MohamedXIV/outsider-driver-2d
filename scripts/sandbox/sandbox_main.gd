@@ -127,6 +127,7 @@ func _on_meeting_attend() -> void:
 		_meeting_dialogue = null
 		_notice_text = "The meeting dialogue is unavailable."
 	_render()
+	_refresh_web_hitboxes_after_layout()
 
 
 func _on_meeting_choice(index: int) -> void:
@@ -314,6 +315,7 @@ func _on_load() -> void:
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
+	_refresh_web_hitboxes_after_layout()
 
 
 func _render() -> void:
@@ -555,6 +557,16 @@ func _render_meetings() -> void:
 		button.text = str(choices[i])
 		button.pressed.connect(_on_meeting_choice.bind(i))
 		_meeting_choices.add_child(button)
+
+
+func _refresh_web_hitboxes_after_layout() -> void:
+	# Godot Control geometry is finalized in a later frame. Prevent publishing
+	# zero-sized/stale interaction targets immediately after scene restoration.
+	if not OS.has_feature("web"):
+		return
+	await get_tree().process_frame
+	if is_inside_tree() and _meeting_panel.visible:
+		_expose_meeting_web()
 
 
 func _expose_meeting_web() -> void:
