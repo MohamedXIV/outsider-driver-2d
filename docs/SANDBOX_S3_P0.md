@@ -21,4 +21,17 @@
 
 **Important limits:** 9 NPCs and simple motives/routines produce frequent activity over the compressed test day; this is causal domain proof, not tuned city demographics, realistic weekly routines, an entire transport network, NPC-to-NPC relationships or polished street presentation. The player taxi is still on the old countdown until #27. Human playtest and actual Windows runtime are not verified.
 
-**Verification:** see the S3 PR and final Godot 4.7.2 CI run before claiming full Linux/Web acceptance.
+## Verified final evidence — October 15, 2026
+
+**PASS:** [Godot 4.7.2 cross-platform acceptance #38767914997](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38767914997) on tested gameplay head `36291b789fb780a0919a6bdfdae483e0a2f7550d` (later change updates this documentation only). Canonical S1/S2 Ink compiler/source bytecode, Godot import, historical P1/P2, all S0–S2 sandbox tests, **SANDBOX_AUTONOMY_PASS**, **SANDBOX_AUTONOMY_SCENE_PASS**, legacy contextual browser smoke, and **SANDBOX_AUTONOMY_WEB_PASS** are all green. Linux native runtime/visual screenshots and actual exported Chromium clicks/save/page reload/restore confirmed; Windows was **exported only**, not run on Windows.
+
+Deterministic 24-hour no-player-command probes from the tested run:
+- Seed 8: 55 independent departures, 49 arrivals, 35 routine changes, 57 worker wage events.
+- Seed 9: 59 departures, 52 arrivals, 36 routine changes, 42 wage events.
+- Seed 17: 55 departures, 50 arrivals, 30 routine changes, 52 wage events.
+
+The unfinished departures have actual future arrival timestamps; no extra player income is minted. These compressed counts are **instrumented proof**, **not** a target demand frequency/balancing claim.
+
+Reviewed actual screenshots from [run artifacts](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38767914997): native `sandbox/autonomy-before-idle.png`, `sandbox/autonomy-after-idle.png`, `sandbox/autonomy-restored.png`; Chromium `sandbox-autonomy-before.png`, `sandbox-autonomy-after.png`, `sandbox-autonomy-restored.png`. The HUD shows changed district resident counts and independent departure/arrival counters after 24h. Build bundle `outsider-driver-playtest-builds` artifact **11990555341** and evidence `playable-ride-evidence` artifact **11990585304**, currently retained around 21 days. The schematic art is **not** final camera/UX acceptance.
+
+Development regressions exposed a real JSON numeric-type mismatch in byte-exact save replay, fixed by restoring integer fields; an early Chromium test had stale UI bounds from Godot's pre-layout `_ready()` observation, corrected to click the verified fixed-viewport button. This is not a claim that all responsive layouts are tested.
