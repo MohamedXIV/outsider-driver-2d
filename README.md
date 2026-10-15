@@ -2,7 +2,7 @@
 
 A narrative social-stealth taxi game set in an alien city that prohibits humans. You are a human living under a false identity, earning a living by driving an old taxi and learning how to belong.
 
-**Status:** **P0–P2 technical prototypes archived** (Web/Linux checks passed); the **actual systemic sandbox is not yet built**. The previous Babylon.js project remains read-only reference, not a code dependency. [Why we stopped extending the scripted prototype](docs/PROTOTYPE_CLOSEOUT.md).
+**Status:** P0–P2 authored-ride technical prototype archived. **Sandbox S0 now runs by default**: persistent seeded NPC needs, state-derived offers, 5-district mobility, command/event economy and world saving. This is the *first systemic slice*, not a completed living-city game. The previous Babylon.js project remains read-only reference, not a code dependency. [Why we stopped extending the scripted prototype](docs/PROTOTYPE_CLOSEOUT.md).
 
 ## Direction
 
@@ -31,11 +31,16 @@ A narrative social-stealth taxi game set in an alien city that prohibits humans.
 
 The old [Outsider Driver repository](https://github.com/MohamedXIV/outsider-driver) contains useful domain contracts, authored content and older 3D design documents. Do not import its runtime or save formats by default.
 
-## Run — historical P0–P2 technical fixture (NOT sandbox gameplay)
+## Run — systemic sandbox S0
 
-Open `project.godot` in Godot 4.7.2 and press **F5**. Move with **WASD / arrow keys** in the small garage. Approach the workbench to choose one starter device (GPS / Translator / Radio). Read the shift notice with **E**, then approach the taxi and press **E** or **Pick up visitor**. The taxi follows an authored route through the elevated crossing while you speak to the passenger. At the clinic, choose **Talk at destination** to conclude the ride. Save / Load preserve the chosen device and unfinished dialogue. After dropping off the passenger, press **E** or **Return to garage**. At the workbench, press **E** to pay the 6-credit taxi service/upkeep, then walk back to the taxi for another shift. This loop repeats and preserves your credits and knowledge; **R** is a debug new-game reset.
+Open `project.godot` in Godot 4.7.2 and press **F5**. The default screen is now a *systemic city dispatch board*, **not the fixed clinic story**. The map shows five connected districts and how many NPC residents currently occupy each. NPCs generate offers from changing travel needs and budgets.
 
-For the garage interactions see [P2 Garage](docs/P2_GARAGE.md), and for starter knowledge see [P2 Shift Prep](docs/P2_SHIFT_PREP.md). For the previously validated P1-only build (without prep), see [P1 Playtest](docs/P1_PLAYTEST.md).
+Select a ride offer (the nearest accessible one is selected by default). **Accept ride** only works for offers originating in your current district and available via street/underground networks. **Decline** changes the NPC's pending demand; **Reposition taxi** moves along city road connections and costs credits; **Wait +20 minutes** advances all NPCs, offers and active trip progress. An accepted fare pays only upon reaching its actual destination. **Save World / Load World** persist complete residents, offers and events. **New world seed** changes the population, not a scripted route.
+
+See [Sandbox S0 scope and tests](docs/SANDBOX_S0.md) and [Sandbox foundation #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). This S0 UI uses temporary schematic artwork; live semantic Ink interaction and full simulated economy remain **future increments**.
+
+The old fixed clinic prototype remains at `scenes/main.tscn` for regression; it is not the production main scene.
+
 
 For repeatable headless verification:
 
