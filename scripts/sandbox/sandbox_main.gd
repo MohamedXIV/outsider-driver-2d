@@ -555,8 +555,8 @@ func _render_meetings() -> void:
 
 	if OS.has_feature("web"):
 		var active_meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
-		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s})" % [
-			_world.meetings.size(), JSON.stringify(_selected_meeting_id),
+		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s})" % [
+			_world.minute, _world.meetings.size(), JSON.stringify(_selected_meeting_id),
 			JSON.stringify(str(active_meeting.get("status", ""))),
 			JSON.stringify(str(active_meeting.get("location", ""))),
 			int(active_meeting.get("slot", 0)), int(active_meeting.get("deadline", 0)),
