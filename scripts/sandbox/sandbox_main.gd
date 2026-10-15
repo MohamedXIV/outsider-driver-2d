@@ -562,10 +562,12 @@ func _expose_meeting_web() -> void:
 		var active_meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
 		var accept_center: Vector2 = _meeting_accept.get_global_rect().get_center()
 		var attend_center: Vector2 = _meeting_attend.get_global_rect().get_center()
+		var save_center: Vector2 = ($HUD/DockPanel/Content/Persistence/Save as Button).get_global_rect().get_center()
+		var load_center: Vector2 = ($HUD/DockPanel/Content/Persistence/Load as Button).get_global_rect().get_center()
 		var choice_center: Vector2 = Vector2.ZERO
 		if _meeting_choices.get_child_count() > 0:
 			choice_center = (_meeting_choices.get_child(0) as Button).get_global_rect().get_center()
-		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s,sandboxMeetingAcceptPoint:%s,sandboxMeetingAttendPoint:%s,sandboxMeetingChoicePoint:%s})" % [
+		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s,sandboxMeetingAcceptPoint:%s,sandboxMeetingAttendPoint:%s,sandboxMeetingChoicePoint:%s,sandboxSavePoint:%s,sandboxLoadPoint:%s})" % [
 			_world.minute, _world.meetings.size(), JSON.stringify(_selected_meeting_id),
 			JSON.stringify(str(active_meeting.get("status", ""))),
 			JSON.stringify(str(active_meeting.get("location", ""))),
@@ -575,7 +577,9 @@ func _expose_meeting_web() -> void:
 			JSON.stringify(_meeting_text.text if _meeting_panel.visible else ""),
 			JSON.stringify(JSON.stringify([roundi(accept_center.x), roundi(accept_center.y)])),
 			JSON.stringify(JSON.stringify([roundi(attend_center.x), roundi(attend_center.y)])),
-			JSON.stringify(JSON.stringify([roundi(choice_center.x), roundi(choice_center.y)]))
+			JSON.stringify(JSON.stringify([roundi(choice_center.x), roundi(choice_center.y)])),
+			JSON.stringify(JSON.stringify([roundi(save_center.x), roundi(save_center.y)])),
+			JSON.stringify(JSON.stringify([roundi(load_center.x), roundi(load_center.y)]))
 		]
 		JavaScriptBridge.eval(state, true)
 
