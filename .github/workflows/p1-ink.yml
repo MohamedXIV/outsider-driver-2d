@@ -65,7 +65,7 @@ jobs:
           fi
           /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
             -o stories/sandbox_dialogue.ink.json stories/sandbox_dialogue.ink
-          python3 -c 'from pathlib import Path; p=Path("stories/sandbox_dialogue.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\\n", encoding="utf-8")'
+          python3 -c 'from pathlib import Path; p=Path("stories/sandbox_dialogue.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
           echo S1_COMPILED_INK_BEGIN
           cat stories/sandbox_dialogue.ink.json
           echo S1_COMPILED_INK_END
