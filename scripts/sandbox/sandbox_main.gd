@@ -11,6 +11,7 @@ extends Node2D
 @onready var _reposition: Button = $HUD/DockPanel/Content/Navigation/Reposition
 @onready var _clock: Label = $HUD/DockPanel/Content/Clock
 @onready var _world_info: Label = $HUD/WorldPanel/Content/WorldInfo
+@onready var _observe: Button = $HUD/WorldPanel/Content/Observe
 @onready var _talk: Button = $HUD/DockPanel/Content/Actions/Talk
 @onready var _dialogue_panel: PanelContainer = $HUD/DialoguePanel
 @onready var _dialogue_title: Label = $HUD/DialoguePanel/Content/Title
@@ -47,6 +48,7 @@ func _ready() -> void:
 	_decline.pressed.connect(_on_decline)
 	_reposition.pressed.connect(_on_reposition)
 	$HUD/DockPanel/Content/TimeActions/Wait.pressed.connect(_on_wait)
+	_observe.pressed.connect(_on_observe)
 	$HUD/DockPanel/Content/TimeActions/NewSeed.pressed.connect(_on_new_seed)
 	$HUD/DockPanel/Content/Persistence/Save.pressed.connect(_on_save)
 	$HUD/DockPanel/Content/Persistence/Load.pressed.connect(_on_load)
@@ -137,6 +139,12 @@ func _on_reposition() -> void:
 func _on_wait() -> void:
 	_world.advance(20)
 	_notice_text = "20 minutes passed. NPC needs and dispatch changed."
+	_render()
+
+
+func _on_observe() -> void:
+	_world.advance(360)
+	_notice_text = "Six simulated hours passed; independent residents continued their lives."
 	_render()
 
 
@@ -277,9 +285,20 @@ func _render() -> void:
 			button.pressed.connect(_on_dialogue_choice.bind(i))
 			_dialogue_choices.add_child(button)
 	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
-	_world_info.text = "LIVING CITY\n\nOFFERS  %d open / %d total\nNPCs  %d\nEVENTS  %d\nSTATUS  %s\n\nUnlicensed residents cannot\naccept official-network jobs.\n\nTime runs: +10m each 10s.\nTaxi travel: 10m per graph edge.\nNo fixed scripted passenger." % [
+	var departed: int = _count_events("npc_alternative_departed")
+	var arrived: int = _count_events("npc_alternative_arrived")
+	var working: int = _count_activity("working")
+	var resting: int = _count_activity("resting")
+	var moving: int = _count_activity("travelling")
+	var recent: String = "No independent trips yet"
+	for j in range(_world.events.size() - 1, -1, -1):
+		var event: Dictionary = _world.events[j]
+		if str(event["kind"]).begins_with("npc_alternative_"):
+			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
+			break
+	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nEVENTS %d\n%s\n\nNo player input required.\nSTATUS %s" % [
 		available.size(), _world.offers.size(), _world.residents.size(),
-		_world.events.size(), phase.to_upper()
+		working, resting, moving, departed, arrived, _world.events.size(), recent, phase.to_upper()
 	]
 	if not _world.active_offer_id.is_empty():
 		var route: Dictionary = _world.offer_by_id(_world.active_offer_id)
@@ -287,7 +306,7 @@ func _render() -> void:
 			route["origin"], route["destination"], _world.remaining_minutes
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d'})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -297,7 +316,7 @@ func _render() -> void:
 			_conversation.offer_id if _conversation != null else "",
 			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else ""),
 			_world.starter_device, _world.knowledge.size(), str(_world.knows(SandboxKnowledge.ROUTE_MARKER)).to_lower(),
-			JSON.stringify(_gear_info.text)
+			JSON.stringify(_gear_info.text), departed, arrived, working, resting, moving
 		]
 		JavaScriptBridge.eval(web_state, true)
 
@@ -306,5 +325,20 @@ func _settled_count() -> int:
 	var total: int = 0
 	for event in _world.events:
 		if event["kind"] == "fare_settled":
+			total += 1
+	return total
+
+func _count_activity(activity: String) -> int:
+	var total: int = 0
+	for npc in _world.residents:
+		if str(npc.get("activity", "")) == activity:
+			total += 1
+	return total
+
+
+func _count_events(kind: String) -> int:
+	var total: int = 0
+	for event in _world.events:
+		if event["kind"] == kind:
 			total += 1
 	return total

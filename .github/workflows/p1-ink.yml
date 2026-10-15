@@ -141,6 +141,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_knowledge.gd 2>&1 | tee /tmp/sandbox-knowledge.log
           grep -q 'SANDBOX_KNOWLEDGE_PASS' /tmp/sandbox-knowledge.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-knowledge.log; then exit 1; fi
+      - name: Prove S3 autonomous routines and idle-day replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_autonomy.gd 2>&1 | tee /tmp/autonomy-domain.log
+          grep -q 'SANDBOX_AUTONOMY_PASS' /tmp/autonomy-domain.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/autonomy-domain.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -198,6 +205,11 @@ jobs:
             /tmp/godot --path . --script res://tests/test_sandbox_scene.gd \
             2>&1 | tee /tmp/sandbox-scene.log
           grep -q 'SANDBOX_SCENE_PASS' /tmp/sandbox-scene.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_sandbox_autonomy_scene.gd \
+            2>&1 | tee /tmp/autonomy-scene.log
+          grep -q 'SANDBOX_AUTONOMY_SCENE_PASS' /tmp/autonomy-scene.log
+          test -s /tmp/od2d-ink-evidence/sandbox/autonomy-after-idle.png
           test -s /tmp/od2d-ink-evidence/sandbox/generated-offers.png
           test -s /tmp/od2d-ink-evidence/sandbox/settled-demand.png
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-scene.log; then exit 1; fi
@@ -213,6 +225,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_autonomy.cjs
       - name: Package downloadable playtest builds
         shell: bash
         run: |

@@ -116,13 +116,18 @@ text = "Independent residents, not authored first passengers."
 offset_left = 1015.0
 offset_top = 18.0
 offset_right = 1265.0
-offset_bottom = 315.0
+offset_bottom = 400.0
 
 [node name="Content" type="VBoxContainer" parent="HUD/WorldPanel"]
 
 [node name="WorldInfo" type="Label" parent="HUD/WorldPanel/Content"]
 layout_mode = 2
 text = "LIVING CITY"
+
+[node name="Observe" type="Button" parent="HUD/WorldPanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(225, 38)
+text = "Observe +6h (debug)"
 
 [node name="DialoguePanel" type="PanelContainer" parent="HUD"]
 offset_left = 515.0
