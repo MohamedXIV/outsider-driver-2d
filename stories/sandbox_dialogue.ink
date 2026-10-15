@@ -7,6 +7,8 @@ VAR temperament = "cautious"
 VAR destination = "docks"
 VAR purpose = "supplies"
 
+-> intro
+
 === intro ===
 { understands_speaker:
     { urgent:
