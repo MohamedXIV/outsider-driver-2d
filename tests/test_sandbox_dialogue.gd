@@ -20,6 +20,12 @@ func _initialize() -> void:
 	assert(unknown.open(world, unknown_id, self))
 	assert(trade.open(world, trade_id, self))
 	assert(not unknown.understood() and trade.understood())
+	print("S1_FRAME_UNKNOWN ", JSON.stringify(unknown.current_frame()))
+	print("S1_FRAME_TRADE ", JSON.stringify(trade.current_frame()))
+	if not unknown.current_frame()["tags"].has("intent:request_trip"):
+		push_error("Missing request_trip tag from actual inkgd runtime frame.")
+		quit(2)
+		return
 	assert(unknown.current_frame()["tags"].has("intent:request_trip"))
 	assert(trade.current_frame()["tags"].has("intent:request_trip"))
 	assert(unknown.current_frame()["text"] != trade.current_frame()["text"])
