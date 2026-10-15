@@ -21,7 +21,11 @@ Travel is semi-autonomous and **does not pause for ordinary dialogue**. As the d
 5. **The living city:** radio stations, local traffic/news, recurring passengers and districts react to the player's actions and time.
 6. **The taxi matters:** passenger pickup, time, route choices, checkpoints, cabin upgrades and risk remain gameplay, even without manual steering.
 
-Starter knowledge choice: **GPS / Translator / Radio**; they respectively unlock spatial, linguistic and societal information. Basic semi-autonomous driving is standard.
+**Current S2 proof:** one-time **GPS / Translator / Radio** choice, with limited route-marker learning. **Proposed later design:** always-present Common-language Basic Translator and one additional choice **GPS / extra language module / Radio**, with binary installed/absent translation modules available from physical markets. This loadout is **recommended and still pending final ratification**. Basic semi-autonomous driving is standard. See [living-city conclusions](LIVING_CITY_DESIGN_CONCLUSIONS.md).
+
+## Social relationships and route control — active design
+
+The player may be **recognized and trusted without disclosing humanity, legal status or real name**. Recurring NPCs carry personal memories, and a few significant relationships can lead to meaningful off-duty meetings or optional light romance, while the city remains an autonomous sandbox. The driving direction is **hybrid auto-drive**: map destination, suggested graph route, optional waypoints and mid-trip rerouting at valid junctions. These are **design directions not S2 implementations**. Decisions and unresolved details: [Living City design synthesis](LIVING_CITY_DESIGN_CONCLUSIONS.md).
 
 ## Content model
 
