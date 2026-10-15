@@ -2,7 +2,7 @@ name: Playable ride Web/Desktop gate
 
 on:
   push:
-    branches: ['feat/p1-*', 'feat/p2-*']
+    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -101,6 +101,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_loop.gd 2>&1 | tee /tmp/loop-test.log
           grep -q 'P2_LOOP_NATIVE_PASS' /tmp/loop-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/loop-test.log; then exit 1; fi
+      - name: Check seeded population demand, travel and replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox.gd 2>&1 | tee /tmp/sandbox-domain.log
+          grep -q 'SANDBOX_DOMAIN_PASS' /tmp/sandbox-domain.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-domain.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -154,6 +161,13 @@ jobs:
           test -s /tmp/od2d-ink-evidence/native/waiting.png
           test -s /tmp/od2d-ink-evidence/native/completed.png
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/native-ride.log; then exit 1; fi
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_sandbox_scene.gd \
+            2>&1 | tee /tmp/sandbox-scene.log
+          grep -q 'SANDBOX_SCENE_PASS' /tmp/sandbox-scene.log
+          test -s /tmp/od2d-ink-evidence/sandbox/generated-offers.png
+          test -s /tmp/od2d-ink-evidence/sandbox/settled-demand.png
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-scene.log; then exit 1; fi
       - name: Real Ink in Chromium Web release
         shell: bash
         run: |
@@ -165,7 +179,7 @@ jobs:
           python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 210s node tests/web_ride_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_smoke.cjs
       - name: Package downloadable playtest builds
         shell: bash
         run: |
