@@ -373,7 +373,7 @@ func _render() -> void:
 		if str(event["kind"]).begins_with("npc_alternative_"):
 			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
 			break
-	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d\nPEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
+	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d | PEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
 		available.size(), _world.offers.size(), _world.residents.size(),
 		working, resting, moving, departed, arrived, peer_count, peer_facts,
 		_world.events.size(), recent_contact, recent, phase.to_upper()
