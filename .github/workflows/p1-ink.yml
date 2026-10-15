@@ -2,7 +2,7 @@ name: Playable ride Web/Desktop gate
 
 on:
   push:
-    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*']
+    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -75,6 +75,21 @@ jobs:
               exit 1
             }
           fi
+      - name: Compile off-duty Ink and check authored source consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp stories/sandbox_meeting.ink.json /tmp/tracked-meeting-ink.json
+          /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
+            -o stories/sandbox_meeting.ink.json stories/sandbox_meeting.ink
+          python3 -c 'from pathlib import Path; p=Path("stories/sandbox_meeting.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\\n", encoding="utf-8")'
+          echo MEETING_INK_BEGIN
+          cat stories/sandbox_meeting.ink.json
+          echo MEETING_INK_END
+          cmp -s /tmp/tracked-meeting-ink.json stories/sandbox_meeting.ink.json || {
+            echo "Off-duty Ink JSON differs from authored source"
+            exit 1
+          }
       - name: Install official Godot 4.7.2 standard editor
         shell: bash
         run: |
@@ -176,6 +191,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_driver_memory.gd 2>&1 | tee /tmp/driver-memory.log
           grep -q 'SANDBOX_DRIVER_MEMORY_PASS' /tmp/driver-memory.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/driver-memory.log; then exit 1; fi
+      - name: Verify repeat fare bonds and deterministic off-duty outcomes
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_meeting.gd 2>&1 | tee /tmp/meeting-domain.log
+          grep -q 'SANDBOX_MEETING_DOMAIN_PASS' /tmp/meeting-domain.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/meeting-domain.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -253,6 +275,13 @@ jobs:
             /tmp/godot --path . --script res://tests/test_sandbox_driver_scene.gd \
             2>&1 | tee /tmp/driver-scene.log
           grep -q 'SANDBOX_DRIVER_SCENE_PASS' /tmp/driver-scene.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_sandbox_meeting_scene.gd \
+            2>&1 | tee /tmp/meeting-scene.log
+          grep -q 'SANDBOX_MEETING_SCENE_PASS' /tmp/meeting-scene.log
+          test -s /tmp/od2d-ink-evidence/sandbox/meeting-in-person-native.png
+          test -s /tmp/od2d-ink-evidence/sandbox/meeting-restored-native.png
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/meeting-scene.log; then exit 1; fi
           test -s /tmp/od2d-ink-evidence/sandbox/returning-cab-native.png
           test -s /tmp/od2d-ink-evidence/sandbox/peer-contacts-idle.png
           test -s /tmp/od2d-ink-evidence/sandbox/rider-reroute-junction.png
@@ -278,6 +307,7 @@ jobs:
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_reroute.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_peer.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_driver.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_meeting.cjs
       - name: Package downloadable playtest builds
         shell: bash
         run: |
