@@ -2,6 +2,7 @@
 // Variables come exclusively from validated SandboxWorld NPC/offer context.
 // Local alien speech is *not* translated without language knowledge.
 VAR understands_speaker = true
+VAR knows_local_route = false
 VAR urgent = false
 VAR temperament = "cautious"
 VAR destination = "docks"
@@ -31,7 +32,11 @@ VAR purpose = "supplies"
     { understands_speaker:
         "I'm heading to {destination} for {purpose}." # intent:ask_destination
     - else:
-        "Vrek shaa. Tir-ka." They gesture toward a location marker you cannot read aloud. # intent:ask_destination
+        { knows_local_route:
+            "Vrek shaa. Tir-ka." Your scanner recognizes the route marker for {destination}, but the other words remain untranslated. # intent:ask_destination
+        - else:
+            "Vrek shaa. Tir-ka." They gesture toward a location marker you cannot read aloud. # intent:ask_destination
+        }
     }
     -> decide
 + [Agree to the trip.]
