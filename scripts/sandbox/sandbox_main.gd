@@ -85,6 +85,9 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _world.meeting_in_progress():
+		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
+		return
 	_elapsed += maxf(delta, 0.0)
 	if _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
@@ -557,14 +560,22 @@ func _render_meetings() -> void:
 func _expose_meeting_web() -> void:
 	if OS.has_feature("web"):
 		var active_meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
-		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s})" % [
+		var accept_center: Vector2 = _meeting_accept.get_global_rect().get_center()
+		var attend_center: Vector2 = _meeting_attend.get_global_rect().get_center()
+		var choice_center: Vector2 = Vector2.ZERO
+		if _meeting_choices.get_child_count() > 0:
+			choice_center = (_meeting_choices.get_child(0) as Button).get_global_rect().get_center()
+		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s,sandboxMeetingAcceptPoint:%s,sandboxMeetingAttendPoint:%s,sandboxMeetingChoicePoint:%s})" % [
 			_world.minute, _world.meetings.size(), JSON.stringify(_selected_meeting_id),
 			JSON.stringify(str(active_meeting.get("status", ""))),
 			JSON.stringify(str(active_meeting.get("location", ""))),
 			int(active_meeting.get("slot", 0)), int(active_meeting.get("deadline", 0)),
 			str(not _meeting_attend.disabled).to_lower(),
 			_meeting_dialogue.current_frame().get("choices", []).size() if _meeting_dialogue != null else 0,
-			JSON.stringify(_meeting_text.text if _meeting_panel.visible else "")
+			JSON.stringify(_meeting_text.text if _meeting_panel.visible else ""),
+			JSON.stringify(JSON.stringify([roundi(accept_center.x), roundi(accept_center.y)])),
+			JSON.stringify(JSON.stringify([roundi(attend_center.x), roundi(attend_center.y)])),
+			JSON.stringify(JSON.stringify([roundi(choice_center.x), roundi(choice_center.y)]))
 		]
 		JavaScriptBridge.eval(state, true)
 
