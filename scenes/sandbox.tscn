@@ -192,3 +192,27 @@ custom_minimum_size = Vector2(473, 70)
 layout_mode = 2
 autowrap_mode = 3
 text = "Select one working device."
+
+[node name="RoutePanel" type="PanelContainer" parent="HUD"]
+offset_left = 510.0
+offset_top = 207.0
+offset_right = 1006.0
+offset_bottom = 377.0
+
+[node name="Content" type="VBoxContainer" parent="HUD/RoutePanel"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Heading" type="Label" parent="HUD/RoutePanel/Content"]
+layout_mode = 2
+text = "TRIP ROUTE  |  SELECT WAYPOINT BEFORE ACCEPT"
+
+[node name="Via" type="OptionButton" parent="HUD/RoutePanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(465, 38)
+
+[node name="Preview" type="Label" parent="HUD/RoutePanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(460, 72)
+autowrap_mode = 3
+text = "Select a request to preview connected roads."
