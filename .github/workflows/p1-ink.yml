@@ -134,6 +134,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_dialogue.gd 2>&1 | tee /tmp/sandbox-ink-test.log
           grep -q 'SANDBOX_SEMANTIC_INK_PASS' /tmp/sandbox-ink-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-ink-test.log; then exit 1; fi
+      - name: Verify one-time devices and observed partial language knowledge
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_knowledge.gd 2>&1 | tee /tmp/sandbox-knowledge.log
+          grep -q 'SANDBOX_KNOWLEDGE_PASS' /tmp/sandbox-knowledge.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-knowledge.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |

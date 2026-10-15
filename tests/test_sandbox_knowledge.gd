@@ -62,6 +62,22 @@ func _initialize() -> void:
 	assert(pending.current_frame()["text"] == after.current_frame()["text"])
 	assert(pending.choose(1, restored))
 	assert(pending.outcome() == "declined")
+	# Another NPC shares the local language but has a different mobility need.
+	var other_world: SandboxWorld = SandboxWorld.new(8)
+	assert(other_world.select_starter_device("translator"))
+	assert(other_world.observe_route_language(local_ids[0]))
+	assert(other_world.reposition("clinic"))
+	var second_local: Dictionary = {}
+	for request in other_world.open_offers():
+		if request["origin"] == "clinic" and other_world.resident(str(request["npc_id"]))["language"] == "local":
+			second_local = request
+			break
+	assert(not second_local.is_empty() and second_local["npc_id"] != translator.offer_by_id(local_ids[0])["npc_id"])
+	var second_speaker: SandboxConversation = SandboxConversation.new()
+	assert(second_speaker.open(other_world, str(second_local["id"]), self))
+	assert(second_speaker.recognizes_route() and not second_speaker.understood())
+	assert(second_speaker.choose(0, other_world))
+	assert(second_speaker.current_frame()["text"].contains(str(second_local["destination"])))
 	var no_scan: SandboxWorld = SandboxWorld.new(8)
 	assert(no_scan.select_starter_device("radio"))
 	var radio: SandboxConversation = SandboxConversation.new()

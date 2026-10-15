@@ -22,6 +22,13 @@ const { chromium } = require('playwright');
         d.sandboxResidents === '9' && d.sandboxAccepted === 'true';
     }, 'No systemic local offers at bootstrap.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-initial.png'});
+    await page.mouse.click(730, 94); // Pick Translator; one starter device only.
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.sandboxDevice === 'translator' && d.sandboxKnowledge === '1' &&
+        d.sandboxRouteMarker === 'false';
+    }, null, {timeout:15000});
+    await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-translator-untrained.png'});
     await page.mouse.click(337, 455); // Talk to the actual local NPC behind selected offer.
     await page.waitForFunction(() => {
       const d = document.documentElement.dataset;
@@ -38,8 +45,12 @@ const { chromium } = require('playwright');
       return d.sandboxDialogueIntent === 'ask_destination' &&
         d.sandboxDialogueChoices === '2';
     }, null, {timeout:15000});
-    await check(() => document.documentElement.dataset.sandboxDialogueText.includes('Vrek shaa'),
-      'Destination question incorrectly translated local alien dialogue.');
+    await check(() => document.documentElement.dataset.sandboxDialogueText.includes('Vrek shaa') &&
+      !document.documentElement.dataset.sandboxDialogueText.includes('route marker for '),
+      'First destination question incorrectly translated unlearned local speech.');
+    await check(() => document.documentElement.dataset.sandboxRouteMarker === 'true' &&
+      document.documentElement.dataset.sandboxKnowledge === '2',
+      'Actual local speaker did not teach one route marker to the translator.');
     await page.mouse.click(95, 610); // Save WORLD + unanswered Ink frame.
     await page.waitForTimeout(2200); // Persist Godot Web filesystem.
     await page.reload({waitUntil:'domcontentloaded'});
@@ -51,6 +62,16 @@ const { chromium } = require('playwright');
         d.sandboxDialogueIntent === 'restored';
     }, null, {timeout:15000});
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-restored-dialogue.png'});
+    await page.mouse.click(337, 455); // Ask the same NPC again with acquired lexicon.
+    await page.waitForFunction(() => document.documentElement.dataset.sandboxDialogueChoices === '3',
+      null, {timeout:15000});
+    await page.mouse.click(700, 534);
+    await page.waitForFunction(() => document.documentElement.dataset.sandboxDialogueChoices === '2' &&
+      document.documentElement.dataset.sandboxDialogueText.includes('route marker for '),
+      null, {timeout:15000});
+    await check(() => document.documentElement.dataset.sandboxDialogueUnderstood === 'false',
+      'Partial phrase knowledge was incorrectly promoted to fluent translation.');
+    await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-learned-route.png'});
     await page.mouse.click(700, 534); // Ink accept speech act -> authoritative SandboxWorld.
     await page.waitForFunction(() => document.documentElement.dataset.sandboxPhase === 'enroute' &&
       document.documentElement.dataset.sandboxDialogueOutcome === 'accepted',
