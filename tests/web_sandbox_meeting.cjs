@@ -54,17 +54,25 @@ const { chromium } = require('playwright');
     throw Error('Off-duty Ink scene did not present real choices');
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-together-web.png'});
   await clickNative('sandboxSavePoint'); // Real Save World button during the encounter
+  const beforeReload={file:await value('sandboxSaveExists'),bytes:await value('sandboxSaveBytes'),
+   notice:await value('sandboxNotice'),status:await value('sandboxMeetingStatus')};
+  if(beforeReload.file!=='true'||Number(beforeReload.bytes)<100)
+   throw Error('Web save file missing before reload: '+JSON.stringify(beforeReload));
   // Match the existing proven Web save smoke: allow browser filesystem sync.
   await page.waitForTimeout(2200);
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',null,{timeout:45000});
+  const beforeLoad={file:await value('sandboxSaveExists'),bytes:await value('sandboxSaveBytes'),
+   notice:await value('sandboxNotice')};
   await clickNative('sandboxLoadPoint'); // Real Load World button after reload
   try {
    await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
   } catch (e) {
    throw Error('Meeting Save/Load did not restore: '+JSON.stringify({
     status:await value('sandboxMeetingStatus'),count:await value('sandboxMeetingCount'),
-    choices:await value('sandboxMeetingChoices'),minute:await value('sandboxMinute')
+    choices:await value('sandboxMeetingChoices'),minute:await value('sandboxMinute'),
+    notice:await value('sandboxNotice'),file:await value('sandboxSaveExists'),
+    bytes:await value('sandboxSaveBytes'),beforeReload,beforeLoad
    })+'; '+e.message);
   }
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-restored-web.png'});
