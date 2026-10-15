@@ -12,6 +12,8 @@ extends Node2D
 @onready var _clock: Label = $HUD/DockPanel/Content/Clock
 @onready var _world_info: Label = $HUD/WorldPanel/Content/WorldInfo
 @onready var _observe: Button = $HUD/WorldPanel/Content/Observe
+@onready var _via: OptionButton = $HUD/RoutePanel/Content/Via
+@onready var _route_preview: Label = $HUD/RoutePanel/Content/Preview
 @onready var _talk: Button = $HUD/DockPanel/Content/Actions/Talk
 @onready var _dialogue_panel: PanelContainer = $HUD/DialoguePanel
 @onready var _dialogue_title: Label = $HUD/DialoguePanel/Content/Title
@@ -32,6 +34,8 @@ var _elapsed: float = 0.0
 var _conversation: SandboxConversation
 var _last_intent: String = ""
 var _last_outcome: String = ""
+var _route_waypoint: String = ""
+var _route_for_offer: String = ""
 
 
 func _ready() -> void:
@@ -40,6 +44,8 @@ func _ready() -> void:
 		_districts.add_item(district.capitalize())
 	_districts.select(0)
 	_offers.item_selected.connect(_on_selected)
+	_via.item_selected.connect(_on_waypoint_selected)
+	_city.waypoint_clicked.connect(_on_map_waypoint)
 	_gps.pressed.connect(_on_starter_device.bind("gps"))
 	_translator.pressed.connect(_on_starter_device.bind("translator"))
 	_radio.pressed.connect(_on_starter_device.bind("radio"))
@@ -61,11 +67,35 @@ func _process(delta: float) -> void:
 		_elapsed -= REAL_SECONDS_PER_STEP
 		_world.advance(10)
 		_render()
+	if not _world.active_offer_id.is_empty():
+		_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
+		_city.queue_redraw()
 
 
 func _on_selected(index: int) -> void:
 	_selected_id = str(_offers.get_item_metadata(index))
+	_route_waypoint = ""
+	_route_for_offer = _selected_id
 	_render()
+
+
+func _on_waypoint_selected(index: int) -> void:
+	if _world.active_offer_id.is_empty() and index >= 0 and index < _via.item_count:
+		_route_waypoint = str(_via.get_item_metadata(index))
+		_render()
+
+
+func _on_map_waypoint(district: String) -> void:
+	if not _world.active_offer_id.is_empty():
+		return
+	var offer: Dictionary = _world.offer_by_id(_selected_id)
+	if offer.is_empty():
+		return
+	var proposed: Array[String] = SandboxRoads.path(str(offer["origin"]), str(offer["destination"]), district)
+	if SandboxRoads.valid_path(proposed):
+		_route_waypoint = district
+		_render()
+
 
 
 func _on_starter_device(device: String) -> void:
@@ -91,7 +121,7 @@ func _on_talk() -> void:
 
 
 func _on_dialogue_choice(index: int) -> void:
-	if _conversation == null or not _conversation.choose(index, _world):
+	if _conversation == null or not _conversation.choose(index, _world, _route_waypoint):
 		_notice_text = "That request is no longer valid."
 		_conversation = null
 		_last_outcome = "invalid"
@@ -109,10 +139,10 @@ func _on_dialogue_choice(index: int) -> void:
 
 
 func _on_accept() -> void:
-	if _world.accept(_selected_id):
+	if _world.accept(_selected_id, _route_waypoint):
 		_conversation = null
 		_last_outcome = "accepted"
-		_notice_text = "Job accepted. World time still moves; complete the route by waiting."
+		_notice_text = "Job accepted. Your chosen road segments now control taxi movement."
 	else:
 		_notice_text = "Not accessible: travel to origin or avoid licensed dispatch."
 	_render()
@@ -155,6 +185,8 @@ func _on_new_seed() -> void:
 	_last_outcome = ""
 	_city.world = _world
 	_selected_id = ""
+	_route_waypoint = ""
+	_route_for_offer = ""
 	_elapsed = 0.0
 	_notice_text = "Fresh independent simulated city seed."
 	_render()
@@ -185,6 +217,8 @@ func _on_load() -> void:
 	_city.world = saved
 	_conversation = restored
 	_selected_id = restored.offer_id if restored != null else ""
+	_route_for_offer = _selected_id
+	_route_waypoint = ""
 	_elapsed = 0.0
 	_last_intent = "restored" if restored != null else ""
 	_last_outcome = ""
@@ -230,6 +264,9 @@ func _render() -> void:
 				break
 	else:
 		_selected_id = ""
+	if _route_for_offer != _selected_id:
+		_route_for_offer = _selected_id
+		_route_waypoint = ""
 	var chosen: Dictionary = _world.offer_by_id(_selected_id)
 	var npc: Dictionary = _world.resident(str(chosen.get("npc_id", "")))
 	var eligible: bool = not chosen.is_empty() and chosen["origin"] == _world.player_district \
@@ -247,6 +284,7 @@ func _render() -> void:
 			maxi(0, int(chosen["expires_at"]) - _world.minute)
 		]
 	_notice.text = _notice_text
+	_render_route_picker(chosen)
 	_gear_panel.visible = true
 	var gear_selected: bool = not _world.starter_device.is_empty()
 	_gps.disabled = gear_selected
@@ -302,11 +340,12 @@ func _render() -> void:
 	]
 	if not _world.active_offer_id.is_empty():
 		var route: Dictionary = _world.offer_by_id(_world.active_offer_id)
-		_notice.text = "ON ROUTE  %s -> %s  |  %dm remaining" % [
-			route["origin"], route["destination"], _world.remaining_minutes
+		_notice.text = "ON ROUTE  %s -> %s  |  %dm remaining  |  edge %d/%d" % [
+			route["origin"], route["destination"], _world.remaining_minutes,
+			_world.route_segment + 1, _world.route_nodes.size() - 1
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d'})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -316,7 +355,9 @@ func _render() -> void:
 			_conversation.offer_id if _conversation != null else "",
 			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else ""),
 			_world.starter_device, _world.knowledge.size(), str(_world.knows(SandboxKnowledge.ROUTE_MARKER)).to_lower(),
-			JSON.stringify(_gear_info.text), departed, arrived, working, resting, moving
+			JSON.stringify(_gear_info.text), departed, arrived, working, resting, moving,
+			JSON.stringify(_world.route_nodes), _world.route_segment, _world.route_edge_elapsed,
+			_route_waypoint, JSON.stringify(_route_preview.text)
 		]
 		JavaScriptBridge.eval(web_state, true)
 
@@ -342,3 +383,48 @@ func _count_events(kind: String) -> int:
 		if event["kind"] == kind:
 			total += 1
 	return total
+
+
+func _render_route_picker(offer: Dictionary) -> void:
+	_via.clear()
+	_via.add_item("Default map-pin route")
+	_via.set_item_metadata(0, "")
+	_via.disabled = not _world.active_offer_id.is_empty() or offer.is_empty()
+	if not _world.active_offer_id.is_empty():
+		_city.preview_nodes = _world.route_nodes.duplicate()
+		_route_preview.text = "Travel in progress: %s · %d minutes left" % [
+			" → ".join(_world.route_nodes), _world.remaining_minutes
+		]
+		return
+	if offer.is_empty():
+		_city.preview_nodes = []
+		_route_preview.text = "Select a local request to see its connected road path."
+		return
+	var from: String = str(offer["origin"])
+	var to: String = str(offer["destination"])
+	var selected: int = 0
+	for district in SandboxRoads.DISTRICTS:
+		if district == from or district == to:
+			continue
+		var options: Array[String] = SandboxRoads.path(from, to, district)
+		if not SandboxRoads.valid_path(options):
+			continue
+		_via.add_item("Via %s" % district.capitalize())
+		var idx: int = _via.item_count - 1
+		_via.set_item_metadata(idx, district)
+		if district == _route_waypoint:
+			selected = idx
+	_via.select(selected)
+	_route_waypoint = str(_via.get_item_metadata(selected))
+	var route: Array[String] = SandboxRoads.path(from, to, _route_waypoint)
+	_city.preview_nodes = route.duplicate()
+	if not SandboxRoads.valid_path(route):
+		_route_preview.text = "No connected road path for this offer."
+		return
+	var exposure: String = " · checkpoint info unavailable"
+	if _world.knows("map:district-graph"):
+		exposure = " · known checkpoint exposure %d" % SandboxRoads.path_exposure(route)
+	_route_preview.text = "%s · %d min · %d cr road cost%s" % [
+		" → ".join(route), SandboxRoads.path_minutes(route),
+		SandboxRoads.path_expense(route), exposure
+	]

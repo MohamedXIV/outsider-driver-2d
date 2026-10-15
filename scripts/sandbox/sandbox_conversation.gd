@@ -55,7 +55,7 @@ func still_valid(world: SandboxWorld) -> bool:
 			and offer.get("origin") == world.player_district and world.active_offer_id.is_empty()
 
 
-func choose(index: int, world: SandboxWorld) -> bool:
+func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 	if _ink == null or not still_valid(world):
 		return false
 	var choices: Array = _frame.get("choices", [])
@@ -69,7 +69,7 @@ func choose(index: int, world: SandboxWorld) -> bool:
 		world.observe_route_language(offer_id)
 	# Ink tags describe a proposed speech act. World validates & owns the effect.
 	if tags.has(ACTION_ACCEPT):
-		_outcome = "accepted" if world.accept(offer_id) else "blocked"
+		_outcome = "accepted" if world.accept(offer_id, waypoint) else "blocked"
 	elif tags.has(ACTION_DECLINE):
 		_outcome = "declined" if world.decline(offer_id) else "blocked"
 	return true
