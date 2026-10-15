@@ -8,7 +8,7 @@ For every implementation task, consult [Current vs Superseded Contracts](SUPERSE
 
 ## Active execution plan — October 15, 2026
 
-The active issue-by-issue implementation sequence is in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md); the old [ROADMAP.md](ROADMAP.md) is **archived P0–P2**, not the current work board. Epic [#15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15) and area parents [#22](https://github.com/MohamedXIV/outsider-driver-2d/issues/22), [#24](https://github.com/MohamedXIV/outsider-driver-2d/issues/24), [#23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23) track execution. **Next ready issue: [#26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26).**
+The active issue-by-issue implementation sequence is in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md); the old [ROADMAP.md](ROADMAP.md) is **archived P0–P2**, not the current work board. Epic [#15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15) and area parents [#22](https://github.com/MohamedXIV/outsider-driver-2d/issues/22), [#24](https://github.com/MohamedXIV/outsider-driver-2d/issues/24), [#23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23) track execution. **S3 P0 [#26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26) complete** ([PR #37](https://github.com/MohamedXIV/outsider-driver-2d/pull/37), [CI green](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38767914997)). **Next ready issue: [#27 — Taxi routes](https://github.com/MohamedXIV/outsider-driver-2d/issues/27).**
 
 ## Active living-city design synthesis — October 15, 2026
 
