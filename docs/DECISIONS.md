@@ -1,5 +1,7 @@
 # Approved decisions and outstanding gates
 
+> **Status October 15, 2026:** The items below record historical 2D prototype decisions and evidence. Authoring Ink narrative is *not* approval of fixed passenger scenarios as the game structure. New authoritative direction: [Sandbox DNA](SANDBOX_GAME_DNA.md), [prototype closeout](PROTOTYPE_CLOSEOUT.md), [sandbox issue #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15).
+
 ## Approved — October 2026
 
 - Clean new repository: `outsider-driver-2d`. Previous `outsider-driver` stays unchanged.
