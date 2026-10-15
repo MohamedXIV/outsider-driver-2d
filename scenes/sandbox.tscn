@@ -1,0 +1,120 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sandbox/sandbox_main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/sandbox/sandbox_city_view.gd" id="2_city"]
+
+[node name="OutsiderSandbox" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="CityView" type="Node2D" parent="."]
+script = ExtResource("2_city")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="DockPanel" type="PanelContainer" parent="HUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 460.0
+offset_bottom = 709.0
+
+[node name="Content" type="VBoxContainer" parent="HUD/DockPanel"]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="Header" type="Label" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "OUTSIDER  /  CITY DISPATCH"
+
+[node name="Clock" type="Label" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+text = "DAY 1  08:00  |  SEED 7"
+
+[node name="Status" type="Label" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+text = "DISTRICT DOCKS  |  WALLET 12 cr"
+
+[node name="OfferHeading" type="Label" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+text = "TRIP DEMAND  /  INDEPENDENT NPCS"
+
+[node name="Offers" type="ItemList" parent="HUD/DockPanel/Content"]
+custom_minimum_size = Vector2(425, 205)
+layout_mode = 2
+allow_reselect = true
+auto_height = false
+
+[node name="Details" type="Label" parent="HUD/DockPanel/Content"]
+custom_minimum_size = Vector2(425, 50)
+layout_mode = 2
+autowrap_mode = 3
+text = "Select a mobility request."
+
+[node name="Actions" type="HBoxContainer" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+
+[node name="Accept" type="Button" parent="HUD/DockPanel/Content/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(185, 38)
+text = "Accept ride"
+
+[node name="Decline" type="Button" parent="HUD/DockPanel/Content/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(185, 38)
+text = "Decline"
+
+[node name="Navigation" type="HBoxContainer" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+
+[node name="District" type="OptionButton" parent="HUD/DockPanel/Content/Navigation"]
+layout_mode = 2
+custom_minimum_size = Vector2(175, 40)
+
+[node name="Reposition" type="Button" parent="HUD/DockPanel/Content/Navigation"]
+layout_mode = 2
+text = "Reposition taxi"
+
+[node name="TimeActions" type="HBoxContainer" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+
+[node name="Wait" type="Button" parent="HUD/DockPanel/Content/TimeActions"]
+layout_mode = 2
+custom_minimum_size = Vector2(185, 38)
+text = "Wait +20 minutes"
+
+[node name="NewSeed" type="Button" parent="HUD/DockPanel/Content/TimeActions"]
+layout_mode = 2
+text = "New world seed"
+
+[node name="Persistence" type="HBoxContainer" parent="HUD/DockPanel/Content"]
+layout_mode = 2
+
+[node name="Save" type="Button" parent="HUD/DockPanel/Content/Persistence"]
+layout_mode = 2
+custom_minimum_size = Vector2(185, 38)
+text = "Save World"
+
+[node name="Load" type="Button" parent="HUD/DockPanel/Content/Persistence"]
+layout_mode = 2
+text = "Load World"
+
+[node name="Notice" type="Label" parent="HUD/DockPanel/Content"]
+custom_minimum_size = Vector2(420, 78)
+layout_mode = 2
+autowrap_mode = 3
+text = "Independent residents, not authored first passengers."
+
+[node name="WorldPanel" type="PanelContainer" parent="HUD"]
+offset_left = 1015.0
+offset_top = 18.0
+offset_right = 1265.0
+offset_bottom = 315.0
+
+[node name="Content" type="VBoxContainer" parent="HUD/WorldPanel"]
+
+[node name="WorldInfo" type="Label" parent="HUD/WorldPanel/Content"]
+layout_mode = 2
+text = "LIVING CITY"
