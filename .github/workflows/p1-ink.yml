@@ -155,6 +155,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_routes.gd 2>&1 | tee /tmp/routes-domain.log
           grep -q 'SANDBOX_ROUTES_PASS' /tmp/routes-domain.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/routes-domain.log; then exit 1; fi
+      - name: Prove next-junction reroute and rider consent
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_reroute.gd 2>&1 | tee /tmp/reroute-domain.log
+          grep -q 'SANDBOX_REROUTE_PASS' /tmp/reroute-domain.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/reroute-domain.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |
@@ -220,6 +227,11 @@ jobs:
             /tmp/godot --path . --script res://tests/test_sandbox_routes_scene.gd \
             2>&1 | tee /tmp/routes-scene.log
           grep -q 'SANDBOX_ROUTES_SCENE_PASS' /tmp/routes-scene.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_sandbox_reroute_scene.gd \
+            2>&1 | tee /tmp/reroute-scene.log
+          grep -q 'SANDBOX_REROUTE_SCENE_PASS' /tmp/reroute-scene.log
+          test -s /tmp/od2d-ink-evidence/sandbox/rider-reroute-junction.png
           test -s /tmp/od2d-ink-evidence/sandbox/route-mid-edge.png
           test -s /tmp/od2d-ink-evidence/sandbox/autonomy-after-idle.png
           test -s /tmp/od2d-ink-evidence/sandbox/generated-offers.png
@@ -239,6 +251,7 @@ jobs:
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_smoke.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_autonomy.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_routes.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_reroute.cjs
       - name: Package downloadable playtest builds
         shell: bash
         run: |

@@ -29,6 +29,10 @@ func _draw() -> void:
 	var highlighted: Array[String] = world.route_nodes if not world.active_offer_id.is_empty() else preview_nodes
 	for i in range(highlighted.size() - 1):
 		draw_line(_point(highlighted[i]), _point(highlighted[i + 1]), Color("f4cb77"), 6, true)
+	if not world.pending_route_nodes.is_empty():
+		for i in range(world.pending_route_nodes.size() - 1):
+			draw_line(_point(world.pending_route_nodes[i]), _point(world.pending_route_nodes[i+1]),
+				Color("7fd5ce"), 5, true)
 	for district in SandboxRoads.DISTRICTS:
 		var center: Vector2 = _point(district)
 		draw_circle(center + Vector2(2, 9), 38, Color("16292e", 0.7))
@@ -60,8 +64,6 @@ func _draw() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton) or not event.pressed \
 			or event.button_index != MOUSE_BUTTON_LEFT or world == null:
-		return
-	if not world.active_offer_id.is_empty():
 		return
 	var pointer: Vector2 = to_local(get_global_mouse_position())
 	for district in SandboxRoads.DISTRICTS:

@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 4
+const SCHEMA_VERSION: int = 5
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -22,6 +22,8 @@ var remaining_minutes: int = 0
 var route_nodes: Array[String] = []
 var route_segment: int = 0
 var route_edge_elapsed: int = 0
+var pending_route_nodes: Array[String] = []
+var rider_route_request: Dictionary = {}
 
 
 func _init(world_seed: int = 1) -> void:
@@ -164,11 +166,66 @@ func accept(offer_id: String, waypoint: String = "") -> bool:
 	route_segment = 0
 	route_edge_elapsed = 0
 	remaining_minutes = SandboxRoads.minutes_left(route_nodes, route_segment, route_edge_elapsed)
+	pending_route_nodes.clear()
+	rider_route_request = SandboxRiderRoutes.request(npc, offer, route)
 	_record("offer_accepted", offer_id, {
 		"nodes": route.duplicate(), "minutes": remaining_minutes,
 		"anticipated_expense": SandboxRoads.path_expense(route)
 	})
 	return true
+
+
+# Queue a full remaining suffix, applied only after the current physical edge.
+func queue_reroute(via: String = "") -> bool:
+	if active_offer_id.is_empty() or route_nodes.size() < 3:
+		return false
+	var junction: String = route_nodes[route_segment + 1]
+	var destination: String = str(offer_by_id(active_offer_id)["destination"])
+	if junction == destination:
+		return false
+	var proposed: Array[String] = SandboxRoads.path(junction, destination, via)
+	if not SandboxRoads.valid_path(proposed):
+		return false
+	var previous: Array[String] = []
+	for i in range(route_segment + 1, route_nodes.size()):
+		previous.append(route_nodes[i])
+	if proposed == previous or proposed == pending_route_nodes:
+		return false
+	var edge_cost: int = SandboxRoads.edge_expense(route_nodes[route_segment], junction)
+	if credits < edge_cost + SandboxRoads.path_expense(proposed):
+		return false
+	pending_route_nodes = proposed.duplicate()
+	remaining_minutes = _route_time_left()
+	_record("route_change_queued", active_offer_id, {
+		"junction": junction, "via": via, "new_nodes": proposed.duplicate(),
+		"requested_by": "player"
+	})
+	return true
+
+
+func respond_rider_route(agree: bool) -> bool:
+	if active_offer_id.is_empty() or rider_route_request.get("status", "") != "pending":
+		return false
+	var npc: Dictionary = resident(str(offer_by_id(active_offer_id)["npc_id"]))
+	if npc.is_empty():
+		return false
+	if agree and not queue_reroute(str(rider_route_request["via"])):
+		return false
+	rider_route_request["status"] = "accepted" if agree else "declined"
+	var trust_delta: int = 1 if agree else -1
+	npc["trust"] = int(npc["trust"]) + trust_delta
+	_record("rider_route_answered", active_offer_id, {
+		"npc_id": npc["id"], "via": rider_route_request["via"],
+		"answer": rider_route_request["status"], "trust_delta": trust_delta
+	})
+	return true
+
+
+func _route_time_left() -> int:
+	if pending_route_nodes.is_empty():
+		return SandboxRoads.minutes_left(route_nodes, route_segment, route_edge_elapsed)
+	return SandboxRoads.edge_minutes(route_nodes[route_segment], route_nodes[route_segment + 1]) \
+			- route_edge_elapsed + SandboxRoads.path_minutes(pending_route_nodes)
 
 
 func _step_player_route() -> void:
@@ -194,7 +251,18 @@ func _step_player_route() -> void:
 			remaining_minutes = 0
 			_complete_active_trip()
 			return
-	remaining_minutes = SandboxRoads.minutes_left(route_nodes, route_segment, route_edge_elapsed)
+		if not pending_route_nodes.is_empty():
+			var old_remaining: Array[String] = []
+			for i in range(route_segment, route_nodes.size()):
+				old_remaining.append(route_nodes[i])
+			route_nodes = pending_route_nodes.duplicate()
+			pending_route_nodes.clear()
+			route_segment = 0
+			_record("route_rerouted", active_offer_id, {
+				"junction": to, "old_remaining": old_remaining,
+				"new_remaining": route_nodes.duplicate()
+			})
+	remaining_minutes = _route_time_left()
 
 
 func _complete_active_trip() -> void:
@@ -215,6 +283,8 @@ func _complete_active_trip() -> void:
 	route_nodes.clear()
 	route_segment = 0
 	route_edge_elapsed = 0
+	pending_route_nodes.clear()
+	rider_route_request.clear()
 
 
 func snapshot() -> Dictionary:
@@ -225,7 +295,9 @@ func snapshot() -> Dictionary:
 		"residents": residents.duplicate(true), "offers": offers.duplicate(true),
 		"events": events.duplicate(true), "active_offer_id": active_offer_id,
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
-		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed
+		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
+		"pending_route_nodes": pending_route_nodes.duplicate(),
+		"rider_route_request": rider_route_request.duplicate(true)
 	}
 
 
@@ -299,17 +371,31 @@ func restore_snapshot(value: Dictionary) -> bool:
 				return false
 	if actual_active != (1 if not active.is_empty() else 0):
 		return false
-	if not (value.get("route_nodes") is Array):
+	if not (value.get("route_nodes") is Array) or not (value.get("pending_route_nodes") is Array) \
+			or not (value.get("rider_route_request") is Dictionary):
 		return false
 	var route: Array[String] = []
 	for node in value["route_nodes"]:
 		if not (node is String):
 			return false
 		route.append(node)
+	var pending: Array[String] = []
+	for node in value["pending_route_nodes"]:
+		if not (node is String):
+			return false
+		pending.append(node)
+	var request: Dictionary = value["rider_route_request"]
+	if not request.is_empty():
+		if not ["pending", "accepted", "declined"].has(request.get("status")) \
+				or not (request.get("via") is String) \
+				or not SandboxRoads.DISTRICTS.has(request.get("via")) \
+				or not ["faster", "lower_exposure"].has(request.get("reason")):
+			return false
 	var segment: int = int(value.get("route_segment", -1))
 	var elapsed: int = int(value.get("route_edge_elapsed", -1))
 	if active.is_empty():
-		if not route.is_empty() or segment != 0 or elapsed != 0 or remaining != 0:
+		if not route.is_empty() or not pending.is_empty() or not request.is_empty() \
+				or segment != 0 or elapsed != 0 or remaining != 0:
 			return false
 	else:
 		if not SandboxRoads.valid_path(route):
@@ -319,11 +405,19 @@ func restore_snapshot(value: Dictionary) -> bool:
 			if offer["id"] == active:
 				accepted_offer = offer
 				break
-		if accepted_offer.is_empty() or route[0] != accepted_offer["origin"] \
-				or route.back() != accepted_offer["destination"] \
+		if accepted_offer.is_empty() or route.back() != accepted_offer["destination"] \
 				or segment < 0 or segment >= route.size() - 1 \
-				or route[segment] != district \
-				or remaining != SandboxRoads.minutes_left(route, segment, elapsed):
+				or route[segment] != district:
+			return false
+		if not pending.is_empty():
+			if route[segment + 1] == accepted_offer["destination"] \
+					or not SandboxRoads.valid_path(pending) \
+					or pending[0] != route[segment + 1] \
+					or pending.back() != accepted_offer["destination"] \
+					or remaining != SandboxRoads.edge_minutes(route[segment], route[segment + 1]) \
+							- elapsed + SandboxRoads.path_minutes(pending):
+				return false
+		elif remaining != SandboxRoads.minutes_left(route, segment, elapsed):
 			return false
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
@@ -346,4 +440,6 @@ func restore_snapshot(value: Dictionary) -> bool:
 	route_nodes = route.duplicate()
 	route_segment = segment
 	route_edge_elapsed = elapsed
+	pending_route_nodes = pending.duplicate()
+	rider_route_request = request.duplicate(true)
 	return true
