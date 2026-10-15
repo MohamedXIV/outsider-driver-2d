@@ -18,7 +18,10 @@ const { chromium } = require('playwright');
     });
     if(origin.seed!=='8'||origin.counts!=='0')throw new Error('Expected fresh city without alternative trips.');
     const clickObserve = async () => {
-      const r = await page.evaluate(() => JSON.parse(document.documentElement.dataset.sandboxObserveRect));
+      // HTML dataset coerces the JS Array to CSV; read back its numeric bounds.
+      const r = await page.evaluate(() => document.documentElement.dataset.sandboxObserveRect.split(',').map(Number));
+      if(r.length!==4||r.some(v=>!Number.isFinite(v))||r[2]<=0||r[3]<=0)
+        throw new Error('Observer button has invalid rendered bounds: '+JSON.stringify(r));
       await page.mouse.click(r[0]+r[2]/2,r[1]+r[3]/2);
     };
     for(let i=0;i<4;i++)await clickObserve();
