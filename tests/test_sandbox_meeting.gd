@@ -42,6 +42,12 @@ func _initialize() -> void:
 	assert(SandboxSave.save_world(confirmed, in_progress_path))
 	var mid: SandboxWorld = SandboxSave.load_world(in_progress_path)
 	assert(mid != null and mid.snapshot() == confirmed.snapshot())
+	var frozen_minute: int = mid.minute
+	assert(not mid.advance(10))
+	assert(not mid.reposition("depot"))
+	assert(not mid.accept("offer:forged:1"))
+	assert(not mid.select_starter_device("gps"))
+	assert(mid.minute == frozen_minute)
 	var ink: SandboxMeetingDialogue = SandboxMeetingDialogue.new()
 	assert(ink.open(mid, meeting_id, self))
 	assert(ink.current_frame()["choices"].size() == 3)
