@@ -2,7 +2,7 @@
 
 A narrative social-stealth taxi game set in an alien city that prohibits humans. You are a human living under a false identity, earning a living by driving an old taxi and learning how to belong.
 
-**Status:** P0–P2 authored-ride technical prototype archived. **Sandbox S0 now runs by default**: persistent seeded NPC needs, state-derived offers, 5-district mobility, command/event economy and world saving. This is the *first systemic slice*, not a completed living-city game. The previous Babylon.js project remains read-only reference, not a code dependency. [Why we stopped extending the scripted prototype](docs/PROTOTYPE_CLOSEOUT.md).
+**Status:** P0–P2 authored-ride technical prototype archived. **Sandbox S0–S1 now run by default**: seeded NPC mobility offers, 5-district travel and persistent economy, plus context-grounded shared Ink interactions with NPC-specific urgency/temperament and untranslated alien language, live world-command decisions and mid-dialogue Save/Load. This is an early systemic playable foundation, **not** a completed living-city game. The previous Babylon.js project remains read-only reference, not a code dependency. [Why we stopped extending the scripted prototype](docs/PROTOTYPE_CLOSEOUT.md).
 
 ## Direction
 
@@ -35,9 +35,9 @@ The old [Outsider Driver repository](https://github.com/MohamedXIV/outsider-driv
 
 Open `project.godot` in Godot 4.7.2 and press **F5**. The default screen is now a *systemic city dispatch board*, **not the fixed clinic story**. The map shows five connected districts and how many NPC residents currently occupy each. NPCs generate offers from changing travel needs and budgets.
 
-Select a ride offer (the nearest accessible one is selected by default). **Accept ride** only works for offers originating in your current district and available via street/underground networks. **Decline** changes the NPC's pending demand; **Reposition taxi** moves along city road connections and costs credits; **Wait +20 minutes** advances all NPCs, offers and active trip progress. An accepted fare pays only upon reaching its actual destination. **Save World / Load World** persist complete residents, offers and events. **New world seed** changes the population, not a scripted route.
+Select a generated ride offer (the nearest accessible one is selected by default). At a local offer, press **Talk to NPC** to hear a reusable Ink conversation grounded in that resident's language/need/mood. **Ask where they need to go**, then accept or decline using Ink speech acts; an unlicensed player cannot take an official-network fare. Untranslated alien languages remain unintelligible. Direct **Accept ride** still works for offers originating in your current district and available via street/underground networks. **Decline** changes the NPC's pending demand; **Reposition taxi** moves along city road connections and costs credits; **Wait +20 minutes** advances all NPCs, offers and active trip progress. An accepted fare pays only upon reaching its actual destination. **Save World / Load World** persist complete residents, offers and events. **New world seed** changes the population, not a scripted route.
 
-See [Sandbox S0 scope and tests](docs/SANDBOX_S0.md) and [Sandbox foundation #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). This S0 UI uses temporary schematic artwork; live semantic Ink interaction and full simulated economy remain **future increments**.
+See [Sandbox S1 semantic Ink & validation](docs/SANDBOX_S1.md), [S0 scope](docs/SANDBOX_S0.md) and [Sandbox foundation #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). This S1 UI uses temporary schematic artwork; real language acquisition/Translator progression, richer social memory, human pacing tests and full city economy are **future increments**.
 
 The old fixed clinic prototype remains at `scenes/main.tscn` for regression; it is not the production main scene.
 
