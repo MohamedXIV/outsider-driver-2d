@@ -14,7 +14,7 @@ extends Node2D
 
 const REAL_SECONDS_PER_STEP: float = 10.0
 
-var _world: SandboxWorld = SandboxWorld.new(7)
+var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
 var _notice_text: String = "No scripted passengers. NPC needs generate every offer."
 var _elapsed: float = 0.0
