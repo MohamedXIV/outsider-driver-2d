@@ -31,6 +31,13 @@ static func create(seed: int) -> Array[Dictionary]:
 			"cash": 24 + posmod(seed * 5 + i * 13, 40),
 			"trust": 0,
 			"cooldown_until": 0,
+			# Provisional social identity. Distinct species can share a language,
+			# and co-resident communities are not automatic faction clones.
+			"species": ["kind:a", "kind:b", "kind:c", "kind:d"][i % 4],
+			"community": ["harbor", "exchange", "newcomer"][posmod(seed + i, 3)],
+			"peer_knowledge": {},
+			"contacts": {},
+			"last_peer_day": -1,
 			"language": "trade" if i % 3 == 0 else "local",
 			"temperament": "cautious" if i % 2 == 0 else "urgent"
 		})
