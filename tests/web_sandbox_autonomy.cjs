@@ -23,6 +23,13 @@ const { chromium } = require('playwright');
       if(r.length!==4||r.some(v=>!Number.isFinite(v))||r[2]<=0||r[3]<=0)
         throw new Error('Observer button has invalid rendered bounds: '+JSON.stringify(r));
       await page.mouse.click(r[0]+r[2]/2,r[1]+r[3]/2);
+      await page.waitForTimeout(150);
+      console.log('S3_BROWSER_CLICK', JSON.stringify(r), JSON.stringify(await page.evaluate(() => ({
+        depart:document.documentElement.dataset.sandboxAltDepartures,
+        arrive:document.documentElement.dataset.sandboxAltArrivals,
+        events:document.documentElement.dataset.sandboxEvents,
+        clock:document.documentElement.dataset.sandboxClock
+      }))));
     };
     for(let i=0;i<4;i++)await clickObserve();
     await page.waitForFunction(() => {
