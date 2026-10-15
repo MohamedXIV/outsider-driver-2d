@@ -127,7 +127,12 @@ func _render() -> void:
 		_offers.set_item_metadata(_offers.item_count - 1, str(offer["id"]))
 	if available.size() > 0:
 		if _selected_id.is_empty() or _world.offer_by_id(_selected_id).get("status") != "open":
+			# On arrival, focus a *real accessible local request* if one exists.
 			_selected_id = str(available[0]["id"])
+			for offer in available:
+				if offer["origin"] == _world.player_district and offer["channel"] != "official":
+					_selected_id = str(offer["id"])
+					break
 		for i in range(_offers.item_count):
 			if _offers.get_item_metadata(i) == _selected_id:
 				_offers.select(i)
