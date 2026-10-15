@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 2
+const SCHEMA_VERSION: int = 3
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -100,15 +100,23 @@ func advance(minutes: int) -> bool:
 		return false
 	for i in range(minutes / STEP_MINUTES):
 		minute += STEP_MINUTES
-		SandboxPopulation.step(residents)
-		for id in SandboxDispatch.expire(residents, offers, minute):
+		_record_changes(SandboxPopulation.step(residents, minute))
+		_record_changes(SandboxAutonomy.finish_arrivals(residents, minute))
+		var expired: Array[String] = SandboxDispatch.expire(residents, offers, minute)
+		for id in expired:
 			_record("offer_expired", id)
+		_record_changes(SandboxAutonomy.begin_expired_trips(residents, offers, expired, minute, seed))
 		if not active_offer_id.is_empty():
 			remaining_minutes = maxi(0, remaining_minutes - STEP_MINUTES)
 			if remaining_minutes == 0:
 				_complete_active_trip()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 	return true
+
+
+func _record_changes(changes: Array[Dictionary]) -> void:
+	for change in changes:
+		_record(str(change["kind"]), str(change["subject"]), change["detail"])
 
 
 func reposition(destination: String) -> bool:
@@ -210,6 +218,32 @@ func restore_snapshot(value: Dictionary) -> bool:
 		return false
 	if value["residents"].size() != 9:
 		return false
+	var resident_ids: Dictionary = {}
+	for npc in value["residents"]:
+		if not (npc is Dictionary) or not SandboxRoads.DISTRICTS.has(npc.get("location", "")) \
+				or not SandboxRoads.DISTRICTS.has(npc.get("home", "")) \
+				or not SandboxRoads.DISTRICTS.has(npc.get("workplace", "")):
+			return false
+		var npc_id: String = str(npc.get("id", ""))
+		if npc_id.is_empty() or resident_ids.has(npc_id):
+			return false
+		resident_ids[npc_id] = true
+		if not ["available", "resting", "working", "travelling"].has(npc.get("activity")):
+			return false
+		var travel_until: int = int(npc.get("transit_until", -1))
+		if travel_until < 0:
+			return false
+		if travel_until > 0:
+			if travel_until <= int(value["minute"]) \
+					or not SandboxRoads.DISTRICTS.has(npc.get("transit_to", "")) \
+					or str(npc.get("transit_from_offer", "")).is_empty() \
+					or not ["walking", "shuttle"].has(npc.get("transit_method", "")) \
+					or npc.get("activity") != "travelling":
+				return false
+		elif not str(npc.get("transit_to", "")).is_empty() \
+				or not str(npc.get("transit_from_offer", "")).is_empty() \
+				or not str(npc.get("transit_method", "")).is_empty():
+			return false
 	var offered: Dictionary = {}
 	var actual_active: int = 0
 	for offer in value["offers"]:
