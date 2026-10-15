@@ -6,6 +6,12 @@ const { chromium } = require('playwright');
  page.on('pageerror',e=>failures.push(e.message));
  page.on('console',m=>{if(m.type()==='error')failures.push(m.text())});
  const value=key=>page.evaluate(k=>document.documentElement.dataset[k],key);
+ const clickNative=async key=>{
+  const point=JSON.parse(await value(key));
+  if(!Array.isArray(point)||point.length!==2||point.some(n=>!Number.isFinite(n)))
+    throw Error('Invalid Godot control rectangle '+key+': '+JSON.stringify(point));
+  await page.mouse.click(point[0],point[1]);
+ };
  try{
   await page.goto('http://127.0.0.1:8765/index.html',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',{},{timeout:45000});
@@ -34,7 +40,7 @@ const { chromium } = require('playwright');
   }
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='invited',null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-invited-web.png'});
-  await page.mouse.click(1120,435);
+  await clickNative('sandboxMeetingAcceptPoint');
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='accepted',null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-confirmed-web.png'});
   const slot=+(await value('sandboxMeetingSlot'));
@@ -42,7 +48,7 @@ const { chromium } = require('playwright');
    await page.mouse.click(90,557);
   }
   if((await value('sandboxMeetingAtVenue'))!=='true')throw Error('NPC missing or not physically at place and time');
-  await page.mouse.click(1120,502);
+  await clickNative('sandboxMeetingAttendPoint');
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
   if(+(await value('sandboxMeetingChoices'))!==3 || !(await value('sandboxMeetingText')).includes('kiosk'))
     throw Error('Off-duty Ink scene did not present real choices');
@@ -53,7 +59,7 @@ const { chromium } = require('playwright');
   await page.mouse.click(250,610); // Load
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-restored-web.png'});
-  await page.mouse.click(710,594); // Authored 'listen' choice in visible meeting scene
+  await clickNative('sandboxMeetingChoicePoint'); // Authored 'listen' choice in visible meeting scene
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='completed',null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-completed-web.png'});
   if(failures.length)throw Error(failures.join('\n'));
