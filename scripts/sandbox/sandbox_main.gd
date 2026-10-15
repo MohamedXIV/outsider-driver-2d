@@ -485,6 +485,7 @@ func _render() -> void:
 			str(_conversation.recognizes_driver()).to_lower() if _conversation != null else "false"
 		]
 		JavaScriptBridge.eval(web_state, true)
+		_expose_meeting_web()
 
 
 func _render_meetings() -> void:
@@ -553,6 +554,7 @@ func _render_meetings() -> void:
 		_meeting_choices.add_child(button)
 
 
+func _expose_meeting_web() -> void:
 	if OS.has_feature("web"):
 		var active_meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
 		var state: String = "Object.assign(document.documentElement.dataset,{sandboxMinute:'%d',sandboxMeetingCount:'%d',sandboxMeetingId:%s,sandboxMeetingStatus:%s,sandboxMeetingLocation:%s,sandboxMeetingSlot:'%d',sandboxMeetingDeadline:'%d',sandboxMeetingAtVenue:'%s',sandboxMeetingChoices:'%d',sandboxMeetingText:%s})" % [
