@@ -38,12 +38,20 @@
 4. **Only then** broaden language/equipment presentation (#32–#33). Languages are shared across species; start with **three**, fourth only if useful. Module access is binary installed/absent, not gradual linguistic proficiency. The proposed Basic Translator with Common preinstalled and one GPS / extra-language / Radio bonus starter is still a **recommended, not yet ratified** final loadout.
 5. Headset AR #34 is **optional**, not a critical dependency for completing the core taxi sandbox. It never invents facts or gives optimal answer flags.
 
+## Mandatory supersession preflight — avoid repeating retired work
+
+Before picking up ANY child issue: read [Current vs Superseded Contracts](SUPERSESSION_REGISTER.md), [Engineering Rules](ENGINEERING_RULES.md) and latest current user decisions. Inspect live `main`, PRs, issues and relevant code/tests; do not assume a previous handoff is still true.
+
+Every implementation PR must explicitly identify **Reuse / Replace / Retire**, affected modules and obsolete acceptance tests. If an old CI assertion encodes **superseded behavior**, update/replace that assertion with a test of the new approved behavior; do not silently preserve both. Retain frozen engine/compiler proofs only while they still prove useful compatibility.
+
+The documentation may contain *historical* or *recommended* features, but only currently approved contracts become implementation requirements. Scope and dependencies are revised before code when changed by newer decisions.
+
 ## Minimum Done contract for each child PR
 
 - **Simulation-owned causality:** single authoritative World state; typed commands/events with stable IDs and explainable sources. No Ink/LLM/UI source of truth.
 - **Determinism:** same seed and player commands reproduce outcomes; no duplicate charges/trips, and save/reload mid-situation retains correct consequences.
 - **Actual play evidence:** headless native correctness plus **visible** Linux Godot scene/screenshots and **exported Chromium Web** interactions, not just pure unit tests or a design mockup. Windows **export** is distinct from tested Windows **runtime** and neither proves human UX.
-- **Regression:** preserve prior S0–S2 functional cases until deliberately replaced by the new approved module UX; the old P0–P2 clinic fixture remains an isolated compiler/engine smoke, not a narrative target.
+- **Regression:** keep S0–S2 correctness/invariants that remain valid; deliberately replace outdated gameplay expectations (especially partial Translator and historical route timer) once their successor implementation is approved and tested. Frozen P0–P2 clinic proof may remain an isolated compiler/engine smoke; it never defines the current gameplay.
 - **Small cohesive code changes:** no monolithic world controller growth, no one-file-per-10-lines explosion, no premature C++/Rust/Workers or expensive performance exercises. Use existing Godot systems including AStar2D only when truly useful.
 - **No speculative CI runs:** use a meaningful CI gate for gameplay acceptance, not for editing a roadmap or issue. Never check a task as done merely because a source file exists.
 

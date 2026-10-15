@@ -2,6 +2,8 @@
 
 This is a **systemic social-stealth taxi sandbox**, NOT a series of authored passenger scenarios or an endlessly extended prototype clinic ride.
 
+> **Contract precedence:** See [Current vs Superseded Contracts](SUPERSESSION_REGISTER.md) before extending any historical proof. The S2 partial route lexicon and exclusive GPS/Translator/Radio starter are real *current experimental behavior*, not mandatory future language design. Keep stable language phrase identity while using binary modules in the later production system; the proposed Basic Common starter remains pending.
+
 ## Non-negotiable fantasy
 
 The player is a human living illegally among alien societies. The city exists independently of the player and contains communities, schedules, languages, needs, work, laws and unequal access to infrastructure. The taxi provides income, social access and exposure. **The world creates situations; actors decide; the player intervenes; consequences persist.**

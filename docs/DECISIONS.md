@@ -2,6 +2,10 @@
 
 > **Status October 15, 2026:** The items below record historical 2D prototype decisions and evidence. Authoring Ink narrative is *not* approval of fixed passenger scenarios as the game structure. New authoritative direction: [Sandbox DNA](SANDBOX_GAME_DNA.md), [prototype closeout](PROTOTYPE_CLOSEOUT.md), [sandbox issue #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15).
 
+## Authority & supersession registry
+
+For every implementation task, consult [Current vs Superseded Contracts](SUPERSESSION_REGISTER.md) before treating an older document or green test as a binding product requirement. A later explicit user decision supersedes conflicting older plans; a **recommended** design is not yet approved or shipped.
+
 ## Active execution plan — October 15, 2026
 
 The active issue-by-issue implementation sequence is in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md); the old [ROADMAP.md](ROADMAP.md) is **archived P0–P2**, not the current work board. Epic [#15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15) and area parents [#22](https://github.com/MohamedXIV/outsider-driver-2d/issues/22), [#24](https://github.com/MohamedXIV/outsider-driver-2d/issues/24), [#23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23) track execution. **Next ready issue: [#26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26).**
