@@ -8,7 +8,7 @@ The taxi is the main social space: each passenger can teach you something, pay y
 
 ## Primary loop
 
-Prepare at home/garage → choose or find work → pick up a passenger → travel along an authored route → listen, translate, bluff, observe and choose routes → reach destination → conclude the interaction and settle payment → persist consequences → repair, learn, upgrade and return.
+Persistently simulated NPCs experience needs/constraints → those needs create ride demand in a changing city → accessible official/underground channels expose offers → player accepts/declines/negotiates → vehicle travels reusable graph paths through real district risks → spoken interaction uses context-grounded semantic choices → resulting knowledge, money, social and legal consequences are committed → repairs, learning and return continue the world.
 
 Travel is semi-autonomous and **does not pause for ordinary dialogue**. As the destination approaches, the narrative avoids opening new long topics; once arrived, the taxi stops and the passenger can finish, react, or be told `We've arrived`. Safe exit points are authored; the story is never cut mid-sentence without intent. Reading/choice UX must not become a race by default.
 
@@ -25,7 +25,9 @@ Starter knowledge choice: **GPS / Translator / Radio**; they respectively unlock
 
 ## Content model
 
-Routine passengers, recurring passengers and authored story passengers use validated catalogs and Ink. Player state is authoritative outside Ink; the narrative asks about state and emits consequences via a narrow interface. No uncurated generative runtime conversation as the principal narrative system.
+NPCs are autonomous persistent inhabitants; trip demand is systemic, **not** a fixed passenger catalog or authored scenario schedule. Their identities, needs, budgets, intentions, languages, associations, time and location constrain the available offers and conversations. Ink remains an authored *conditional interaction and response* system: intent/speech-act tags, authored fallback utterances and optional variations based on context. A typed command boundary validates all meaningful actions and stores their consequences in the simulation. Optional LLM participation can only paraphrase an approved grounded utterance, not invent facts, actions, motives, choices or world changes. See [Sandbox Game DNA](SANDBOX_GAME_DNA.md).
+
+The existing dockside-clinic Ink passenger is a **frozen test fixture** that proves compiler/runtime/choice/tag/save interoperability. Do not expand it as the default NPC architecture.
 
 ## Presentation
 
@@ -39,4 +41,4 @@ Routine passengers, recurring passengers and authored story passengers use valid
 
 No manual/open-world driving, city-wide free walking, full traffic physics, combat, huge procedural crowds, general-purpose puppet engine or C++ rewrite. Add a feature only where it makes the playable loop stronger.
 
-The full scope and story catalog are deliberately iterative; the first milestone is a convincing ride, not a system-completeness declaration.
+The first SANDBOX milestone must demonstrate *multiple independently generated NPC mobility demands*, persistent consequences and reusable grounded dialogue intent in a small world slice, rather than a convincing single fixed ride. See [Prototype Closeout](PROTOTYPE_CLOSEOUT.md).

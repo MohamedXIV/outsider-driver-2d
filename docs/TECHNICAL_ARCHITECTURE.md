@@ -1,4 +1,6 @@
-# Technical Architecture — New 2D Baseline
+# Technical Architecture — P0–P2 Prototype Baseline (archived)
+
+> **This document describes the tested prototype, not the production sandbox architecture.** The active system boundaries are in [Sandbox Game DNA](SANDBOX_GAME_DNA.md) and [foundation issue #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). The singular gameplay GameSession and fixed authored clinic passenger are fixtures to refactor, not a mandate to build a monolith. The pinned Godot 2D / inkgd renderer and Web/Linux evidence remain valid.
 
 ## Stack
 
@@ -6,7 +8,7 @@
 - Typed GDScript for gameplay and orchestration.
 - `Node2D` / `Camera2D` / `TileMapLayer` (as useful), Godot `Control` UI.
 - Simple sprite/spritesheet passenger animation using built-in Godot 2D APIs.
-- Authored Ink. Integration selection and web compatibility are an **early validation gate**, not a proven dependency.
+- Authored Ink compiled source, choice, tags and saved state **were verified on Web and Linux** using pinned pure-GDScript inkgd. Systemic semantic context binding, external host functions, contextual reusable fallback and optional LLM realization are **not yet implemented or verified**.
 - JSON/Godot Resources for content; stable IDs and build-time/content-load validation.
 - C++ through GDExtension only if profiling reveals a real CPU bottleneck **and** Web compatibility is proven. No native dependency in P0.
 

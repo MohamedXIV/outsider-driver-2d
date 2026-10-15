@@ -1,9 +1,11 @@
 # Engineering Rules
 
-1. **Playable value every milestone.** Ship a route, conversation, meaningful choice, interaction or location each time—not just framework.
+> **Active design now:** [sandbox DNA](SANDBOX_GAME_DNA.md), [foundation #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15); prototype [P0–P2 closed as scope](PROTOTYPE_CLOSEOUT.md). The following rules apply to sandbox work, not new scripted clinic content.
+
+1. **Playable systemic value every milestone.** Ship small, actually interactive world-simulation loops; do not create a feature checklist by extending the frozen first clinic ride, nor abstract framework without a running test case.
 2. **One authoritative GameSession.** Rendering/UI/narrative present and invoke commands; they do not own game truth.
 3. **Typed GDScript by default.** Favor small cohesive files; neither giant monoliths nor one file per trivial helper.
-4. **Stable content IDs and validated references.** Keep scripts generic, content authored in catalogs and Ink.
+4. **Stable IDs and meaningful domain boundaries.** Persist NPCs, mobility demands, offers, routes, economic and law consequences as data with validated references. No authored passenger-scenario scheduler masquerading as a sandbox. Ink handles grounded interaction policies and fallback expression, not city state.
 5. **No premature C++ or custom puppet engine.** Profile first; Web is a required export target.
 6. **No lock-in to old saves.** The old 3D repo is reference material, not a compatibility burden.
 7. **Real visual acceptance.** Passing unit tests does not prove camera, occlusion or enjoyable play.
