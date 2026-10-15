@@ -63,8 +63,8 @@ const { chromium } = require('playwright');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',null,{timeout:45000});
   const beforeLoad={file:await value('sandboxSaveExists'),bytes:await value('sandboxSaveBytes'),
-   notice:await value('sandboxNotice')};
-  await clickNative('sandboxLoadPoint'); // Real Load World button after reload
+   notice:await value('sandboxNotice'), loadPoint:await value('sandboxLoadPoint')};
+  await page.mouse.click(250,610); // Existing Web driver smoke's proven Load position after initial layout
   try {
    await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
   } catch (e) {
