@@ -2,6 +2,10 @@
 
 > **Status October 15, 2026:** The items below record historical 2D prototype decisions and evidence. Authoring Ink narrative is *not* approval of fixed passenger scenarios as the game structure. New authoritative direction: [Sandbox DNA](SANDBOX_GAME_DNA.md), [prototype closeout](PROTOTYPE_CLOSEOUT.md), [sandbox issue #15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15).
 
+## Active execution plan — October 15, 2026
+
+The active issue-by-issue implementation sequence is in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md); the old [ROADMAP.md](ROADMAP.md) is **archived P0–P2**, not the current work board. Epic [#15](https://github.com/MohamedXIV/outsider-driver-2d/issues/15) and area parents [#22](https://github.com/MohamedXIV/outsider-driver-2d/issues/22), [#24](https://github.com/MohamedXIV/outsider-driver-2d/issues/24), [#23](https://github.com/MohamedXIV/outsider-driver-2d/issues/23) track execution. **Next ready issue: [#26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26).**
+
 ## Active living-city design synthesis — October 15, 2026
 
 Read [Living City: Social Bonds, Languages & Routes](LIVING_CITY_DESIGN_CONCLUSIONS.md) for the consolidated discussion, explicit **agreed vs recommended vs open** distinctions, and the difference between proven S0–S2 code and future relationships/navigation/features. The old equipment bullet in `GAME_DESIGN.md` records the historical prototype/S2 starter; a baseline Common translator plus GPS / extra language / Radio is **recommended, not yet implemented or finally ratified**. Do not mistake the proposal for a passing feature.

@@ -53,6 +53,10 @@ The same authored response/intent can serve very different passengers because **
 - **NOT proven by these tests:** binding dynamic NPC context into Ink, external host functions, reusable semantic intent schema/typed effect validation, compositional fallback selection, dynamic multilingual rendering or optional LLM paraphrasing. These belong to the sandbox foundation.
 - Official Ink documentation: https://github.com/inkle/ink/blob/master/Documentation/RunningYourInk.md and https://github.com/inkle/inky/blob/master/app/resources/Documentation/WritingWithInk.md.
 
+## Active implementation roadmap
+
+The post-S2 implementation order and issue-level acceptance are in [Sandbox Execution Roadmap](SANDBOX_EXECUTION_ROADMAP.md). [S3 #26](https://github.com/MohamedXIV/outsider-driver-2d/issues/26) is the immediate next playable slice; follow with route choice/actual movement before expanding long-term social life and language UI. [Design conclusions](LIVING_CITY_DESIGN_CONCLUSIONS.md) keep proposals separate from code already proven.
+
 ## First meaningful systemic acceptance
 
 Across at least two different deterministic seeds or changing world states: multiple NPCs generate different meaningful ride demand with independent expiration; the player can ignore/accept/decline; a journey resolves within the route system; knowledge, money and risk/reputation impact persistent people; offers and effects survive Save/Load without duplicates. The same semantic conversation intent should have **different grounded language** across two independent NPC contexts with an authored offline fallback. Render and actually drive at least one end-to-end play loop on Web/Linux; human feel/Windows execution are independent gates.
