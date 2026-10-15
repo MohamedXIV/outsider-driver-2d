@@ -58,13 +58,18 @@ layout_mode = 2
 
 [node name="Accept" type="Button" parent="HUD/DockPanel/Content/Actions"]
 layout_mode = 2
-custom_minimum_size = Vector2(185, 38)
+custom_minimum_size = Vector2(125, 38)
 text = "Accept ride"
 
 [node name="Decline" type="Button" parent="HUD/DockPanel/Content/Actions"]
 layout_mode = 2
-custom_minimum_size = Vector2(185, 38)
+custom_minimum_size = Vector2(110, 38)
 text = "Decline"
+
+[node name="Talk" type="Button" parent="HUD/DockPanel/Content/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(145, 38)
+text = "Talk to NPC"
 
 [node name="Navigation" type="HBoxContainer" parent="HUD/DockPanel/Content"]
 layout_mode = 2
@@ -118,3 +123,28 @@ offset_bottom = 315.0
 [node name="WorldInfo" type="Label" parent="HUD/WorldPanel/Content"]
 layout_mode = 2
 text = "LIVING CITY"
+
+[node name="DialoguePanel" type="PanelContainer" parent="HUD"]
+offset_left = 515.0
+offset_top = 395.0
+offset_right = 1005.0
+offset_bottom = 695.0
+visible = false
+
+[node name="Content" type="VBoxContainer" parent="HUD/DialoguePanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="HUD/DialoguePanel/Content"]
+layout_mode = 2
+text = "SPEAKING TO RESIDENT"
+
+[node name="Line" type="Label" parent="HUD/DialoguePanel/Content"]
+custom_minimum_size = Vector2(470, 76)
+layout_mode = 2
+autowrap_mode = 3
+text = "A live NPC speaks in their own language."
+
+[node name="Choices" type="VBoxContainer" parent="HUD/DialoguePanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 5

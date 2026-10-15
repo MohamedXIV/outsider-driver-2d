@@ -56,6 +56,25 @@ jobs:
           cat stories/p1_probe.ink.json
           echo
           echo P1_COMPILED_INK_END
+      - name: Compile S1 reusable semantic Ink using the SAME pinned compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f stories/sandbox_dialogue.ink.json; then
+            cp stories/sandbox_dialogue.ink.json /tmp/tracked-semantic-ink.json
+          fi
+          /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
+            -o stories/sandbox_dialogue.ink.json stories/sandbox_dialogue.ink
+          python3 -c 'from pathlib import Path; p=Path("stories/sandbox_dialogue.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
+          echo S1_COMPILED_INK_BEGIN
+          cat stories/sandbox_dialogue.ink.json
+          echo S1_COMPILED_INK_END
+          if test -f /tmp/tracked-semantic-ink.json; then
+            cmp -s /tmp/tracked-semantic-ink.json stories/sandbox_dialogue.ink.json || {
+              echo "Committed S1 Ink JSON drifted from authored source"
+              exit 1
+            }
+          fi
       - name: Install official Godot 4.7.2 standard editor
         shell: bash
         run: |
@@ -108,6 +127,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox.gd 2>&1 | tee /tmp/sandbox-domain.log
           grep -q 'SANDBOX_DOMAIN_PASS' /tmp/sandbox-domain.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-domain.log; then exit 1; fi
+      - name: Verify live NPC-context Ink, translation limits and mid-choice save
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_dialogue.gd 2>&1 | tee /tmp/sandbox-ink-test.log
+          grep -q 'SANDBOX_SEMANTIC_INK_PASS' /tmp/sandbox-ink-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-ink-test.log; then exit 1; fi
       - name: Run scene headless with real Ink
         shell: bash
         run: |

@@ -8,7 +8,7 @@ var _story: InkStory
 var _last_frame: Dictionary = {}
 
 
-func open_compiled(json_text: String, scene_tree: SceneTree) -> bool:
+func open_compiled(json_text: String, scene_tree: SceneTree, globals: Dictionary = {}) -> bool:
 	if json_text.strip_edges().is_empty():
 		return false
 	var existing: Node = scene_tree.root.get_node_or_null("__InkRuntime")
@@ -18,7 +18,18 @@ func open_compiled(json_text: String, scene_tree: SceneTree) -> bool:
 	_runtime = existing
 	_story = InkStory.new(json_text, _runtime)
 	_last_frame = {}
-	return _story != null
+	if _story == null:
+		return false
+	# Context is supplied by the simulation before Ink advances. Ink is not
+	# authorized to set game facts; these are read-only *copies* of world state.
+	for key in globals:
+		var value: Variant = globals[key]
+		if not _story.variables_state.global_variable_exists_with_name(str(key)) \
+				or not (value is String or value is bool or value is int):
+			return false
+	for key in globals:
+		_story.variables_state.set_variable(str(key), globals[key])
+	return true
 
 
 func advance() -> Dictionary:
