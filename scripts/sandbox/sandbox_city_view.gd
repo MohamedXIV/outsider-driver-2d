@@ -47,6 +47,18 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, center + Vector2(-45, -44),
 				district.to_upper(), HORIZONTAL_ALIGNMENT_CENTER,
 				100, 16, Color("f7e9cc"))
+	# Invitation marker is anchored to the NPC's actual graph district.
+	# It disappears after expiry or resolution; nothing spawns off-map.
+	for meeting in world.meetings:
+		if not ["accepted", "in_progress"].has(meeting["status"]):
+			continue
+		var npc: Dictionary = world.resident(str(meeting["npc_id"]))
+		if npc.get("location") != meeting["location"]:
+			continue
+		var spot: Vector2 = _point(str(meeting["location"]))
+		draw_arc(spot, 44, 0.0, TAU, 32, Color("dfb4d9"), 3.0, true)
+		draw_string(ThemeDB.fallback_font, spot + Vector2(-45, 64), "MEET HERE",
+			HORIZONTAL_ALIGNMENT_CENTER, 90, 14, Color("ffdaef"))
 	var taxi: Vector2 = _point(world.player_district)
 	if not world.active_offer_id.is_empty() and world.route_segment < world.route_nodes.size() - 1:
 		var from: String = world.route_nodes[world.route_segment]
