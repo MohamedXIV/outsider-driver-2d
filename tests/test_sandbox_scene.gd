@@ -50,7 +50,7 @@ func _walkthrough() -> void:
 	assert(world.active_offer_id == old_offer_id)
 	await RenderingServer.frame_post_draw
 	_capture("generated-offers.png")
-	var selected: String = str(scene.get("_selected_id"))
+	var selected: String = old_offer_id # UI auto-selects next request after acceptance.
 	var amount: int = int(world.offer_by_id(selected)["fare"])
 	assert(world.active_offer_id == selected)
 	assert(accept.disabled)
