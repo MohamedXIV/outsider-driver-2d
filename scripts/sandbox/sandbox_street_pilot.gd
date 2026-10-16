@@ -35,6 +35,13 @@ func visual_snapshot() -> Dictionary:
 
 
 func _ready() -> void:
+	if not embedded:
+		# Standalone test mode still derives its pedestrian from live seeded
+		# world needs, never a hard-coded guaranteed passenger.
+		walking_npc_id = SandboxLocalPedestrianTrip.candidate(world)
+		if walking_npc_id.is_empty():
+			push_error("No available Patchworks resident for local walking test")
+			return
 	_build_sidewalk(Rect2(100, 300, 460, 26), "NorthSidewalk")
 	_build_sidewalk(Rect2(100, 378, 460, 26), "SouthSidewalk")
 	var link: NavigationLink2D = NavigationLink2D.new()

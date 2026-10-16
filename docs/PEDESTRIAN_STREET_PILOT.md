@@ -21,9 +21,18 @@ This **bounded standalone proof scene** is opened as `res://scenes/street_pilot.
 - The initial failed CI attempt [#38954310347](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38954310347) had successfully printed `STREET_PILOT_PASS` but CI incorrectly flagged an unavailable ALSA audio device. The second run corrected test environment by selecting Dummy audio, without changing game code.
 - After the successful targeted run, the new gate was returned to **manual-only** triggering to preserve GitHub Actions minutes.
 
+## Next incremental integration — main city, not just the pilot
+
+- The default `sandbox.tscn` now can instantiate a **spatially embedded** Patchworks street module when the player is parked at the garage and a genuinely idle eligible resident has a local work/supplies errand. It uses the **same** `SandboxWorld` and `SandboxLocalPedestrianTrip.candidate(world)`, not a second seed or a fixed first passenger.
+- In-world `SandboxPedestrianActor` targets and crossing control now correctly use global navigation positions vs parent-local traffic coordinates. The street module is positioned near the garage in the game's real projected world.
+- The duplicate coarse `CanvasItem` NPC marker is suppressed for a resident with a local trip. Dispatch does not create a taxi offer while the resident is physically walking.
+- Save/load now stores the **presentation actor's** local position/crossing flags separately from the authoritative trip + provenance event, while the latter remains in `SandboxWorld`. This avoids treating physics frame positions as world-tick economic state. Old experimental saves are not a compatibility gate.
+- Only **one** nearby street module is instantiated; this is not a whole-city native navigation migration. Its physical actor continues running if the camera leaves the garage (acceptable for this one actor, not a completed far-simulation handoff).
+- New targeted `tests/test_street_main_scene.gd` checks real default scene integration and mid-walk save/reload; Godot/Chromium execution must be verified before claiming completion.
+
 ## What is NOT implemented
 - Migration of all existing autonomous walking residents away from `SandboxRoads.position_on_path`.
-- Integration of this actor into the normal `sandbox.tscn` drive/pickup flow; persistent mid-walk physics position serialization and near/far ownership handoff.
+- **Full city-wide** native footpath network, reusable street-module generation and deterministic near/far ownership handoff. The garage slice is now embedded in the normal scene but is the only integrated neighborhood.
 - Complete taxi physics/lane movement, complex intersection controls, signals, crowd avoidance or traffic simulation.
 - No runtime gates have been claimed passed solely because the code is present. Run `tests/test_street_pilot_scene.gd` with a matching Godot 4.7.2 editor and native renderer before promotion.
 
