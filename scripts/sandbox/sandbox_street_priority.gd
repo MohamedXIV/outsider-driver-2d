@@ -16,18 +16,18 @@ static func stop_line() -> float:
 
 static func pedestrian_may_enter(vehicle_x: float) -> bool:
 	# Vehicles already inside the crossing get to clear it; pedestrians wait.
-	return vehicle_x <= stop_line()+4.0 or vehicle_x >= CROSS_X+CLEAR_AHEAD
+	return vehicle_x <= stop_line() or vehicle_x >= CROSS_X+CLEAR_AHEAD
 
 static func vehicle_velocity(vehicle_x: float, reserved: bool,
 		completed: bool, delta: float) -> float:
 	if vehicle_x >= LANE_END_X:
 		return 0.0
-	if reserved and not completed and vehicle_x <= stop_line()+0.05:
+	if reserved and not completed and vehicle_x <= stop_line():
 		# Clamp distance per physics frame so even a long frame cannot drift
 		# into the marked crossing while a resident has committed to crossing.
 		return minf(APPROACH_SPEED, maxf(0.0,stop_line()-vehicle_x)/maxf(delta,0.0001))
-	if reserved and not completed and vehicle_x <= CROSS_X+CLEAR_AHEAD:
-		# This branch is an already occupied crossing: never move back or
-		# through a physical walker. Godot's collision remains the safeguard.
-		return 0.0
+	# A vehicle already beyond the stop line cannot safely yield there.
+	# Let it clear the zebra; pedestrian_may_enter() keeps the walker
+	# waiting until the vehicle has passed CROSS_X + CLEAR_AHEAD.
+	# Stopping this vehicle inside the zebra would deadlock both actors.
 	return APPROACH_SPEED
