@@ -841,6 +841,9 @@ func _publish_language_web() -> void:
 		var pos: Vector2 = values[key]
 		payload[key] = JSON.stringify([roundi(pos.x), roundi(pos.y)])
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify(payload), true)
+	# Save/Load are laid out inside DockPanel after _render, just like Ink
+	# choices. Refresh their coordinates and persisted-save availability here.
+	_expose_meeting_web()
 
 
 func _render_meetings() -> void:
