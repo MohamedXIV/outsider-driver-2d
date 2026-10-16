@@ -10,6 +10,17 @@ This **bounded standalone proof scene** is opened as `res://scenes/street_pilot.
 - One real `SandboxWorld` seeded resident (`npc:07`, garage home) is given a local parts-counter errand and reports real arrival to the same world, which validates intent and commits one provenance event. This is a **test fixture**, not a fixed first passenger or automatic city-wide errand.
 - Simple orthogonal pavement, frontage/building blocks and crossing markers to validate the modular street-building approach from #58.
 
+## Actual native test evidence (2026-10-16)
+
+**PASS:** [Targeted Godot 4.7.2 native runner #38954467799](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38954467799), tested source commit `c8bde5e5204352f3d4170889cb69e729177c0fae`.
+
+- Full project editor import / parse passed.
+- `test_street_pilot_scene.gd`: `STREET_PILOT_PASS native agent, sidewalks, crosswalk, yielding, one world-owned arrival and restore`.
+- `test_npc_interpolation_scene.gd`: `NPC_INTERPOLATION_PASS parked taxi continuously updates resident render fraction`.
+- Linux Xvfb + software OpenGL + Dummy audio driver; this was **actual native Godot runtime**, not a static code inspection. No full Windows/Web test of this new pilot.
+- The initial failed CI attempt [#38954310347](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38954310347) had successfully printed `STREET_PILOT_PASS` but CI incorrectly flagged an unavailable ALSA audio device. The second run corrected test environment by selecting Dummy audio, without changing game code.
+- After the successful targeted run, the new gate was returned to **manual-only** triggering to preserve GitHub Actions minutes.
+
 ## What is NOT implemented
 - Migration of all existing autonomous walking residents away from `SandboxRoads.position_on_path`.
 - Integration of this actor into the normal `sandbox.tscn` drive/pickup flow; persistent mid-walk physics position serialization and near/far ownership handoff.
