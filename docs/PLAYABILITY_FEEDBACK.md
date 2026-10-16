@@ -102,6 +102,14 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Validation:** [Native Godot targeted run #38955939278](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38955939278) passed four tests including main-scene actor, a mid-walk save/reload and legacy city render. Post-run provenance validation and additional screenshot capture require a subsequent gate; no Web/Windows runtime proof yet.
 - **Human acceptance:** Pending; previous user praise for the integrated Player Mode refers to PR #55, **not** to this new physical-navigation prototype.
 
+### R07 engineering follow-up — October 17, 2026
+- **Issue/feedback:** FB-009 / #60; local crossing priority after R06's grounded player taxi integration.
+- **Found during audit:** In the demo `SandboxStreetPriority` policy, a pedestrian reservation just after a car had passed its stop line could freeze that car inside the zebra, while the pedestrian waited for the car to clear: a deadlock risk.
+- **Implementation on draft stacked PR #61:** Cars at/before the line clamp to a safe stop when a pedestrian has reserved the crossing. Cars already beyond the line retain clearance priority; pedestrians wait until the car clears the lane. Removed the permissive 4 px post-line entry margin.
+- **Regression added:** `tests/test_street_priority.gd` simulates a reservation at 0.01 px past the stop line and checks crossing clearance, gate reopening, and existing variable-frame stop-line bounds.
+- **Evidence:** Code and regression committed; **new test not yet run in Godot**. The earlier R06 10/10 native pass predates the change. No exported Web/Windows or human verification on this follow-up.
+- **Acceptance:** Implementation in progress / technical check pending; #60 remains open. Workflow manual-only.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.
