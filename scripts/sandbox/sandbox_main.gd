@@ -821,6 +821,10 @@ func _publish_language_web() -> void:
 		"sandboxARBuyPoint": _ar_buy.get_global_rect().get_center(),
 		"sandboxARWearPoint": _ar_wear.get_global_rect().get_center(),
 		"sandboxARContextPoint": _ar_context.get_global_rect().get_center(),
+		"sandboxStarterGPSPoint": _gps.get_global_rect().get_center(),
+		"sandboxInkAskPoint": _dialogue_choices.get_child(0).get_global_rect().get_center() \
+				if _dialogue_panel.visible and _dialogue_choices.get_child_count() > 0 \
+				else Vector2.ZERO,
 		"sandboxARClosePoint": _ar_close.get_global_rect().get_center(),
 		"sandboxAskRumorPoint": _ask_rumor.get_global_rect().get_center(),
 		"sandboxLocaleEnglishPoint": _locale_en.get_global_rect().get_center(),
