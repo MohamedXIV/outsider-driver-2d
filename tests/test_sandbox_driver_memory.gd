@@ -5,9 +5,9 @@ func _initialize() -> void:
 	var chosen: Dictionary = {}
 	var remote: Dictionary = {}
 	for o in w.open_offers():
-		if o["origin"] == "docks" and o["channel"] != "official" and chosen.is_empty():
+		if o["origin"] == w.player_district and o["channel"] != "official" and chosen.is_empty():
 			chosen = o
-		elif o["origin"] != "docks" and remote.is_empty():
+		elif o["origin"] != w.player_district and remote.is_empty():
 			remote = o
 	assert(not chosen.is_empty() and not remote.is_empty())
 	var id: String = str(chosen["npc_id"])
@@ -62,10 +62,10 @@ func _initialize() -> void:
 	assert(loaded.resident(id)["driver_identity_facts"].is_empty())
 	assert(not loaded.accept(str(followup["id"])))
 	var forged: Dictionary = loaded.snapshot()
-	forged["residents"][1]["driver_memories"][0]["source"] = "event:forged"
+	forged["residents"][7]["driver_memories"][0]["source"] = "event:forged"
 	assert(not SandboxWorld.new().restore_snapshot(forged))
 	forged = loaded.snapshot()
-	forged["residents"][1]["driver_identity_facts"]["human"] = true
+	forged["residents"][7]["driver_identity_facts"]["human"] = true
 	assert(not SandboxWorld.new().restore_snapshot(forged))
 	var other: SandboxWorld = SandboxWorld.new(9)
 	var replay: SandboxWorld = SandboxWorld.new(9)

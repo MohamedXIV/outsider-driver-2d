@@ -7,11 +7,11 @@ func _initialize() -> void:
 	assert(JSON.stringify(a.snapshot()) == JSON.stringify(b.snapshot()))
 	assert(JSON.stringify(a.snapshot()) != JSON.stringify(c.snapshot()))
 	assert(a.residents.size() == 9 and a.open_offers().size() > 1)
-	assert(not a.advance(7))
+	assert(not a.advance(0))
 	assert(not a.reposition("unknown"))
 	var chosen: Dictionary = {}
 	for offer in a.open_offers():
-		if offer["origin"] == "docks" and offer["channel"] != "official":
+		if offer["origin"] == a.player_district and offer["channel"] != "official":
 			chosen = offer
 			break
 	assert(not chosen.is_empty(), "Seed 8 must provide an accessible local demand.")

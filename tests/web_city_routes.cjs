@@ -1,0 +1,58 @@
+const assert = require('node:assert/strict');
+const { openCity } = require('./city_browser.cjs');
+
+(async () => {
+  const { browser, page, errors, data, click, shot } = await openCity();
+  const progress = setInterval(() => data().then(d => console.log('ROUTE_PROGRESS',
+    d.sandboxMinute, d.playerRouteMinutes, d.playerTravelling)).catch(() => {}), 10000);
+  try {
+    await click('talk');
+    await click('common');
+    await page.waitForTimeout(1000);
+    await click('map');
+    await click('via');
+    await page.keyboard.press('Home');
+    for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(250);
+    const selectedVia = (await data()).playerPlannedVia;
+    assert.ok(selectedVia);
+    await click('plan_fare');
+    assert.equal((await data()).sandboxRouteWaypoint, selectedVia);
+    await click('choice_1');
+    await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'true');
+    const long = await data();
+    assert.ok(long.sandboxRouteNodes.split(',').includes(selectedVia));
+    const longMinutes = Number(long.playerRouteMinutes);
+    await click('talk');
+    await shot('web-long-route');
+    await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
+      null, { timeout: 240000 });
+    await click('choice_2');
+    for (let i = 0; i < 60; i++) {
+      const actions = JSON.parse((await data()).playerActions);
+      if (actions.accept && !actions.accept.disabled) break;
+      await click('wait'); // Real player wait command; demand still comes from NPC state.
+    }
+    await click('talk');
+    await click('choice_1');
+    await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'true');
+    const short = await data();
+    const shortMinutes = Number(short.playerRouteMinutes);
+    assert.ok(shortMinutes > 0 && shortMinutes < longMinutes);
+    await click('talk');
+    await shot('web-short-route');
+    await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
+      null, { timeout: 180000 });
+    assert.equal((await data()).sandboxSettlements, '2');
+    await click('choice_2');
+    assert.deepEqual(errors, []);
+    console.log('WEB_TWO_ROUTES_PASS', JSON.stringify({
+      selectedVia, longMinutes, longMetres: long.playerRouteMetres, longNodes: long.sandboxRouteNodes,
+      shortMinutes, shortMetres: short.playerRouteMetres, shortNodes: short.sandboxRouteNodes
+    }));
+  } finally {
+    clearInterval(progress);
+    await browser.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

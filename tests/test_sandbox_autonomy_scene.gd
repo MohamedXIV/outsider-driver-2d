@@ -11,6 +11,7 @@ func _exercise() -> void:
 	assert(packed != null)
 	var scene: Node2D = packed.instantiate() as Node2D
 	get_root().add_child(scene)
+	scene._player_ui.toggle_debug()
 	await process_frame
 	await process_frame
 	var world: SandboxWorld = scene.get("_world") as SandboxWorld

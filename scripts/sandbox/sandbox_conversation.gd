@@ -7,6 +7,7 @@ const STORY_PATH: String = "res://stories/sandbox_dialogue.ink.json"
 const ACTION_ACCEPT: String = "action:accept_offer"
 const ACTION_DECLINE: String = "action:decline_offer"
 
+var phase: String = "pickup"
 var offer_id: String = ""
 var _ink: InkBridge
 var _frame: Dictionary = {}
@@ -17,12 +18,14 @@ var _recognizes_driver: bool = false
 
 func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool:
 	var offer: Dictionary = world.offer_by_id(requested_offer)
-	if offer.is_empty() or offer.get("status") != "open" or offer.get("origin") != world.player_district:
-		return false
+	if offer.is_empty(): return false
+	phase="travel" if offer.get("status") in ["accepted","completed"] else "pickup"
+	if phase=="pickup" and (offer.get("status")!="open" or offer.get("origin")!=world.player_district or world.is_travelling()): return false
+	if phase=="travel" and offer.get("status")=="accepted" and world.active_offer_id!=requested_offer: return false
 	var npc: Dictionary = world.resident(str(offer.get("npc_id", "")))
-	if npc.is_empty() or str(npc.get("location")) != str(offer["origin"]):
+	if npc.is_empty() or (phase=="pickup" and str(npc.get("location")) != str(offer["origin"])):
 		return false
-	var compiled: String = FileAccess.get_file_as_string(STORY_PATH)
+	var compiled: String = FileAccess.get_file_as_string("res://stories/sandbox_travel.ink.json" if phase=="travel" else STORY_PATH)
 	if compiled.is_empty():
 		return false
 	var understood: bool = SandboxKnowledge.understands(str(npc["language"]), world.modules_installed) \
@@ -36,6 +39,10 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 		"destination": str(offer["destination"]),
 		"purpose": str(offer["purpose"])
 	}
+	if phase=="travel":
+		globals={"recognizes_driver":SandboxDriverMemory.recognizes(npc),
+			"district_name":SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["name"],
+			"destination":SandboxRoads.location_name(str(offer["destination"]))}
 	var bridge: InkBridge = InkBridge.new()
 	if not bridge.open_compiled(compiled, tree, globals):
 		return false
@@ -46,6 +53,7 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	_outcome = ""
 	_frame = _ink.advance()
 	_present_untranslated_frame(world)
+	if phase=="pickup": world.engage_offer(requested_offer)
 	return true
 
 
@@ -53,6 +61,7 @@ func still_valid(world: SandboxWorld) -> bool:
 	if offer_id.is_empty():
 		return false
 	var offer: Dictionary = world.offer_by_id(offer_id)
+	if phase=="travel": return not offer.is_empty() and offer.get("status") in ["accepted","completed"]
 	return not offer.is_empty() and offer.get("status") == "open" \
 			and offer.get("origin") == world.player_district and world.active_offer_id.is_empty()
 
@@ -63,12 +72,16 @@ func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 	var choices: Array = _frame.get("choices", [])
 	if index < 0 or index >= choices.size():
 		return false
+	if phase=="travel" and not _ink.update_globals({"district_name":SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["name"]}): return false
 	var result: Dictionary = _ink.choose(index)
 	_frame = result
 	_present_untranslated_frame(world)
 	var tags: Array = result.get("tags", [])
 	# Ink tags describe a proposed speech act. World validates & owns the effect.
-	if tags.has(ACTION_ACCEPT):
+	if tags.has("action:end_conversation"):
+		_outcome="quiet"
+		if world.engaged_offer_id==offer_id: world.engaged_offer_id=""
+	elif tags.has(ACTION_ACCEPT):
 		_outcome = "accepted" if world.accept(offer_id, waypoint) else "blocked"
 	elif tags.has(ACTION_DECLINE):
 		_outcome = "declined" if world.decline(offer_id) else "blocked"
@@ -104,7 +117,7 @@ func understood() -> bool:
 
 
 func request_common(world: SandboxWorld, tree: SceneTree) -> bool:
-	if _ink == null or not still_valid(world) or _frame.get("tags", []).has("intent:ask_destination") \
+	if phase!="pickup" or _ink == null or not still_valid(world) or _frame.get("tags", []).has("intent:ask_destination") \
 			or world.common_requests.has(offer_id) or _understood:
 		return false
 	var target: String = offer_id
@@ -124,7 +137,7 @@ func is_finished() -> bool:
 func snapshot() -> Dictionary:
 	if _ink == null or is_finished():
 		return {}
-	return {"offer_id": offer_id, "ink": _ink.snapshot()}
+	return {"offer_id": offer_id, "phase":phase, "ink": _ink.snapshot()}
 
 
 func restore(world: SandboxWorld, value: Dictionary, tree: SceneTree) -> bool:

@@ -12,6 +12,7 @@ const SCRIPT_LINES: Dictionary = {
 		"intro_urgent": "ᚺᚨᛚ ᛏᚱᚢ ᛗᚨ!",
 		"intro_cautious": "ᛖᚾ ᛏᚨᚲ ᚱᛖᛞ?",
 		"intro_normal": "ᚠᚢᚦᚨᚱᚲ ᛟᚾ ᛁᛋ?",
+		"travel_intro":"ᚠᚢᚦ ᚱᚨᛞ ᛁᛋ.", "travel_city":"ᛗᚨᚾ ᛏᚱᚢ ᚹᛁᚾ.", "travel_person":"ᚲᚨᚾ ᚠᚢᚦ ᚾᚨᚷ.",
 		"destination": "ᛞᚨᚷ ᚲᚾ ᚱᚨᛞ."
 	},
 	"cant": {
@@ -20,12 +21,13 @@ const SCRIPT_LINES: Dictionary = {
 		"intro_urgent": "᚛ᚈᚓᚇᚐ ᚆᚓᚋ᚜",
 		"intro_cautious": "᚛ᚅᚒᚇᚔ ᚂᚓᚈᚐ᚜",
 		"intro_normal": "᚛ᚁᚂᚃᚐ ᚋᚒᚉᚐ᚜",
+		"travel_intro":"᚛ᚄᚐᚅᚓ ᚂᚓᚈᚐ᚜", "travel_city":"᚛ᚋᚒᚉᚐ ᚈᚒᚇᚔ᚜", "travel_person":"᚛ᚆᚓᚋ ᚁᚂᚃᚐ᚜",
 		"destination": "᚛ᚇᚔᚋᚐ ᚂᚓᚅ᚜"
 	}
 }
 const AR_DISTRICTS: Dictionary = {
 	"docks": "الأرصفة", "market": "السوق", "clinic": "العيادة",
-	"shelter": "الملجأ", "depot": "المستودع"
+	"shelter": "دار التكافل", "depot": "المستودع", "garage":"مرآب الورش", "lantern":"صف الفوانيس", "civic":"ساحة الميثاق", "terraces":"المدرجات", "cut":"الشق"
 }
 const AR_PURPOSES: Dictionary = {
 	"medical": "تلقي العلاج", "supplies": "شراء المؤن",
@@ -35,6 +37,8 @@ const AR_PURPOSES: Dictionary = {
 
 static func speech_key(frame: Dictionary, npc: Dictionary) -> String:
 	var tags: Array = frame.get("tags", [])
+	for key in ["travel_intro","travel_city","travel_person"]:
+		if tags.has("intent:"+key): return key
 	if tags.has("intent:ask_destination"):
 		return "destination"
 	if not tags.has("intent:request_trip"):
@@ -56,6 +60,9 @@ static func localized_line(frame: Dictionary, npc: Dictionary, offer: Dictionary
 	if locale != "ar":
 		return str(frame.get("text", ""))
 	match speech_key(frame, npc):
+		"travel_intro": return "فسحة لالتقاط الأنفاس. شكرًا لأنك توقفت."
+		"travel_city": return "كل طريق هنا يحمل عمل أحدهم. أعرف غالبًا الطرق بين مواقفي المعتادة."
+		"travel_person": return "الوصول إلى وجهتي هو ما يهمني اليوم. سأدبر الباقي عندما أصل."
 		"intro_repeat":
 			return "أنت مرة أخرى! أتذكر هذه السيارة؛ أوصلتني في المرة السابقة."
 		"intro_urgent_cautious":
@@ -79,6 +86,9 @@ static func localized_choice(choice: String, locale: String) -> String:
 	if locale != "ar":
 		return choice
 	match choice:
+		"Ask about this part of the city.": return "اسأل عن هذا الجزء من المدينة"
+		"Ask how they are doing.": return "اسأل عن أحوال الراكب"
+		"Let the ride be quiet.": return "دع الرحلة هادئة"
 		"Ask where they need to go.":
 			return "اسأل عن الوجهة"
 		"Agree to the trip.":

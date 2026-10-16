@@ -31,14 +31,17 @@ static func begin_expired_trips(residents: Array[Dictionary], offers: Array[Dict
 		# Affordable municipal shuttle vs walking: seed and character create
 		# stable, independent choices; no disposable 'NPC cab driver' appears.
 		var numeric_id: int = int(str(npc["id"]).trim_prefix("npc:"))
-		var shuttle_cost: int = hops * 2
+		var nodes: Array[String] = SandboxRoads.path(str(npc["location"]),str(offer["destination"]))
+		var shuttle_cost: int = maxi(1,ceili(SandboxRoads.path_metres(nodes)/4000.0))
 		var use_shuttle: bool = hops > 1 and int(npc["cash"]) >= shuttle_cost \
 				and posmod(seed + numeric_id + int(minute / 10), 3) != 0
 		var method: String = "shuttle" if use_shuttle else "walking"
 		var cost: int = shuttle_cost if use_shuttle else 0
-		var duration: int = hops * (10 if use_shuttle else 20)
+		var duration: int = SandboxRoads.path_minutes(nodes) * (1 if use_shuttle else 4)
 		npc["cash"] = int(npc["cash"]) - cost
 		npc["transit_until"] = minute + duration
+		npc["transit_started"] = minute
+		npc["transit_nodes"] = nodes.duplicate()
 		npc["transit_to"] = str(offer["destination"])
 		npc["transit_from_offer"] = offer_id
 		npc["transit_method"] = method
@@ -65,6 +68,8 @@ static func finish_arrivals(residents: Array[Dictionary], minute: int) -> Array[
 		var source: String = str(npc["transit_from_offer"])
 		var method: String = str(npc["transit_method"])
 		npc["transit_until"] = 0
+		npc["transit_started"] = 0
+		npc["transit_nodes"] = []
 		npc["transit_to"] = ""
 		npc["transit_from_offer"] = ""
 		npc["transit_method"] = ""

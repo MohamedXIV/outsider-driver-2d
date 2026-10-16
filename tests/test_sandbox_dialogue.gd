@@ -4,6 +4,7 @@ extends SceneTree
 # Neither a passenger ID nor a job ID is hardcoded into the Ink file.
 func _initialize() -> void:
 	var world: SandboxWorld = SandboxWorld.new(8)
+	world.player_district="docks" # Local Ink context fixture.
 	var unknown_id: String = ""
 	var trade_id: String = ""
 	for offer in world.open_offers():
@@ -52,7 +53,7 @@ func _initialize() -> void:
 	assert(not restored_world.accept(unknown_id), "Ink could accept twice.")
 	var fare: int = int(restored_world.offer_by_id(unknown_id)["fare"])
 	assert(restored_world.advance(restored_world.remaining_minutes))
-	assert(restored_world.credits == 12 + fare)
+	assert(restored_world.credits == 12 + fare - SandboxRoads.path_expense(SandboxRoads.path(str(offer["origin"]),str(offer["destination"]))))
 	assert(restored_world.offer_by_id(unknown_id)["status"] == "completed")
 	var paid: int = 0
 	for evt in restored_world.events:
@@ -71,7 +72,7 @@ func _initialize() -> void:
 			source_offer = candidate
 			break
 	assert(not source_offer.is_empty())
-	assert(second.reposition(str(source_offer["origin"])))
+	second.player_district=str(source_offer["origin"]) # Speech policy fixture; physical travel tested separately.
 	var second_dialogue: SandboxConversation = SandboxConversation.new()
 	assert(second_dialogue.open(second, str(source_offer["id"]), self))
 	assert(second_dialogue.understood())
@@ -83,6 +84,7 @@ func _initialize() -> void:
 	assert(not second.decline(str(source_offer["id"])), "Duplicate decline changed the world.")
 	var expires: SandboxConversation = SandboxConversation.new()
 	assert(expires.open(world, unknown_id, self))
+	world.engaged_offer_id="" # Explicitly stop engaging before testing expiry.
 	assert(world.advance(100))
 	assert(not expires.still_valid(world) and not expires.choose(1, world))
 	print("SANDBOX_SEMANTIC_INK_PASS")

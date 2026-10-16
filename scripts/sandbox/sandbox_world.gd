@@ -3,13 +3,13 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 10
-const STEP_MINUTES: int = 10
+const SCHEMA_VERSION: int = 12
+const STEP_MINUTES: int = 1
 const START_MINUTE: int = 480
 
 var seed: int = 1
 var minute: int = START_MINUTE
-var player_district: String = "docks"
+var player_district: String = "garage"
 var credits: int = 12
 var risk: int = 0
 var starter_device: String = ""
@@ -24,6 +24,8 @@ var residents: Array[Dictionary] = []
 var offers: Array[Dictionary] = []
 var events: Array[Dictionary] = []
 var active_offer_id: String = ""
+var travel_destination: String = ""
+var engaged_offer_id: String = ""
 var remaining_minutes: int = 0
 var route_nodes: Array[String] = []
 var route_segment: int = 0
@@ -51,7 +53,7 @@ func _record(kind: String, subject: String, detail: Dictionary = {}) -> void:
 
 func select_starter_device(device: String) -> bool:
 	if not starter_device.is_empty() or not SandboxKnowledge.DEVICES.has(device) \
-			or not active_offer_id.is_empty() or meeting_in_progress():
+			or is_travelling() or meeting_in_progress():
 		return false
 	starter_device = device
 	if device == "module:local":
@@ -80,7 +82,7 @@ func _grant_fact(fact: String, source: String) -> bool:
 # finite world-owned physical stock. No remote purchase or silent installation.
 func buy_language_module(language: String) -> bool:
 	if player_district != "market" or not SandboxKnowledge.market_open(minute) \
-			or not active_offer_id.is_empty() or meeting_in_progress() \
+			or is_travelling() or meeting_in_progress() \
 			or not SandboxKnowledge.MODULE_PRICES.has(language) \
 			or modules_owned.has(language) or int(market_stock.get(language, 0)) <= 0:
 		return false
@@ -104,7 +106,7 @@ const AR_VENDOR: String = "vendor:market:optics"
 
 func buy_ar() -> bool:
 	if ar_owned or player_district != "market" or not SandboxKnowledge.market_open(minute) \
-			or not active_offer_id.is_empty() or meeting_in_progress() or credits < AR_PRICE:
+			or is_travelling() or meeting_in_progress() or credits < AR_PRICE:
 		return false
 	credits -= AR_PRICE
 	ar_owned = true
@@ -125,7 +127,7 @@ func set_ar_equipped(equipped: bool) -> bool:
 func rumor_candidate(offer_id: String) -> Dictionary:
 	var offer: Dictionary = offer_by_id(offer_id)
 	if offer.is_empty() or offer.get("status") != "open" \
-			or offer.get("origin") != player_district or not active_offer_id.is_empty() \
+			or offer.get("origin") != player_district or is_travelling() \
 			or meeting_in_progress():
 		return {}
 	var npc: Dictionary = resident(str(offer.get("npc_id", "")))
@@ -169,7 +171,7 @@ func hear_rumor(offer_id: String) -> bool:
 
 func install_language_module(language: String) -> bool:
 	if not modules_owned.has(language) or modules_installed.has(language) \
-			or not active_offer_id.is_empty() or meeting_in_progress():
+			or is_travelling() or meeting_in_progress():
 		return false
 	modules_installed.append(language)
 	_record("language_module_installed", language, {"source": "owned_inventory", "price": 0})
@@ -180,7 +182,7 @@ func install_language_module(language: String) -> bool:
 func request_common(offer_id: String) -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
 	if offer.is_empty() or common_requests.has(offer_id) or offer.get("status") != "open" \
-			or offer.get("origin") != player_district or not active_offer_id.is_empty() \
+			or offer.get("origin") != player_district or is_travelling() \
 			or meeting_in_progress():
 		return false
 	var npc: Dictionary = resident(str(offer.get("npc_id", "")))
@@ -224,15 +226,16 @@ func advance(minutes: int) -> bool:
 		return false
 	for i in range(minutes / STEP_MINUTES):
 		minute += STEP_MINUTES
-		_record_changes(SandboxPopulation.step(residents, minute))
+		if minute % 10 == 0:
+			_record_changes(SandboxPopulation.step(residents, minute))
 		_record_changes(SandboxAutonomy.finish_arrivals(residents, minute))
 		_apply_peer_contact(SandboxSocial.pick(residents, minute))
 		SandboxMeetings.on_tick(self)
-		var expired: Array[String] = SandboxDispatch.expire(residents, offers, minute)
+		var expired: Array[String] = SandboxDispatch.expire(residents, offers, minute, engaged_offer_id)
 		for id in expired:
 			_record("offer_expired", id)
 		_record_changes(SandboxAutonomy.begin_expired_trips(residents, offers, expired, minute, seed))
-		if not active_offer_id.is_empty():
+		if is_travelling():
 			_step_player_route()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 	return true
@@ -279,18 +282,48 @@ func _record_changes(changes: Array[Dictionary]) -> void:
 		_record(str(change["kind"]), str(change["subject"]), change["detail"])
 
 
-func reposition(destination: String) -> bool:
-	if meeting_in_progress() or not active_offer_id.is_empty() or not SandboxRoads.DISTRICTS.has(destination) or destination == player_district:
+func is_travelling() -> bool:
+	return route_nodes.size() >= 2
+
+
+func player_position(fraction: float = 0.0) -> Vector3:
+	if not is_travelling(): return SandboxRoads.map_position(player_district)
+	return SandboxRoads.sample_edge(route_nodes[route_segment], route_nodes[route_segment+1],
+		(float(route_edge_elapsed)+clampf(fraction,0,1))/float(SandboxRoads.edge_minutes(route_nodes[route_segment],route_nodes[route_segment+1])))
+
+
+func npc_position(npc: Dictionary, fraction: float = 0.0) -> Vector3:
+	if not str(npc.get("taxi_offer", "")).is_empty() and npc["taxi_offer"]==active_offer_id:
+		return player_position(fraction)
+	if int(npc.get("transit_until",0))>0:
+		var nodes: Array[String] = []
+		for node in npc.get("transit_nodes",[]): nodes.append(str(node))
+		return SandboxRoads.position_on_path(nodes,float(minute-int(npc.get("transit_started",minute)))+fraction,
+			float(int(npc["transit_until"])-int(npc["transit_started"])))
+	return SandboxRoads.map_position(str(npc["location"]))
+
+
+func engage_offer(id: String) -> bool:
+	var offer: Dictionary = offer_by_id(id)
+	if is_travelling() or offer.get("status", "")!="open" or offer.get("origin", "")!=player_district: return false
+	engaged_offer_id = id
+	return true
+
+
+func reposition(destination: String, via: String = "", waypoints: Array[String] = []) -> bool:
+	if meeting_in_progress() or is_travelling() or not SandboxRoads.DISTRICTS.has(destination) or destination==player_district:
 		return false
-	var hops: int = SandboxRoads.hops(player_district, destination)
-	var move_cost: int = hops
-	if hops <= 0 or credits < move_cost:
-		return false
-	var previous: String = player_district
+	var nodes: Array[String] = SandboxRoads.path(player_district,destination,via) if waypoints.is_empty() else SandboxRoads.path_via(player_district,destination,waypoints)
+	var move_cost: int = maxi(1,ceili(SandboxRoads.path_metres(nodes)/5000.0))
+	if not SandboxRoads.valid_path(nodes) or credits < move_cost+SandboxRoads.path_expense(nodes): return false
 	credits -= move_cost
-	player_district = destination
-	_record("reposition", "player", {"from": previous, "to": destination, "expense": move_cost})
-	advance(hops * STEP_MINUTES)
+	engaged_offer_id = ""
+	travel_destination = destination
+	route_nodes = nodes
+	route_segment = 0
+	route_edge_elapsed = 0
+	remaining_minutes = SandboxRoads.path_minutes(nodes)
+	_record("reposition", "player", {"from":player_district,"to":destination,"expense":move_cost,"nodes":nodes.duplicate()})
 	return true
 
 
@@ -299,6 +332,7 @@ func decline(offer_id: String) -> bool:
 	if meeting_in_progress() or offer.is_empty() or offer["status"] != "open":
 		return false
 	offer["status"] = "declined"
+	if engaged_offer_id==offer_id: engaged_offer_id=""
 	var npc: Dictionary = resident(str(offer["npc_id"]))
 	npc["cooldown_until"] = minute + 30
 	_record("offer_declined", offer_id)
@@ -311,7 +345,7 @@ func decline(offer_id: String) -> bool:
 
 func accept(offer_id: String, waypoint: String = "") -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
-	if meeting_in_progress() or not active_offer_id.is_empty() or offer.is_empty() or offer["status"] != "open":
+	if meeting_in_progress() or is_travelling() or offer.is_empty() or offer["status"] != "open":
 		return false
 	if offer["origin"] != player_district or offer["channel"] == "official":
 		return false # Illegally resident: no access to licensed ride apps.
@@ -322,6 +356,9 @@ func accept(offer_id: String, waypoint: String = "") -> bool:
 	if not SandboxRoads.valid_path(route) or credits < SandboxRoads.path_expense(route):
 		return false
 	offer["status"] = "accepted"
+	engaged_offer_id = ""
+	npc["taxi_offer"] = offer_id
+	npc["activity"] = "travelling"
 	active_offer_id = offer_id
 	route_nodes = route.duplicate()
 	route_segment = 0
@@ -400,6 +437,8 @@ func _step_player_route() -> void:
 		route_segment += 1
 		route_edge_elapsed = 0
 		player_district = to
+		if not active_offer_id.is_empty():
+			resident(str(offer_by_id(active_offer_id)["npc_id"]))["location"] = to
 		var expense: int = SandboxRoads.edge_expense(from, to)
 		var exposure: int = SandboxRoads.edge_exposure(from, to)
 		credits -= expense
@@ -410,7 +449,13 @@ func _step_player_route() -> void:
 		})
 		if route_segment == route_nodes.size() - 1:
 			remaining_minutes = 0
-			_complete_active_trip()
+			if not active_offer_id.is_empty():
+				_complete_active_trip()
+			else:
+				_record("reposition_arrived", "player", {"to":travel_destination})
+				travel_destination=""
+				route_nodes.clear()
+				route_segment=0
 			return
 		if not pending_route_nodes.is_empty():
 			var old_remaining: Array[String] = []
@@ -434,6 +479,8 @@ func _complete_active_trip() -> void:
 	credits += fare
 	player_district = str(offer["destination"])
 	var npc: Dictionary = resident(str(offer["npc_id"]))
+	npc["taxi_offer"] = ""
+	npc["activity"] = "available"
 	SandboxPopulation.conclude_trip(npc, player_district, fare, minute)
 	# Unlicensed work is consequential even when the passenger is satisfied.
 	if offer["channel"] == "underground":
@@ -463,6 +510,7 @@ func snapshot() -> Dictionary:
 		"ar_owned": ar_owned, "ar_equipped": ar_equipped,
 		"residents": residents.duplicate(true), "offers": offers.duplicate(true),
 		"events": events.duplicate(true), "active_offer_id": active_offer_id,
+		"travel_destination": travel_destination, "engaged_offer_id": engaged_offer_id,
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
 		"pending_route_nodes": pending_route_nodes.duplicate(),
@@ -477,10 +525,16 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if not (value.get("residents") is Array) or not (value.get("offers") is Array) or not (value.get("events") is Array) \
 			or not (value.get("meetings") is Array):
 		return false
+	for collection in ["residents","offers","events","meetings"]:
+		for entry in value[collection]:
+			if not (entry is Dictionary): return false
 	var district: String = str(value.get("player_district", ""))
 	var remaining: int = int(value.get("remaining_minutes", -1))
 	var active: String = str(value.get("active_offer_id", ""))
-	if not SandboxRoads.DISTRICTS.has(district) or remaining < 0 or int(value.get("minute", -1)) < START_MINUTE:
+	var relocation: String = str(value.get("travel_destination", ""))
+	var engagement: String = str(value.get("engaged_offer_id", ""))
+	if not relocation.is_empty() and (not active.is_empty() or not SandboxRoads.DISTRICTS.has(relocation)): return false
+	if not SandboxRoads.LINKS.has(district) or remaining < 0 or int(value.get("minute", -1)) < START_MINUTE:
 		return false
 	if int(value.get("credits", -1)) < 0 or int(value.get("risk", -1)) < 0:
 		return false
@@ -586,7 +640,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 		return false
 	var resident_ids: Dictionary = {}
 	for npc in value["residents"]:
-		if not (npc is Dictionary) or not SandboxRoads.DISTRICTS.has(npc.get("location", "")) \
+		if not (npc is Dictionary) or not SandboxRoads.LINKS.has(npc.get("location", "")) \
 				or not SandboxRoads.DISTRICTS.has(npc.get("home", "")) \
 				or not SandboxRoads.DISTRICTS.has(npc.get("workplace", "")):
 			return false
@@ -608,17 +662,35 @@ func restore_snapshot(value: Dictionary) -> bool:
 				or not (npc.get("contacts") is Dictionary) \
 				or int(npc.get("last_peer_day", -2)) < -1:
 			return false
+		var taxi_id: String = str(npc.get("taxi_offer", ""))
+		if not taxi_id.is_empty():
+			if taxi_id != active or npc.get("activity") != "travelling": return false
+			var passenger_matches: bool = false
+			for accepted in value["offers"]:
+				if accepted.get("id") == taxi_id and accepted.get("npc_id") == npc.get("id"):
+					passenger_matches = true
+			if not passenger_matches: return false
+		var transit: Array[String] = []
+		if not (npc.get("transit_nodes") is Array): return false
+		for transit_node in npc["transit_nodes"]:
+			if not (transit_node is String): return false
+			transit.append(transit_node)
 		var travel_until: int = int(npc.get("transit_until", -1))
 		if travel_until < 0:
 			return false
 		if travel_until > 0:
-			if travel_until <= int(value["minute"]) \
+			if not taxi_id.is_empty() or not SandboxRoads.valid_path(transit) \
+					or transit.front() != npc.get("location") or transit.back() != npc.get("transit_to") \
+					or int(npc.get("transit_started", -1)) < 0 \
+					or int(npc.get("transit_started", -1)) > int(value["minute"]) \
+					or travel_until - int(npc.get("transit_started", -1)) != SandboxRoads.path_minutes(transit) * (1 if npc.get("transit_method") == "shuttle" else 4) \
+					or travel_until <= int(value["minute"]) \
 					or not SandboxRoads.DISTRICTS.has(npc.get("transit_to", "")) \
 					or str(npc.get("transit_from_offer", "")).is_empty() \
 					or not ["walking", "shuttle"].has(npc.get("transit_method", "")) \
 					or npc.get("activity") != "travelling":
 				return false
-		elif not str(npc.get("transit_to", "")).is_empty() \
+		elif not transit.is_empty() or int(npc.get("transit_started", -1)) != 0 or not str(npc.get("transit_to", "")).is_empty() \
 				or not str(npc.get("transit_from_offer", "")).is_empty() \
 				or not str(npc.get("transit_method", "")).is_empty():
 			return false
@@ -655,6 +727,12 @@ func restore_snapshot(value: Dictionary) -> bool:
 			actual_active += 1
 			if id != active:
 				return false
+	for accepted in value["offers"]:
+		if accepted.get("status")=="accepted":
+			var matching: bool=false
+			for npc in value["residents"]:
+				if npc.get("id")==accepted.get("npc_id") and npc.get("taxi_offer")==active: matching=true
+			if not matching: return false
 	if actual_active != (1 if not active.is_empty() else 0):
 		return false
 	if not (value.get("route_nodes") is Array) or not (value.get("pending_route_nodes") is Array) \
@@ -674,12 +752,12 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if not request.is_empty():
 		if not ["pending", "accepted", "declined"].has(request.get("status")) \
 				or not (request.get("via") is String) \
-				or not SandboxRoads.DISTRICTS.has(request.get("via")) \
+				or not SandboxRoads.LINKS.has(request.get("via")) \
 				or not ["faster", "lower_exposure"].has(request.get("reason")):
 			return false
 	var segment: int = int(value.get("route_segment", -1))
 	var elapsed: int = int(value.get("route_edge_elapsed", -1))
-	if active.is_empty():
+	if active.is_empty() and relocation.is_empty():
 		if not route.is_empty() or not pending.is_empty() or not request.is_empty() \
 				or segment != 0 or elapsed != 0 or remaining != 0:
 			return false
@@ -691,11 +769,12 @@ func restore_snapshot(value: Dictionary) -> bool:
 			if offer["id"] == active:
 				accepted_offer = offer
 				break
-		if accepted_offer.is_empty() or route.back() != accepted_offer["destination"] \
+		if (not active.is_empty() and accepted_offer.is_empty()) or route.back() != (relocation if active.is_empty() else accepted_offer["destination"]) \
 				or segment < 0 or segment >= route.size() - 1 \
 				or route[segment] != district:
 			return false
 		if not pending.is_empty():
+			if active.is_empty(): return false
 			if route[segment + 1] == accepted_offer["destination"] \
 					or not SandboxRoads.valid_path(pending) \
 					or pending[0] != route[segment + 1] \
@@ -705,6 +784,13 @@ func restore_snapshot(value: Dictionary) -> bool:
 				return false
 		elif remaining != SandboxRoads.minutes_left(route, segment, elapsed):
 			return false
+	if not engagement.is_empty():
+		var valid_engagement: bool = false
+		for offer in value["offers"]:
+			if offer.get("id")==engagement and offer.get("status")=="open" and offer.get("origin")==district:
+				valid_engagement=true
+		if not valid_engagement or not active.is_empty() or not relocation.is_empty(): return false
+
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
 	player_district = district
@@ -728,6 +814,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 	for event in value["events"]:
 		events.append((event as Dictionary).duplicate(true))
 	active_offer_id = active
+	travel_destination = relocation
+	engaged_offer_id = engagement
 	remaining_minutes = remaining
 	route_nodes = route.duplicate()
 	route_segment = segment

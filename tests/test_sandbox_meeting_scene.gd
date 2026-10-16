@@ -9,6 +9,7 @@ func _walk() -> void:
 	DirAccess.make_dir_recursive_absolute(SHOTS)
 	var scene: Node2D = load("res://scenes/sandbox.tscn").instantiate()
 	get_root().add_child(scene)
+	scene._player_ui.toggle_debug()
 	await process_frame
 	await process_frame
 	var world: SandboxWorld = scene.get("_world")

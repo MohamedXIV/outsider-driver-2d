@@ -18,7 +18,7 @@ static func create(seed: int) -> Array[Dictionary]:
 	var residents: Array[Dictionary] = []
 	for i in range(9):
 		var kind: String = PURPOSES[posmod(seed + i * 3, PURPOSES.size())]
-		var home: String = SandboxRoads.DISTRICTS[posmod(seed + i * 2, SandboxRoads.DISTRICTS.size())]
+		var home: String = str(["docks", "docks", "garage", "depot", "market", "lantern", "docks", "garage", "terraces"][posmod(seed - 8 + i, 9)])
 		var destination: String = destination_for(home, kind)
 		residents.append({
 			"id": "npc:%02d" % i,
@@ -27,6 +27,9 @@ static func create(seed: int) -> Array[Dictionary]:
 			"workplace": ["depot", "market", "clinic"][i % 3],
 			"activity": "available",
 			"transit_until": 0,
+			"transit_started": 0,
+			"transit_nodes": [],
+			"taxi_offer": "",
 			"transit_to": "",
 			"transit_from_offer": "",
 			"transit_method": "",
@@ -63,7 +66,7 @@ static func step(residents: Array[Dictionary], minute: int) -> Array[Dictionary]
 	var hour: int = (minute % 1440) / 60
 	for npc in residents:
 		var next_activity: String = "available"
-		if int(npc["transit_until"]) > 0:
+		if int(npc["transit_until"]) > 0 or not str(npc.get("taxi_offer", "")).is_empty():
 			next_activity = "travelling"
 		elif (hour >= 22 or hour < 6) and str(npc["location"]) == str(npc["home"]):
 			next_activity = "resting"

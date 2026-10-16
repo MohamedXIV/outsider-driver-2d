@@ -1,5 +1,7 @@
 # Outsider Driver 2D
 
+**Integrated Player Mode city build:** [play instructions, current technical evidence and human acceptance limits](docs/CITY_PLAYTEST.md).
+
 A narrative social-stealth taxi game set in an alien city that prohibits humans. You are a human living under a false identity, earning a living by driving an old taxi and learning how to belong.
 
 **Status:** P0–P2 authored-ride technical prototype archived. **Sandbox S0–S3 and Routes P0–P1 now run by default**: seeded NPC mobility offers, autonomous work/rest, alternative travel, witnessed NPC-to-NPC help/knowledge and recurring-passenger recognition, visible 5-district route selection and persistent economy, plus context-grounded shared Ink interactions, distinct persistent GPS/Translator/Radio starter gear, earned partial route-language knowledge, world-command decisions and mid-dialogue Save/Load. This is an early systemic playable foundation, **not** a completed living-city game. The previous Babylon.js project remains read-only reference, not a code dependency. [Why we stopped extending the scripted prototype](docs/PROTOTYPE_CLOSEOUT.md).

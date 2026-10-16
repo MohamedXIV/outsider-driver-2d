@@ -1,15 +1,15 @@
 class_name SandboxSave
 extends RefCounted
 
-const PATH: String = "user://outsider_driver_sandbox_v11.json"
-const VERSION: int = 11
+const PATH: String = "user://outsider_driver_sandbox_v12.json"
+const VERSION: int = 12
 
 
-static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: Dictionary = {}) -> bool:
+static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: Dictionary = {}, presentation: Dictionary = {}) -> bool:
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"version": VERSION, "world": world.snapshot(), "dialogue": dialogue}))
+	file.store_string(JSON.stringify({"version": VERSION, "world": world.snapshot(), "dialogue": dialogue, "presentation": presentation}))
 	file.close()
 	return true
 
@@ -29,7 +29,12 @@ static func load_bundle(file_path: String = PATH) -> Dictionary:
 	var world: SandboxWorld = SandboxWorld.new()
 	if not world.restore_snapshot(value["world"]):
 		return {}
-	return {"world": world, "dialogue": value["dialogue"]}
+	var presentation: Variant=value.get("presentation",{})
+	if not (presentation is Dictionary): return {}
+	if not ["en","ar"].has(presentation.get("locale","en")) or not (presentation.get("reduced_motion",false) is bool): return {}
+	var fraction: Variant=presentation.get("clock_fraction",0.0)
+	if not (fraction is float or fraction is int) or not is_finite(float(fraction)) or float(fraction)<0 or float(fraction)>=1: return {}
+	return {"world": world, "dialogue": value["dialogue"], "presentation":presentation}
 
 
 static func load_world(file_path: String = PATH) -> SandboxWorld:

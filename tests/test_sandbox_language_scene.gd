@@ -23,6 +23,7 @@ func _walkthrough() -> void:
 			SandboxLanguagePresentation.source_line("cant", "destination"))
 	var scene: Node2D = (load("res://scenes/sandbox.tscn") as PackedScene).instantiate()
 	get_root().add_child(scene)
+	scene._player_ui.toggle_debug()
 	await process_frame
 	await process_frame
 	var talk: Button = scene.get_node("HUD/DockPanel/Content/Actions/Talk")
@@ -40,6 +41,9 @@ func _walkthrough() -> void:
 	var district: OptionButton = scene.get_node("HUD/DockPanel/Content/Navigation/District")
 	district.select(1)
 	scene.call("_on_reposition")
+	var moving_world: SandboxWorld=scene.get("_world")
+	if moving_world.is_travelling(): moving_world.advance(moving_world.remaining_minutes)
+	scene.call("_render")
 	await process_frame
 	var residents: ItemList = scene.get_node("HUD/DockPanel/Content/Offers")
 	var found: bool = false

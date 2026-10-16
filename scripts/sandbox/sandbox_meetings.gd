@@ -111,7 +111,7 @@ static func find(world: SandboxWorld, meeting_id: String) -> Dictionary:
 static func accept(world: SandboxWorld, meeting_id: String) -> bool:
 	var meeting: Dictionary = find(world, meeting_id)
 	if meeting.is_empty() or meeting["status"] != "invited" \
-			or world.minute >= int(meeting["slot"]) or not world.active_offer_id.is_empty():
+			or world.minute >= int(meeting["slot"]) or world.is_travelling():
 		return false
 	for other in world.meetings:
 		if ["accepted", "in_progress"].has(other["status"]):
@@ -169,7 +169,7 @@ static func on_tick(world: SandboxWorld) -> void:
 static func start(world: SandboxWorld, meeting_id: String) -> bool:
 	var meeting: Dictionary = find(world, meeting_id)
 	if meeting.is_empty() or meeting["status"] != "accepted" \
-			or not world.active_offer_id.is_empty() \
+			or world.is_travelling() \
 			or world.player_district != meeting["location"] \
 			or world.minute < int(meeting["slot"]) or world.minute > int(meeting["deadline"]):
 		return false
