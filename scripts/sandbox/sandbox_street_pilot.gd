@@ -43,6 +43,7 @@ func _ready() -> void:
 			push_error("No available Patchworks resident for local walking test")
 			return
 	SandboxStreetModule.install_navigation(self)
+	SandboxStreetModule.install_east_junction(self)
 	car = SandboxTrafficVehicle.new()
 	car.name = "LocalTrafficCar"
 	car.position = SandboxStreetModule.VEHICLE_START
@@ -123,6 +124,7 @@ func _on_resident_arrived(npc_id: String) -> void:
 
 func _draw() -> void:
 	SandboxStreetModule.paint(self)
+	SandboxStreetModule.paint_east_junction(self)
 
 func _process(_delta: float) -> void:
 	if car != null:

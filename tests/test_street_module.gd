@@ -17,5 +17,8 @@ func _initialize() -> void:
 	assert(SandboxStreetModule.NORTH_SIDEWALK.end.y<SandboxStreetModule.SOUTH_SIDEWALK.position.y)
 	assert(SandboxStreetModule.ROAD.has_point(Vector2(SandboxStreetModule.CROSS_X,355)))
 	assert(SandboxStreetModule.FRONTAGES.size()>=3)
+	assert(SandboxStreetModule.EAST_BLOCK.position.x==SandboxStreetModule.NORTH_SIDEWALK.end.x)
+	assert(SandboxStreetModule.EAST_CROSS_X>SandboxStreetModule.T_BRANCH.end.x)
+	assert(SandboxStreetModule.T_BRANCH.end.y==SandboxStreetModule.EAST_BLOCK.position.y)
 	print("STREET_MODULE_PASS shared sidewalk, lane, crossing, block rectangles and offscreen spatial anchors")
 	quit()

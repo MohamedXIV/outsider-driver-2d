@@ -104,3 +104,55 @@ static func paint(canvas: Node2D) -> void:
 	canvas.draw_rect(Rect2(462,416,26,36),Color("d2c49f"))
 	canvas.draw_string(ThemeDB.fallback_font,Vector2(454,440),"PARTS",
 			HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("28383a"))
+
+
+# Adjacent straight block with a T junction. Deliberately uses the same street
+# grammar as the western module; polygons meet by SHARED EDGES instead of
+# arbitrary screen overlap. Only explicit links cross vehicle asphalt.
+const EAST_BLOCK: Rect2 = Rect2(560, 328, 460, 48)
+const T_BRANCH: Rect2 = Rect2(800, 160, 48, 168)
+const EAST_CROSS_X: float = 950.0
+const BRANCH_CROSS_Y: float = 313.0
+
+static func _crossing(parent: Node2D, label: String, origin: Vector2, goal: Vector2) -> void:
+	var link: NavigationLink2D = NavigationLink2D.new()
+	link.name = label
+	link.navigation_layers = 1
+	link.bidirectional = true
+	link.start_position = origin
+	link.end_position = goal
+	parent.add_child(link)
+
+static func install_east_junction(parent: Node2D) -> void:
+	# Main avenue: split north sidewalk at the branch and retain a connected
+	# south sidewalk. A junction is not a walkable shortcut across asphalt.
+	_add_sidewalk(parent, Rect2(560,300,240,26), "EastNorthWest")
+	_add_sidewalk(parent, Rect2(848,300,172,26), "EastNorthEast")
+	_add_sidewalk(parent, Rect2(560,378,460,26), "EastSouthSidewalk")
+	_add_sidewalk(parent, Rect2(774,160,24,140), "BranchWestSidewalk")
+	_add_sidewalk(parent, Rect2(850,160,24,140), "BranchEastSidewalk")
+	_crossing(parent, "EastMarkedCrosswalk",
+			Vector2(EAST_CROSS_X,NORTH_Y),Vector2(EAST_CROSS_X,SOUTH_Y))
+	_crossing(parent, "BranchMarkedCrosswalk",
+			Vector2(799,BRANCH_CROSS_Y),Vector2(849,BRANCH_CROSS_Y))
+
+static func paint_east_junction(canvas: Node2D) -> void:
+	canvas.draw_rect(EAST_BLOCK,Color("3f5555"))
+	canvas.draw_rect(T_BRANCH,Color("3f5555"))
+	for rect in [Rect2(560,300,240,26),Rect2(848,300,172,26),
+			Rect2(560,378,460,26),Rect2(774,160,24,140),
+			Rect2(850,160,24,140)]:
+		canvas.draw_rect(rect,Color("80908a"))
+	for x in range(567,1010,40):
+		if (x>787 and x<862) or (x>925 and x<973):
+			continue
+		canvas.draw_line(Vector2(x,353),Vector2(x+18,353),Color("e1be85"),2.0)
+	for y in range(330,376,8):
+		canvas.draw_rect(Rect2(EAST_CROSS_X-13,y,26,4),Color("e5d6a4"))
+	for x in range(800,847,8):
+		canvas.draw_rect(Rect2(x,BRANCH_CROSS_Y-12,4,24),Color("e5d6a4"))
+	for lot in [Rect2(578,230,74,65),Rect2(677,230,88,65),
+			Rect2(890,223,102,74),Rect2(589,410,100,54),
+			Rect2(722,410,91,61),Rect2(887,414,105,55)]:
+		canvas.draw_rect(lot,Color("768987"))
+	canvas.draw_line(Vector2(824,169),Vector2(824,277),Color("d1b985"),1.5)
