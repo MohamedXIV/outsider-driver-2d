@@ -159,7 +159,7 @@ func _process(delta: float) -> void:
 	# fraction belongs to presentation time, NOT the player's travel state.
 	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
-	_ensure_local_pedestrian()
+	_sync_local_pedestrian()
 
 
 func _on_meeting_selected(index: int) -> void:
@@ -467,23 +467,47 @@ func _on_observe() -> void:
 
 # Local native Godot navigation runs only for a genuine resident in the garage
 # vicinity. It is one shared world, not an alternate passenger simulator.
-func _ensure_local_pedestrian() -> void:
+func _sync_local_pedestrian() -> void:
+	var visible_neighborhood: bool=_world.player_district=="garage" and not _world.is_travelling()
+	if not visible_neighborhood:
+		if _street_pilot != null:
+			if not _street_pilot.world_reported_arrival:
+				var phase: float=SandboxStreetModule.progress_of(_street_pilot.pedestrian.position)
+				if SandboxLocalPedestrianTrip.handoff(_world,_street_pilot.walking_npc_id,phase):
+					_street_restore_state.clear()
+			_street_pilot.queue_free()
+			_street_pilot=null
+			_city.local_active_npc_id=""
+		return
 	if _street_pilot != null:
 		return
-	if _world.player_district != "garage" or _world.is_travelling():
-		return
-	var npc_id: String = SandboxLocalPedestrianTrip.candidate(_world)
+	var npc_id: String=SandboxLocalPedestrianTrip.candidate(_world)
 	if npc_id.is_empty():
 		return
-	var local: SandboxStreetPilot = SandboxStreetPilot.new()
-	local.name = "PatchworksStreetTraffic"
-	local.embedded = true
-	local.world = _world
-	local.walking_npc_id = npc_id
-	local.resume_state = _street_restore_state.duplicate(true)
-	local.position = SandboxCityView.project(SandboxRoads.map_position("garage")) - Vector2(320.0,480.0)
-	local.z_index = 5
-	_street_pilot = local
+	var trip: Dictionary=_world.resident(npc_id).get("local_pedestrian_trip",{})
+	if trip.get("status","")=="offscreen":
+		var phase: float=SandboxLocalPedestrianTrip.resume(_world,npc_id)
+		if phase<0.0:
+			return
+		_street_restore_state={
+			"npc_id":npc_id,
+			"pedestrian_x":SandboxStreetModule.position_at(phase).x,
+			"pedestrian_y":SandboxStreetModule.position_at(phase).y,
+			"car_x":SandboxStreetModule.VEHICLE_START.x,
+			"car_y":SandboxStreetModule.VEHICLE_START.y,
+			"crossing_reserved":SandboxStreetModule.crossing_started(phase),
+			"crossing_completed":SandboxStreetModule.crossing_finished(phase),
+			"did_arrive":false}
+	var local: SandboxStreetPilot=SandboxStreetPilot.new()
+	local.name="PatchworksStreetTraffic"
+	local.embedded=true
+	local.world=_world
+	local.walking_npc_id=npc_id
+	local.resume_state=_street_restore_state.duplicate(true)
+	local.position=SandboxCityView.project(SandboxRoads.map_position("garage"))-Vector2(320.0,480.0)
+	local.z_index=5
+	_street_pilot=local
+	_city.local_active_npc_id=npc_id
 	add_child(local)
 	_street_restore_state.clear()
 
@@ -492,6 +516,7 @@ func _reset_local_pedestrian() -> void:
 		_street_pilot.queue_free()
 		_street_pilot = null
 	_street_restore_state.clear()
+	_city.local_active_npc_id=""
 
 
 func _on_new_seed() -> void:
@@ -551,7 +576,7 @@ func _on_load() -> void:
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
-	_ensure_local_pedestrian()
+	_sync_local_pedestrian()
 	_refresh_web_hitboxes_after_layout()
 
 

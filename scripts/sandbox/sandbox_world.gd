@@ -226,6 +226,7 @@ func advance(minutes: int) -> bool:
 		return false
 	for i in range(minutes / STEP_MINUTES):
 		minute += STEP_MINUTES
+		SandboxLocalPedestrianTrip.advance_offscreen(self)
 		if minute % 10 == 0:
 			_record_changes(SandboxPopulation.step(residents, minute))
 		_record_changes(SandboxAutonomy.finish_arrivals(residents, minute))

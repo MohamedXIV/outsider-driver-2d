@@ -11,7 +11,7 @@ static func candidate(world: SandboxWorld) -> String:
 	# first passenger, duplicate actor, or synthetic extra simulation person.
 	for npc in world.residents:
 		var active: Dictionary = npc.get("local_pedestrian_trip", {})
-		if active.get("site", "") == PATCHWORKS_PARTS and active.get("status", "") in ["walking", "arrived"]:
+		if active.get("site", "") == PATCHWORKS_PARTS and active.get("status", "") in ["walking", "offscreen"]:
 			return str(npc["id"])
 	for npc in world.residents:
 		if str(npc.get("location", "")) != "garage" or str(npc.get("activity", "")) != "available":
@@ -49,12 +49,60 @@ static func begin(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	world._record("local_pedestrian_departed", npc_id, {"from": "garage", "site": site})
 	return true
 
+
+# When the player leaves a loaded neighborhood, the native actor is removed.
+# The world keeps the resident's one real trip and a timestamped progress
+# anchor; distant travel requires no per-frame physics or extra NPC instance.
+static func handoff(world: SandboxWorld, npc_id: String, progress: float) -> bool:
+	var npc: Dictionary=world.resident(npc_id)
+	var trip: Dictionary=npc.get("local_pedestrian_trip",{})
+	if trip.get("status","")!="walking" or not is_finite(progress) \
+			or progress<0.0 or progress>=1.0:
+		return false
+	trip["status"]="offscreen"
+	trip["handoff_minute"]=world.minute
+	trip["handoff_progress"]=snappedf(progress,0.000001)
+	npc["local_pedestrian_trip"]=trip
+	world._record("local_pedestrian_handoff",npc_id,{"site":PATCHWORKS_PARTS,
+			"progress":trip["handoff_progress"]})
+	return true
+
+static func offscreen_progress(world: SandboxWorld, npc_id: String) -> float:
+	var trip: Dictionary=world.resident(npc_id).get("local_pedestrian_trip",{})
+	if trip.get("status","")!="offscreen":
+		return -1.0
+	var seconds_as_minutes: float=float(world.minute-int(trip["handoff_minute"]))
+	return clampf(float(trip["handoff_progress"]) + seconds_as_minutes / \
+			SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
+
+static func resume(world: SandboxWorld, npc_id: String) -> float:
+	var npc: Dictionary=world.resident(npc_id)
+	var trip: Dictionary=npc.get("local_pedestrian_trip",{})
+	if trip.get("status","")!="offscreen":
+		return -1.0
+	var progress: float=offscreen_progress(world,npc_id)
+	if progress>=1.0:
+		arrive(world,npc_id,PATCHWORKS_PARTS)
+		return -1.0
+	trip["status"]="walking"
+	npc["local_pedestrian_trip"]=trip
+	world._record("local_pedestrian_resumed",npc_id,{"site":PATCHWORKS_PARTS,
+			"progress":snappedf(progress,0.000001)})
+	return progress
+
+static func advance_offscreen(world: SandboxWorld) -> void:
+	# Deterministic coarse completion, independent of native frame timings.
+	for npc in world.residents:
+		if npc.get("local_pedestrian_trip",{}).get("status","")=="offscreen" \
+				and offscreen_progress(world,str(npc["id"]))>=1.0:
+			arrive(world,str(npc["id"]),PATCHWORKS_PARTS)
+
 static func arrive(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	var npc: Dictionary = world.resident(npc_id)
 	if npc.is_empty():
 		return false
 	var trip: Dictionary = npc.get("local_pedestrian_trip", {})
-	if trip.get("site", "") != site or trip.get("status", "") != "walking":
+	if trip.get("site", "") != site or not ["walking", "offscreen"].has(trip.get("status", "")):
 		return false
 	# This counter is a local site inside the garage's coarse world location.
 	# It does not teleport an NPC between dispatch/region graph nodes.
@@ -65,43 +113,66 @@ static func arrive(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	return true
 
 static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
-	var trip: Variant = npc.get("local_pedestrian_trip", {})
+	var trip: Variant=npc.get("local_pedestrian_trip",{})
 	if not (trip is Dictionary):
 		return false
-	if trip.is_empty():
-		return true
-	if trip.get("site", "") != PATCHWORKS_PARTS or not ["walking", "arrived"].has(trip.get("status", "")):
-		return false
-	var started: int = int(trip.get("started", -1))
-	if started < SandboxWorld.START_MINUTE or started > minute:
-		return false
-	if trip.get("status") == "walking" and (npc.get("location", "") != "garage" or \
-			not str(npc.get("taxi_offer", "")).is_empty()):
-		return false
-	var departures: int = 0
-	var arrivals: int = 0
-	for event in events:
-		if event.get("subject", "") != npc.get("id", ""):
+	var state: String=""
+	var began: int=-1
+	var handed_off: int=-1
+	var last_progress: float=0.0
+	var arrival_at: int=-1
+	for evt in events:
+		if evt.get("subject","") != npc.get("id",""):
 			continue
-		if event.get("kind", "") == "local_pedestrian_departed":
-			if event.get("detail", {}).get("site", "") != PATCHWORKS_PARTS \
-					or event.get("detail", {}).get("from", "") != "garage" \
-					or int(event.get("minute", -1)) != started:
+		var kind: String=str(evt.get("kind",""))
+		if not kind.begins_with("local_pedestrian_"):
+			continue
+		if evt.get("detail",{}).get("site","")!=PATCHWORKS_PARTS:
+			return false
+		var when: int=int(evt.get("minute",-1))
+		if when>minute:
+			return false
+		match kind:
+			"local_pedestrian_departed":
+				if state!="" or evt.get("detail",{}).get("from","")!="garage":
+					return false
+				state="walking"
+				began=when
+			"local_pedestrian_handoff":
+				var phase: Variant=evt.get("detail",{}).get("progress",null)
+				if state!="walking" or not (phase is float or phase is int) \
+						or not is_finite(float(phase)) or float(phase)<0.0 or float(phase)>=1.0:
+					return false
+				state="offscreen"
+				handed_off=when
+				last_progress=float(phase)
+			"local_pedestrian_resumed":
+				var resumed: Variant=evt.get("detail",{}).get("progress",null)
+				if state!="offscreen" or not (resumed is float or resumed is int) \
+						or not is_finite(float(resumed)) or float(resumed)<last_progress or float(resumed)>=1.0:
+					return false
+				state="walking"
+			"local_pedestrian_arrived":
+				if not ["walking","offscreen"].has(state) or arrival_at>=0:
+					return false
+				state="arrived"
+				arrival_at=when
+			_:
 				return false
-			departures += 1
-		elif event.get("kind", "") == "local_pedestrian_arrived":
-			if event.get("detail", {}).get("site", "") != PATCHWORKS_PARTS:
-				return false
-			arrivals += 1
-	if departures != 1:
+	if trip.is_empty():
+		return state==""
+	if state!=trip.get("status","") or trip.get("site","")!=PATCHWORKS_PARTS \
+			or began!=int(trip.get("started",-1)) or began<SandboxWorld.START_MINUTE:
 		return false
-	if trip.get("status") == "walking":
-		return arrivals == 0
-	var arrived: int = int(trip.get("arrived", -1))
-	if arrived < started or arrived > minute or arrivals != 1:
+	if state=="offscreen":
+		if handed_off!=int(trip.get("handoff_minute",-1)) or handed_off<began:
+			return false
+		var progress: Variant=trip.get("handoff_progress",null)
+		if not (progress is float or progress is int) or not is_finite(float(progress)) \
+				or not is_equal_approx(float(progress),last_progress):
+			return false
+	if state=="walking" and (npc.get("location","")!="garage" \
+			or not str(npc.get("taxi_offer","")).is_empty()):
 		return false
-	for event in events:
-		if event.get("subject", "") == npc.get("id", "") and event.get("kind", "") == "local_pedestrian_arrived" \
-				and int(event.get("minute", -1)) == arrived:
-			return true
-	return false
+	return (state!="arrived" and arrival_at<0) or (state=="arrived" \
+			and arrival_at==int(trip.get("arrived",-1)) and arrival_at>=began)
