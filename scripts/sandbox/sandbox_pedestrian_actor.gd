@@ -1,0 +1,77 @@
+class_name SandboxPedestrianActor
+extends CharacterBody2D
+
+signal reached_site(npc_id: String)
+const SPEED: float = 72.0
+const CROSS_X: float = 320.0
+const NORTH_Y: float = 312.0
+const SOUTH_Y: float = 392.0
+var npc_id: String = ""
+var destination: Vector2
+var crossing_reserved: bool = false
+var crossing_completed: bool = false
+var did_arrive: bool = false
+var traffic: CharacterBody2D
+var _agent: NavigationAgent2D
+var _target_set: bool = false
+
+func _ready() -> void:
+	collision_layer = 2
+	collision_mask = 4
+	var shape: CollisionShape2D = CollisionShape2D.new()
+	var circle: CircleShape2D = CircleShape2D.new()
+	circle.radius = 7.0
+	shape.shape = circle
+	add_child(shape)
+	_agent = NavigationAgent2D.new()
+	_agent.navigation_layers = 1
+	_agent.path_desired_distance = 5.0
+	_agent.target_desired_distance = 9.0
+	_agent.radius = 8.0
+	_agent.max_speed = SPEED
+	_agent.avoidance_enabled = true
+	_agent.velocity_computed.connect(_on_safe_velocity)
+	add_child(_agent)
+	queue_redraw()
+
+func _physics_process(_delta: float) -> void:
+	if did_arrive:
+		velocity = Vector2.ZERO
+		return
+	# Navigation maps require a server synchronization before the first query.
+	if NavigationServer2D.map_get_iteration_id(_agent.get_navigation_map()) == 0:
+		return
+	if not _target_set:
+		_agent.target_position = destination
+		_target_set = true
+	if _agent.is_navigation_finished() or global_position.distance_to(destination) <= 9.0:
+		did_arrive = true
+		velocity = Vector2.ZERO
+		_agent.set_velocity(Vector2.ZERO)
+		reached_site.emit(npc_id)
+		return
+	# The crossing is the ONLY link between the two walkable sidewalk meshes.
+	# Local right-of-way is separate from NavigationAgent's pathfinding.
+	if not crossing_completed and global_position.x >= CROSS_X - 19.0:
+		crossing_reserved = true
+		if traffic != null and traffic.global_position.x > CROSS_X - 33.0 and traffic.global_position.x < CROSS_X + 40.0:
+			velocity = Vector2.ZERO
+			_agent.set_velocity(Vector2.ZERO)
+			return
+	if crossing_reserved and global_position.y > 370.0:
+		crossing_completed = true
+	var next: Vector2 = _agent.get_next_path_position()
+	var wanted: Vector2 = global_position.direction_to(next) * SPEED
+	_agent.set_velocity(wanted)
+
+func _on_safe_velocity(safe_velocity: Vector2) -> void:
+	if did_arrive:
+		return
+	velocity = safe_velocity
+	move_and_slide()
+	queue_redraw()
+
+func _draw() -> void:
+	draw_circle(Vector2(1,2), 8.0, Color("213339"))
+	draw_circle(Vector2.ZERO, 6.0, Color("d5be91"))
+	draw_circle(Vector2(-1,-2), 2.0, Color("496778"))
