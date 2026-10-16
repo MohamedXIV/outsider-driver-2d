@@ -514,7 +514,7 @@ func _render() -> void:
 			_world.route_segment + 1, _world.route_nodes.size() - 1
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxOwned:%s,sandboxInstalled:%s,sandboxMarketStock:%s,sandboxCommonRequested:'%s',sandboxMarketOpen:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s,sandboxKnownCabs:'%d',sandboxReturningIndex:'%d',sandboxSelectedRecognizes:'%s',sandboxSelectedMemories:'%d',sandboxDialogueRecognizes:'%s'})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxSelectedLanguage:%s,sandboxOwned:%s,sandboxInstalled:%s,sandboxMarketStock:%s,sandboxCommonRequested:'%s',sandboxMarketOpen:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s,sandboxKnownCabs:'%d',sandboxReturningIndex:'%d',sandboxSelectedRecognizes:'%s',sandboxSelectedMemories:'%d',sandboxDialogueRecognizes:'%s'})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -523,7 +523,7 @@ func _render() -> void:
 			str(_conversation.understood()).to_lower() if _conversation != null else "false",
 			_conversation.offer_id if _conversation != null else "",
 			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else ""),
-			_world.starter_device, _world.knowledge.size(), JSON.stringify(_world.modules_owned),
+			_world.starter_device, _world.knowledge.size(), JSON.stringify(str(npc.get("language", ""))), JSON.stringify(_world.modules_owned),
 			JSON.stringify(_world.modules_installed), JSON.stringify(_world.market_stock),
 			str(_world.common_requests.has(_conversation.offer_id)).to_lower() if _conversation != null else "false",
 			str(stall).to_lower(), JSON.stringify(_gear_info.text), departed, arrived, working, resting, moving,
@@ -556,7 +556,10 @@ func _publish_language_web() -> void:
 		"sandboxBuyCantPoint": _buy_cant.get_global_rect().get_center(),
 		"sandboxInstallLocalPoint": _install_local.get_global_rect().get_center(),
 		"sandboxInstallCantPoint": _install_cant.get_global_rect().get_center(),
-		"sandboxCommonPoint": _request_common.get_global_rect().get_center()
+		"sandboxCommonPoint": _request_common.get_global_rect().get_center(),
+		"sandboxDistrictPoint": _districts.get_global_rect().get_center(),
+		"sandboxRepositionPoint": _reposition.get_global_rect().get_center(),
+		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center()
 	}
 	var payload: Dictionary = {}
 	for key in values:

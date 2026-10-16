@@ -1,9 +1,11 @@
 extends SceneTree
 
+# Native Linux-visible physical market + installed/absent Ink comprehension.
 const SHOTS: String = "/tmp/od2d-ink-evidence/sandbox"
 
 func _initialize() -> void:
 	call_deferred("_walkthrough")
+
 
 func _walkthrough() -> void:
 	DirAccess.make_dir_recursive_absolute(SHOTS)
@@ -15,78 +17,72 @@ func _walkthrough() -> void:
 	await process_frame
 	var world: SandboxWorld = scene.get("_world") as SandboxWorld
 	var list: ItemList = scene.get_node("HUD/DockPanel/Content/Offers") as ItemList
-	var accept: Button = scene.get_node("HUD/DockPanel/Content/Actions/Accept") as Button
 	assert(world.residents.size() == 9 and list.item_count > 1)
-	var translator: Button = scene.get_node("HUD/GearPanel/Content/Devices/Translator") as Button
-	assert(not translator.disabled)
-	translator.pressed.emit()
-	await process_frame
-	assert(world.starter_device == "translator" and world.knowledge.size() == 1)
-	assert(translator.disabled)
-	assert(not accept.disabled, "No accessible generated demand at the starting district.")
+	assert(world.modules_installed == ["trade"])
 	var talk: Button = scene.get_node("HUD/DockPanel/Content/Actions/Talk") as Button
-	var dialogue: PanelContainer = scene.get_node("HUD/DialoguePanel") as PanelContainer
-	var choice_list: VBoxContainer = scene.get_node("HUD/DialoguePanel/Content/Choices") as VBoxContainer
-	assert(not talk.disabled)
+	var choices: VBoxContainer = scene.get_node("HUD/DialoguePanel/Content/Choices")
 	talk.pressed.emit()
 	await process_frame
-	assert(dialogue.visible and choice_list.get_child_count() == 3)
-	var conversation: SandboxConversation = scene.get("_conversation") as SandboxConversation
-	assert(conversation != null and not conversation.understood())
-	assert(conversation.current_frame()["tags"].has("intent:request_trip"))
+	var unfamiliar: SandboxConversation = scene.get("_conversation") as SandboxConversation
+	assert(unfamiliar != null and not unfamiliar.understood())
 	await RenderingServer.frame_post_draw
-	_capture("speaking-unknown-language.png")
-	(choice_list.get_child(0) as Button).pressed.emit()
+	_capture("uninstalled-local.png")
+	var district: OptionButton = scene.get_node("HUD/DockPanel/Content/Navigation/District")
+	district.select(1)
+	scene.call("_on_reposition")
 	await process_frame
-	assert(conversation.current_frame()["tags"].has("intent:ask_destination"))
-	assert(world.knows(SandboxKnowledge.ROUTE_MARKER))
-	assert(not conversation.current_frame()["text"].contains(str(world.offer_by_id(conversation.offer_id)["destination"])))
-	assert(choice_list.get_child_count() == 2, "Ask destination did not keep valid actions.")
+	assert(world.player_district == "market" and world.credits == 11)
+	var buy: Button = scene.get_node("HUD/GearPanel/Content/MarketBuy/BuyLocal")
+	var install: Button = scene.get_node("HUD/GearPanel/Content/MarketInstall/InstallLocal")
+	assert(not buy.disabled and install.disabled)
+	var market_index: int = -1
+	for i in range(list.item_count):
+		if str(list.get_item_metadata(i)).contains("npc:04"):
+			market_index = i
+	assert(market_index >= 0)
+	scene.call("_on_selected", market_index)
+	talk.pressed.emit()
+	await process_frame
+	assert(not (scene.get("_conversation") as SandboxConversation).understood())
+	await RenderingServer.frame_post_draw
+	_capture("market-before-module.png")
+	buy.pressed.emit()
+	await process_frame
+	assert(world.credits == 3 and world.modules_owned.has("local"))
+	assert(not world.modules_installed.has("local") and buy.disabled and not install.disabled)
+	await RenderingServer.frame_post_draw
+	_capture("physical-module-purchased.png")
+	install.pressed.emit()
+	await process_frame
+	assert(world.modules_installed.has("local") and install.disabled)
+	talk.pressed.emit()
+	await process_frame
+	var translated: SandboxConversation = scene.get("_conversation") as SandboxConversation
+	assert(translated != null and translated.understood())
+	(choices.get_child(0) as Button).pressed.emit()
+	await process_frame
+	assert(str(translated.current_frame()["text"]).contains("heading to"))
+	await RenderingServer.frame_post_draw
+	_capture("installed-local-dialogue.png")
 	scene.call("_on_save")
-	var old_offer_id: String = conversation.offer_id
-	scene.call("_on_load")
-	var resumed: SandboxConversation = scene.get("_conversation") as SandboxConversation
-	assert(resumed != null and resumed.offer_id == old_offer_id)
-	assert(resumed.current_frame()["tags"].has("intent:ask_destination"))
-	await RenderingServer.frame_post_draw
-	_capture("restored-ink-choice.png")
-	scene.call("_on_talk") # Revisit the *same live request* after learning a bounded phrase.
-	await process_frame
-	var calibrated: SandboxConversation = scene.get("_conversation") as SandboxConversation
-	assert(calibrated.recognizes_route() and not calibrated.understood())
-	(choice_list.get_child(0) as Button).pressed.emit()
-	await process_frame
-	assert(calibrated.current_frame()["text"].contains(str(world.offer_by_id(calibrated.offer_id)["destination"])))
-	await RenderingServer.frame_post_draw
-	_capture("learned-route-marker.png")
-	(choice_list.get_child(0) as Button).pressed.emit()
-	await process_frame
-	assert(scene.get("_conversation") == null)
-	assert(scene.get("_last_outcome") == "accepted")
-	world = scene.get("_world") as SandboxWorld
-	assert(world.active_offer_id == old_offer_id)
-	await RenderingServer.frame_post_draw
-	_capture("generated-offers.png")
-	var selected: String = old_offer_id # UI auto-selects next request after acceptance.
-	var amount: int = int(world.offer_by_id(selected)["fare"])
-	assert(world.active_offer_id == selected)
-	assert(accept.disabled)
-	world.advance(world.remaining_minutes)
-	scene.call("_render")
-	await process_frame
-	assert(world.active_offer_id.is_empty() and world.credits == 12 + amount)
-	await RenderingServer.frame_post_draw
-	_capture("settled-demand.png")
-	scene.call("_on_save")
-	assert(FileAccess.file_exists(SandboxSave.PATH))
+	var selected: String = translated.offer_id
 	scene.call("_on_new_seed")
-	assert(world != scene.get("_world"))
 	scene.call("_on_load")
 	var recovered: SandboxWorld = scene.get("_world") as SandboxWorld
-	assert(recovered.credits == 12 + amount)
+	var pending: SandboxConversation = scene.get("_conversation") as SandboxConversation
+	assert(recovered.credits == 3 and recovered.modules_installed.has("local"))
+	assert(recovered.market_stock["local"] == 0)
+	assert(pending != null and pending.offer_id == selected and pending.understood())
+	await RenderingServer.frame_post_draw
+	_capture("installed-module-restored.png")
+	(choices.get_child(0) as Button).pressed.emit()
+	await process_frame
+	assert(recovered.active_offer_id == selected)
+	recovered.advance(recovered.remaining_minutes)
 	assert(recovered.offer_by_id(selected)["status"] == "completed")
 	print("SANDBOX_SCENE_PASS")
 	quit(0)
+
 
 func _capture(name: String) -> void:
 	var img: Image = get_root().get_texture().get_image()
