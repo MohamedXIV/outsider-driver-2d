@@ -66,18 +66,21 @@ func _initialize() -> void:
 	var listener: Dictionary = rumors.resident(str(contact["detail"]["recipient"]))
 	assert(listener["peer_knowledge"].has(str(contact["detail"]["fact"])))
 	# The NPC has heard it; the PLAYER has not. Ownership must not leak.
-	rumors.ar_owned = false
 	assert(SandboxARHints.contextual(rumors, reveal_frame,
 			{"npc_id": listener["id"], "destination": str(contact["detail"]["value"])}, true).is_empty())
 	# Controlled fixture places the SAME resident at a legitimate market
 	# dispatch encounter, preserving its real sourced peer contact.
 	assert(rumors.reposition("market"))
+	# A unit scenario with a still-current peer-knowledge source.
 	listener["location"] = "market"
 	listener["activity"] = "available"
 	listener["need"] = 95
 	listener["cash"] = 100
 	listener["cooldown_until"] = 0
 	listener["destination"] = "clinic"
+	for pending in rumors.offers:
+		if pending["npc_id"] == listener["id"] and pending["status"] == "open":
+			pending["status"] = "expired" # Clear prior district request in fixture.
 	SandboxDispatch.refresh(rumors.residents, rumors.offers, rumors.minute, rumors.seed)
 	var rumor_offer: String = ""
 	for candidate in rumors.open_offers():
@@ -86,6 +89,7 @@ func _initialize() -> void:
 			break
 	assert(not rumor_offer.is_empty())
 	var language: String = str(listener["language"])
+	rumors.credits = 100 # Fixture funding; buying each component still uses its real gate.
 	if language == "cant":
 		assert(rumors.buy_language_module("cant"))
 		assert(rumors.install_language_module("cant"))
@@ -95,7 +99,12 @@ func _initialize() -> void:
 	assert(rumors.rumor_candidate(rumor_offer).get("claim_source") == contact["id"])
 	assert(rumors.hear_rumor(rumor_offer))
 	assert(not rumors.hear_rumor(rumor_offer))
-	assert(rumors.buy_ar() == false if rumors.credits < 5 else true)
+	assert(rumors.buy_ar() and rumors.set_ar_equipped(true))
+	var rumor_note: Dictionary = SandboxARHints.contextual(rumors, reveal_frame,
+			{"npc_id": listener["id"], "destination": "clinic"}, true)
+	assert(rumor_note["certainty"] == "unverified" and rumor_note["kind"] == "rumor")
+	assert(str(rumor_note["source"]).contains(str(contact["id"])))
+	assert(not str(rumor_note["text"]).contains("verified"))
 	# Receipt is still provenance-checked and tagged as second-hand, not truth.
 	var heard: Dictionary = {}
 	for evt in rumors.events:
