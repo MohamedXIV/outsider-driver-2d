@@ -63,3 +63,45 @@ static func arrive(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	npc["local_pedestrian_trip"] = trip
 	world._record("local_pedestrian_arrived", npc_id, {"site": site})
 	return true
+
+static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
+	var trip: Variant = npc.get("local_pedestrian_trip", {})
+	if not (trip is Dictionary):
+		return false
+	if trip.is_empty():
+		return true
+	if trip.get("site", "") != PATCHWORKS_PARTS or not ["walking", "arrived"].has(trip.get("status", "")):
+		return false
+	var started: int = int(trip.get("started", -1))
+	if started < SandboxWorld.START_MINUTE or started > minute:
+		return false
+	if trip.get("status") == "walking" and (npc.get("location", "") != "garage" or \
+			not str(npc.get("taxi_offer", "")).is_empty()):
+		return false
+	var departures: int = 0
+	var arrivals: int = 0
+	for event in events:
+		if event.get("subject", "") != npc.get("id", ""):
+			continue
+		if event.get("kind", "") == "local_pedestrian_departed":
+			if event.get("detail", {}).get("site", "") != PATCHWORKS_PARTS \
+					or event.get("detail", {}).get("from", "") != "garage" \
+					or int(event.get("minute", -1)) != started:
+				return false
+			departures += 1
+		elif event.get("kind", "") == "local_pedestrian_arrived":
+			if event.get("detail", {}).get("site", "") != PATCHWORKS_PARTS:
+				return false
+			arrivals += 1
+	if departures != 1:
+		return false
+	if trip.get("status") == "walking":
+		return arrivals == 0
+	var arrived: int = int(trip.get("arrived", -1))
+	if arrived < started or arrived > minute or arrivals != 1:
+		return false
+	for event in events:
+		if event.get("subject", "") == npc.get("id", "") and event.get("kind", "") == "local_pedestrian_arrived" \
+				and int(event.get("minute", -1)) == arrived:
+			return true
+	return false

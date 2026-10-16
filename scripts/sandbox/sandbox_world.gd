@@ -653,6 +653,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 		if not SandboxDriverMemory.valid_history(npc, value["offers"], value["events"],
 				int(value["minute"])):
 			return false
+		if not SandboxLocalPedestrianTrip.valid_history(npc, value["events"], int(value["minute"])):
+			return false
 		if not ["kind:a", "kind:b", "kind:c", "kind:d"].has(npc.get("species")) \
 				or not ["harbor", "exchange", "newcomer"].has(npc.get("community")) \
 				or not SandboxKnowledge.LANGUAGES.has(npc.get("language", "")) \

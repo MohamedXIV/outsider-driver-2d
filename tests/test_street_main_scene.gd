@@ -52,6 +52,9 @@ func _run() -> void:
 			arrivals += 1
 	assert(arrivals == 1)
 	assert(not SandboxLocalPedestrianTrip.arrive(scene._world,initial_actor,scene._street_pilot.SITE))
+	var forged: Dictionary = scene._world.snapshot()
+	forged["residents"][0]["local_pedestrian_trip"] = {"site":"patchworks:parts_counter","status":"arrived","started":480,"arrived":480}
+	assert(not SandboxWorld.new().restore_snapshot(forged), "Forged local arrival must not load without provenance")
 	# No second actor is spawned if normal render/update occurs post-arrival.
 	scene._process(.15)
 	assert(scene._street_pilot.walking_npc_id == initial_actor)
