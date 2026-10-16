@@ -342,6 +342,10 @@ func _show_ar_hint() -> void:
 	_ar_text.text = "%s\nSource: %s" % [str(_ar_note["text"]), str(_ar_note["source"])]
 	_ar_panel.visible = true
 	_publish_ar_web()
+	# This popup is normally hidden; its Close button has no final geometry
+	# until Godot lays out a visible frame. Publish post-layout Web hitboxes.
+	if OS.has_feature("web"):
+		call_deferred("_publish_language_web")
 
 
 func _close_ar_hint() -> void:
