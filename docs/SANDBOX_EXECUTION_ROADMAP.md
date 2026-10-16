@@ -10,13 +10,13 @@
 |---|---|
 | S0 — seeded population, independent generated offers, five-district BFS, fare events and persistence | **Merged** [PR #17](https://github.com/MohamedXIV/outsider-driver-2d/pull/17) |
 | S1 — live NPC-context Ink speech acts, blocked/accepted choices, alien fallback, pending dialogue save/reload | **Merged** [PR #19](https://github.com/MohamedXIV/outsider-driver-2d/pull/19) |
-| S2 — starter GPS/Translator/Radio and first earned route marker; working native and Web proof | **Merged** [PR #21](https://github.com/MohamedXIV/outsider-driver-2d/pull/21), [green CI](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38707320272) |
+| S2 — historical starter GPS/Translator/Radio and partial learned marker; intentionally superseded by Languages P0 #32 | **Historical merged proof** [PR #21](https://github.com/MohamedXIV/outsider-driver-2d/pull/21), [green CI](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38707320272) |
 | S3 P0 — independent work/rest and alternative trips | **Merged** [PR #37](https://github.com/MohamedXIV/outsider-driver-2d/pull/37), [proof](SANDBOX_S3_P0.md) |
 | Routes P0–P1 — selected paths, actual taxi motion and next-junction rerouting | **Merged** [PR #39](https://github.com/MohamedXIV/outsider-driver-2d/pull/39) / [#40](https://github.com/MohamedXIV/outsider-driver-2d/pull/40), [proof](SANDBOX_ROUTES_P1.md) |
 | S3 P1 — source-backed NPC-to-NPC aid and co-present knowledge | **Merged** [PR #41](https://github.com/MohamedXIV/outsider-driver-2d/pull/41), [proof](SANDBOX_S3_P1.md) |
 | S3 P2 — remembered player encounters and returning-passenger contextual Ink | **Verified code** [PR #42](https://github.com/MohamedXIV/outsider-driver-2d/pull/42), [green CI](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38817277932); [proof](SANDBOX_S3_P2.md) |
 
-**Critical limitations now:** the default scene remains a **schematic debug sandbox**, but the taxi travels real selectable segments and supports junction rerouting. NPC autonomous routines, peer knowledge, returning-driver memory and **one real voluntary off-duty meeting** have native/Web technical proof. This is not a fully detailed city or a dating sim. The implemented S2 **partial** translation remains experimental and will be replaced by the approved binary language-module design at #32; **Basic Common default loadout remains pending explicit approval**. Windows runtime, visual quality and human gameplay pacing are unverified.
+**Critical limitations now:** the default scene remains a **schematic debug sandbox**, but the taxi travels real selectable segments and supports junction rerouting. NPC autonomous routines, peer knowledge, returning-driver memory and **one real voluntary off-duty meeting** have native/Web technical proof. This is not a fully detailed city or a dating sim. S2 **partial** translation has been **replaced** with binary, whole-language installed cartridges at #32; Basic Common is now preloaded and GPS/Local/Radio is the bonus choice. Windows runtime, visual quality and human gameplay pacing are unverified.
 
 ## Execution waves (small playable slices, not huge phases)
 
@@ -28,7 +28,7 @@
 | **C1** | [#29 S3 P1: NPC↔NPC contacts and local knowledge](https://github.com/MohamedXIV/outsider-driver-2d/issues/29) | #26 | **Verified technical slice (PR #41, CI #38811261745):** grounded co-presence, source-backed knowledge, modest peer aid and native/Web replay |
 | **DONE — C2** | [#30 S3 P2: recognition, memories and cover identity](https://github.com/MohamedXIV/outsider-driver-2d/issues/30) | #26, #29 | **CI PASS #38817277932, PR #42:** a repeat genuine offer with sourced memory changes shared Ink; legal/human identity remains unknown |
 | **DONE — C3** | [#31 Relationships P0: optional off-duty meeting](https://github.com/MohamedXIV/outsider-driver-2d/issues/31) | #30 | **Merged PR #43, CI #38823128499 PASS:** real repeat fares unlock voluntary time/place invite; player attends/declines/misses; native + Chromium Ink meeting and mid-event Save/Load |
-| **D1** | [#32 Languages P0: 3 shared languages + market modules](https://github.com/MohamedXIV/outsider-driver-2d/issues/32) | #29 for shared-community data | Two different species sharing language use ONE purchasable full-support module; no partial translation |
+| **DONE — D1** | [#32 Languages P0: 3 shared languages + market modules](https://github.com/MohamedXIV/outsider-driver-2d/issues/32) | #29 complete | **PR #45, CI #38835072560 PASS:** Trade/Common free, Local/Cant cartridges, physical stock and charged market purchase, separate install, NPC Common request, Linux/Chromium and mid-choice Save/Load |
 | **D2** | [#33 Languages P1: scripts, translation reveal and localization](https://github.com/MohamedXIV/outsider-driver-2d/issues/33) | #32 | Alien glyphs are stable; translation is into selected interface language, including Arabic RTL; animation can be skipped |
 | **OPTIONAL E** | [#34 AR knowledge-only contextual hints](https://github.com/MohamedXIV/outsider-driver-2d/issues/34) | #32, preferably #33 | Purchased headgear shows only player-known facts with rumor/source, no hidden-answer cheats |
 
@@ -39,7 +39,7 @@
 1. **#26 COMPLETE** with [S3 P0 proof](SANDBOX_S3_P0.md). Do not rebuild basic idle-day NPC autonomy, expand obsolete S2 partial translation, or tune full city traffic before player driving works.
 2. **Implement #27 NEXT**: player-facing selectable paths and real taxi travel; then #28 junction reroute; do not finish a giant social simulation or introduce hundreds of character records before the taxi has selectable paths. #29 can proceed after #26 when ready, but **not as a blocker** for #27.
 3. Build on concrete encounter outcomes for #29–#31. A recurring driver can be *recognized* without the NPC learning the driver's human origin, legal status or real name. More detailed characters can emerge from normal NPCs, but large handcrafted companion questlines are not required.
-4. **Only then** broaden language/equipment presentation (#32–#33). Languages are shared across species; start with **three**, fourth only if useful. Module access is binary installed/absent, not gradual linguistic proficiency. The proposed Basic Translator with Common preinstalled and one GPS / extra-language / Radio bonus starter is still a **recommended, not yet ratified** final loadout.
+4. **Only then** broaden language/equipment presentation (#32–#33). Languages are shared across species; start with **three**, fourth only if useful. Module access is binary installed/absent, not gradual linguistic proficiency. The Basic Translator with Common preinstalled and one GPS / Local-language / Radio bonus starter is **ratified and implemented in #32**.
 5. Headset AR #34 is **optional**, not a critical dependency for completing the core taxi sandbox. It never invents facts or gives optimal answer flags.
 
 ## Mandatory supersession preflight — avoid repeating retired work
@@ -61,7 +61,7 @@ The documentation may contain *historical* or *recommended* features, but only c
 
 ## Deferred and genuinely unresolved
 
-The visual legibility and exact timing of route-choice UI, true protagonist disguise/humanity detectability, exact named language scripts, the optional nature of NPC affection/romance, and the proposed Common default translator loadout remain decisions at the relevant implementation step. Avoid creating research-only epics until a playable slice demands them.
+The visual legibility and exact timing of route-choice UI, true protagonist disguise/humanity detectability, exact named language scripts, the optional nature of NPC affection/romance, remain decisions at the relevant implementation step; Basic Common starting translator is settled in #32. Avoid creating research-only epics until a playable slice demands them.
 
 This is a **working execution board**, not a rigid time estimate. Adjust the ordering when actual dependencies or playtest evidence justify it. The fundamental priority is **an autonomous city AND a taxi whose route choices visibly matter**.
 
@@ -70,4 +70,10 @@ This is a **working execution board**, not a rigid time estimate. Adjust the ord
 
 [Relationships P0 PR #43](https://github.com/MohamedXIV/outsider-driver-2d/pull/43) merged at `4bcbb354f9a00eeb9cd4c9219e1dcd2b617f8314`. [Godot 4.7.2 run #38823128499](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38823128499) **PASS** on gameplay head `2fb75b0dcc54d773937d37b1be65f7b6ff01bf43`; follow-up was docs only. Genuine repeat taxi passenger, source-backed invitation, accepted/declined/late/missed appointment, bounded off-duty kiosk scene with contextual Ink, frozen active-dialogue time and mid-meeting Save/Load. Native Linux scene and exported Chromium real interactions PASS. Windows was exported, **not** executed; human playtest/feel remains unverified. [Detailed acceptance](SANDBOX_RELATIONSHIPS_P0.md).
 
-**NEXT — #32:** three shared languages, binary modules and real physical-market install/purchase are approved design direction, but the Basic Common preinstalled loadout and exact starting bonus (GPS / secondary module / Radio) are **recommended, NOT ratified**. The #32 implementation must explicitly settle how the current S2 starter is superseded before rewriting starter/UI/tests; no silent assumption or parallel temporary translator. #33 depends on #32, #34 is optional and later.
+**NEXT — #33:** #32 is now the authoritative language-module foundation, with Trade/Common already translated and two purchasable whole-language cartridges. #33 must replace temporary romanized speech surface with stable language scripts and accessible localized (including Arabic RTL) reveal; glyph/font validation and animation are **not** #32. #34 AR remains optional and later.
+
+## Verified D1 closure — October 16, 2026
+
+[Languages P0 PR #45](https://github.com/MohamedXIV/outsider-driver-2d/pull/45) gameplay head `34d977e4fb9d7d8bf0961db019514987bf16e0f9` passed [Godot 4.7.2 CI run #38835072560](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38835072560). **Real Linux Godot scene, exported Chromium browser interaction and P0–S3 regressions PASS**; Windows export produced, **not executed**. Human aesthetic/usability evaluation unverified. [Acceptance details](SANDBOX_LANGUAGES_P0.md).
+
+**Supersession:** historical S2 partial lexical marker, mutually exclusive GPS/Translator/Radio starter and matching obsolete assertions are replaced. One Basic Common translator always exists; choose one GPS/installed Local/Radio bonus. World owns market stock, money, purchased and installed language modules, and grounded one-shot NPC Common requests. No parallel phrase-progress tracker, and no promise of production glyphs or translated Arabic UI until #33.

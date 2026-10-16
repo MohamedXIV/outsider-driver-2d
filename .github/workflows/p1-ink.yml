@@ -2,7 +2,7 @@ name: Playable ride Web/Desktop gate
 
 on:
   push:
-    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*']
+    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*', 'feat/32-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -149,7 +149,7 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_dialogue.gd 2>&1 | tee /tmp/sandbox-ink-test.log
           grep -q 'SANDBOX_SEMANTIC_INK_PASS' /tmp/sandbox-ink-test.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-ink-test.log; then exit 1; fi
-      - name: Verify one-time devices and observed partial language knowledge
+      - name: Verify Basic Common starter, full-language modules, physical vendor and persistent Common fallback
         shell: bash
         run: |
           set -euo pipefail

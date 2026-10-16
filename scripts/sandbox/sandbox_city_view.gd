@@ -47,6 +47,15 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, center + Vector2(-45, -44),
 				district.to_upper(), HORIZONTAL_ALIGNMENT_CENTER,
 				100, 16, Color("f7e9cc"))
+	# The language seller is a real place-bound stall on the market graph node.
+	# Only this district permits trade; draw it as a visible location rather
+	# than presenting remote purchase as a magical mobile app.
+	var shop: Vector2 = _point("market") + Vector2(42, -10)
+	var open_now: bool = SandboxKnowledge.market_open(world.minute)
+	draw_rect(Rect2(shop, Vector2(28, 24)), Color("7cb9aa") if open_now else Color("526465"))
+	draw_line(shop + Vector2(-4, 0), shop + Vector2(32, 0), Color("f1d9a8"), 3)
+	draw_string(ThemeDB.fallback_font, shop + Vector2(-12, 39), "LANGUAGE STALL",
+		HORIZONTAL_ALIGNMENT_CENTER, 90, 12, Color("f6e3b4") if open_now else Color("9da9a8"))
 	# Invitation marker is anchored to the NPC's actual graph district.
 	# It disappears after expiry or resolution; nothing spawns off-map.
 	for meeting in world.meetings:

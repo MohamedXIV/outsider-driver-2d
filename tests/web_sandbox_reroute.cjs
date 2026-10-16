@@ -16,7 +16,10 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxRiderStatus==='pending' &&
     document.documentElement.dataset.sandboxRiderVia==='market',null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/rider-request-web.png'});
-  await page.mouse.click(730,362); // honor passenger's route, in RoutePanel
+  const honor = JSON.parse(await page.evaluate(() => document.documentElement.dataset.sandboxHonorRiderPoint));
+  if (!Array.isArray(honor) || honor.some(n => !Number.isFinite(n) || n <= 0))
+    throw new Error('Missing real Godot Honor rider control bounds: ' + JSON.stringify(honor));
+  await page.mouse.click(honor[0], honor[1]); // actual resized RoutePanel choice
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxRiderStatus==='accepted' &&
     document.documentElement.dataset.sandboxPendingRoute.includes('market'),null,{timeout:15000});
   await page.screenshot({path:'/tmp/od2d-ink-evidence/rider-queued-web.png'});

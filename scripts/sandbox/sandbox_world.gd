@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 8
+const SCHEMA_VERSION: int = 9
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -14,6 +14,10 @@ var credits: int = 12
 var risk: int = 0
 var starter_device: String = ""
 var knowledge: Array[String] = []
+var modules_owned: Array[String] = ["trade"]
+var modules_installed: Array[String] = ["trade"]
+var market_stock: Dictionary = {"local": 1, "cant": 1}
+var common_requests: Dictionary = {}
 var residents: Array[Dictionary] = []
 var offers: Array[Dictionary] = []
 var events: Array[Dictionary] = []
@@ -48,7 +52,12 @@ func select_starter_device(device: String) -> bool:
 			or not active_offer_id.is_empty() or meeting_in_progress():
 		return false
 	starter_device = device
-	_grant_fact(str(SandboxKnowledge.FIRST_FACT[device]), "starter:%s" % device)
+	if device == "module:local":
+		modules_owned.append("local")
+		modules_installed.append("local")
+		_record("language_module_installed", "local", {"source": "starter", "price": 0})
+	else:
+		_grant_fact(str(SandboxKnowledge.FIRST_FACT[device]), "starter:%s" % device)
 	_record("starter_selected", "player", {"device": device})
 	return true
 
@@ -65,18 +74,54 @@ func _grant_fact(fact: String, source: String) -> bool:
 	return true
 
 
-func observe_route_language(offer_id: String) -> bool:
-	# Observing a real live response unlocks a single reusable *route marker*.
-	# Merely owning a translator is not equivalent to already knowing it.
+# Vendor exists at the market, is available only in trading hours, and has
+# finite world-owned physical stock. No remote purchase or silent installation.
+func buy_language_module(language: String) -> bool:
+	if player_district != "market" or not SandboxKnowledge.market_open(minute) \
+			or not active_offer_id.is_empty() or meeting_in_progress() \
+			or not SandboxKnowledge.MODULE_PRICES.has(language) \
+			or modules_owned.has(language) or int(market_stock.get(language, 0)) <= 0:
+		return false
+	var price: int = int(SandboxKnowledge.MODULE_PRICES[language])
+	if credits < price:
+		return false
+	credits -= price
+	market_stock[language] = int(market_stock[language]) - 1
+	modules_owned.append(language)
+	_record("market_module_purchased", language, {
+		"vendor": SandboxKnowledge.MARKET_VENDOR, "district": "market", "price": price
+	})
+	return true
+
+
+func install_language_module(language: String) -> bool:
+	if not modules_owned.has(language) or modules_installed.has(language) \
+			or not active_offer_id.is_empty() or meeting_in_progress():
+		return false
+	modules_installed.append(language)
+	_record("language_module_installed", language, {"source": "owned_inventory", "price": 0})
+	return true
+
+
+# Requested language switch is a world-owned, once-per-live-offer social act.
+func request_common(offer_id: String) -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
-	if offer.is_empty() or offer.get("status") != "open" \
-			or offer.get("origin") != player_district or not active_offer_id.is_empty():
+	if offer.is_empty() or common_requests.has(offer_id) or offer.get("status") != "open" \
+			or offer.get("origin") != player_district or not active_offer_id.is_empty() \
+			or meeting_in_progress():
 		return false
-	var npc: Dictionary = resident(str(offer["npc_id"]))
-	if npc.is_empty() or not SandboxKnowledge.can_observe_route(
-			starter_device, str(npc.get("language", "")), SandboxKnowledge.ROUTE_MARKER):
+	var npc: Dictionary = resident(str(offer.get("npc_id", "")))
+	if npc.is_empty() or npc.get("location") != player_district \
+			or npc.get("language") == "trade":
 		return false
-	return _grant_fact(SandboxKnowledge.ROUTE_MARKER, "offer:%s" % offer_id)
+	var agreed: bool = SandboxKnowledge.can_switch_to_common(npc)
+	common_requests[offer_id] = agreed
+	_record("common_language_requested", offer_id, {
+		"speaker": str(npc["id"]), "accepted": agreed,
+		"has_ability": bool(npc["speaks_common"]),
+		"willing": bool(npc["will_use_common"])
+	})
+	return true
 
 
 func resident(npc_id: String) -> Dictionary:
@@ -340,6 +385,8 @@ func snapshot() -> Dictionary:
 		"version": SCHEMA_VERSION, "seed": seed, "minute": minute,
 		"player_district": player_district, "credits": credits, "risk": risk,
 		"starter_device": starter_device, "knowledge": knowledge.duplicate(),
+		"modules_owned": modules_owned.duplicate(), "modules_installed": modules_installed.duplicate(),
+		"market_stock": market_stock.duplicate(true), "common_requests": common_requests.duplicate(true),
 		"residents": residents.duplicate(true), "offers": offers.duplicate(true),
 		"events": events.duplicate(true), "active_offer_id": active_offer_id,
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
@@ -365,19 +412,60 @@ func restore_snapshot(value: Dictionary) -> bool:
 		return false
 	var device: String = str(value.get("starter_device", ""))
 	if not (device.is_empty() or SandboxKnowledge.DEVICES.has(device)) \
-			or not (value.get("knowledge") is Array):
+			or not (value.get("knowledge") is Array) \
+			or not (value.get("modules_owned") is Array) \
+			or not (value.get("modules_installed") is Array) \
+			or not (value.get("market_stock") is Dictionary) \
+			or not (value.get("common_requests") is Dictionary):
 		return false
 	var restored_knowledge: Array[String] = []
 	for item in value["knowledge"]:
 		if not (item is String) or restored_knowledge.has(item):
 			return false
 		restored_knowledge.append(item)
-	if device.is_empty() and not restored_knowledge.is_empty():
+	if restored_knowledge.size() != (0 if device == "" or device == "module:local" else 1):
 		return false
-	if not device.is_empty() and not restored_knowledge.has(str(SandboxKnowledge.FIRST_FACT[device])):
+	if not device.is_empty() and device != "module:local" \
+			and not restored_knowledge.has(str(SandboxKnowledge.FIRST_FACT[device])):
 		return false
-	if restored_knowledge.has(SandboxKnowledge.ROUTE_MARKER) and device != "translator":
+	var owned: Array[String] = []
+	var installed: Array[String] = []
+	for item in value["modules_owned"]:
+		if not (item is String) or owned.has(item) or not SandboxKnowledge.LANGUAGES.has(item):
+			return false
+		owned.append(item)
+	for item in value["modules_installed"]:
+		if not (item is String) or installed.has(item) or not owned.has(item):
+			return false
+		installed.append(item)
+	if not owned.has("trade") or not installed.has("trade") \
+			or (device == "module:local" and not installed.has("local")):
 		return false
+	for language in SandboxKnowledge.MODULE_PRICES:
+		var remaining_stock: Variant = value["market_stock"].get(language, -1)
+		if not (remaining_stock is int) or remaining_stock < 0 or remaining_stock > 1:
+			return false
+		var bought: int = 0
+		for evt in value["events"]:
+			if evt.get("kind") == "market_module_purchased" and evt.get("subject") == language:
+				bought += 1
+		if bought != 1 - int(remaining_stock) \
+				or (bought == 1 and not owned.has(language)) \
+				or (owned.has(language) and bought == 0 and device != "module:%s" % language):
+			return false
+	if value["market_stock"].size() != SandboxKnowledge.MODULE_PRICES.size():
+		return false
+	for key in value["common_requests"]:
+		if not (key is String) or not (value["common_requests"][key] is bool):
+			return false
+		var sourced: bool = false
+		for evt in value["events"]:
+			if evt.get("kind") == "common_language_requested" and evt.get("subject") == key \
+					and evt.get("detail", {}).get("accepted") == value["common_requests"][key]:
+				sourced = true
+				break
+		if not sourced:
+			return false
 	if value["residents"].size() != 9:
 		return false
 	var resident_ids: Dictionary = {}
@@ -397,6 +485,9 @@ func restore_snapshot(value: Dictionary) -> bool:
 			return false
 		if not ["kind:a", "kind:b", "kind:c", "kind:d"].has(npc.get("species")) \
 				or not ["harbor", "exchange", "newcomer"].has(npc.get("community")) \
+				or not SandboxKnowledge.LANGUAGES.has(npc.get("language", "")) \
+				or not (npc.get("speaks_common") is bool) \
+				or not (npc.get("will_use_common") is bool) \
 				or not (npc.get("peer_knowledge") is Dictionary) \
 				or not (npc.get("contacts") is Dictionary) \
 				or int(npc.get("last_peer_day", -2)) < -1:
@@ -505,6 +596,10 @@ func restore_snapshot(value: Dictionary) -> bool:
 	risk = int(value["risk"])
 	starter_device = device
 	knowledge = restored_knowledge.duplicate()
+	modules_owned = owned.duplicate()
+	modules_installed = installed.duplicate()
+	market_stock = value["market_stock"].duplicate(true)
+	common_requests = value["common_requests"].duplicate(true)
 	residents.clear()
 	for npc in value["residents"]:
 		residents.append((npc as Dictionary).duplicate(true))

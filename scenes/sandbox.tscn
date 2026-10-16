@@ -181,6 +181,11 @@ layout_mode = 2
 autowrap_mode = 3
 text = "A live NPC speaks in their own language."
 
+[node name="RequestCommon" type="Button" parent="HUD/DialoguePanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(460, 30)
+text = "Ask to speak Common"
+
 [node name="Choices" type="VBoxContainer" parent="HUD/DialoguePanel/Content"]
 layout_mode = 2
 theme_override_constants/separation = 5
@@ -220,7 +225,7 @@ theme_override_constants/separation = 3
 offset_left = 510.0
 offset_top = 16.0
 offset_right = 1006.0
-offset_bottom = 196.0
+offset_bottom = 285.0
 
 [node name="Content" type="VBoxContainer" parent="HUD/GearPanel"]
 layout_mode = 2
@@ -228,7 +233,7 @@ theme_override_constants/separation = 10
 
 [node name="Heading" type="Label" parent="HUD/GearPanel/Content"]
 layout_mode = 2
-text = "STARTER EQUIPMENT  |  ONE DEVICE PER WORLD"
+text = "BASIC COMMON TRANSLATOR  |  PICK ONE BONUS"
 
 [node name="Devices" type="HBoxContainer" parent="HUD/GearPanel/Content"]
 layout_mode = 2
@@ -242,24 +247,62 @@ text = "GPS"
 [node name="Translator" type="Button" parent="HUD/GearPanel/Content/Devices"]
 layout_mode = 2
 custom_minimum_size = Vector2(142, 36)
-text = "Translator"
+text = "Local module"
 
 [node name="Radio" type="Button" parent="HUD/GearPanel/Content/Devices"]
 layout_mode = 2
 custom_minimum_size = Vector2(142, 36)
 text = "Radio"
 
+[node name="MarketHeading" type="HBoxContainer" parent="HUD/GearPanel/Content"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HUD/GearPanel/Content/MarketHeading"]
+layout_mode = 2
+text = "LANGUAGE STALL / 06:00–20:00"
+
+[node name="DriveMarket" type="Button" parent="HUD/GearPanel/Content/MarketHeading"]
+layout_mode = 2
+custom_minimum_size = Vector2(175, 31)
+text = "Drive to Market"
+
+[node name="MarketBuy" type="HBoxContainer" parent="HUD/GearPanel/Content"]
+layout_mode = 2
+
+[node name="BuyLocal" type="Button" parent="HUD/GearPanel/Content/MarketBuy"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 32)
+text = "Buy Local / 8 cr"
+
+[node name="BuyCant" type="Button" parent="HUD/GearPanel/Content/MarketBuy"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 32)
+text = "Buy Cant / 9 cr"
+
+[node name="MarketInstall" type="HBoxContainer" parent="HUD/GearPanel/Content"]
+layout_mode = 2
+
+[node name="InstallLocal" type="Button" parent="HUD/GearPanel/Content/MarketInstall"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 32)
+text = "Install Local"
+
+[node name="InstallCant" type="Button" parent="HUD/GearPanel/Content/MarketInstall"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 32)
+text = "Install Cant"
+
 [node name="Info" type="Label" parent="HUD/GearPanel/Content"]
-custom_minimum_size = Vector2(473, 70)
+custom_minimum_size = Vector2(473, 53)
 layout_mode = 2
 autowrap_mode = 3
-text = "Select one working device."
+text = "Common language is already translated; choose a bonus."
 
 [node name="RoutePanel" type="PanelContainer" parent="HUD"]
 offset_left = 510.0
-offset_top = 207.0
+offset_top = 291.0
 offset_right = 1006.0
-offset_bottom = 391.0
+offset_bottom = 475.0
 
 [node name="Content" type="VBoxContainer" parent="HUD/RoutePanel"]
 layout_mode = 2

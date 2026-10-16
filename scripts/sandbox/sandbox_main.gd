@@ -12,6 +12,7 @@ extends Node2D
 @onready var _clock: Label = $HUD/DockPanel/Content/Clock
 @onready var _world_info: Label = $HUD/WorldPanel/Content/WorldInfo
 @onready var _observe: Button = $HUD/WorldPanel/Content/Observe
+@onready var _route_panel: PanelContainer = $HUD/RoutePanel
 @onready var _via: OptionButton = $HUD/RoutePanel/Content/Via
 @onready var _route_preview: Label = $HUD/RoutePanel/Content/Preview
 @onready var _rider_info: Label = $HUD/RoutePanel/Content/RiderInfo
@@ -28,6 +29,12 @@ extends Node2D
 @onready var _gps: Button = $HUD/GearPanel/Content/Devices/GPS
 @onready var _translator: Button = $HUD/GearPanel/Content/Devices/Translator
 @onready var _radio: Button = $HUD/GearPanel/Content/Devices/Radio
+@onready var _drive_market: Button = $HUD/GearPanel/Content/MarketHeading/DriveMarket
+@onready var _buy_local: Button = $HUD/GearPanel/Content/MarketBuy/BuyLocal
+@onready var _buy_cant: Button = $HUD/GearPanel/Content/MarketBuy/BuyCant
+@onready var _install_local: Button = $HUD/GearPanel/Content/MarketInstall/InstallLocal
+@onready var _install_cant: Button = $HUD/GearPanel/Content/MarketInstall/InstallCant
+@onready var _request_common: Button = $HUD/DialoguePanel/Content/RequestCommon
 @onready var _meeting_selector: OptionButton = $HUD/WorldPanel/Content/MeetingSelect
 @onready var _meeting_info: Label = $HUD/WorldPanel/Content/MeetingInfo
 @onready var _meeting_accept: Button = $HUD/WorldPanel/Content/MeetingActions/AcceptMeeting
@@ -66,7 +73,13 @@ func _ready() -> void:
 	_refuse.pressed.connect(_on_rider_answer.bind(false))
 	_city.waypoint_clicked.connect(_on_map_waypoint)
 	_gps.pressed.connect(_on_starter_device.bind("gps"))
-	_translator.pressed.connect(_on_starter_device.bind("translator"))
+	_translator.pressed.connect(_on_starter_device.bind("module:local"))
+	_drive_market.pressed.connect(_on_drive_market)
+	_buy_local.pressed.connect(_on_buy_module.bind("local"))
+	_buy_cant.pressed.connect(_on_buy_module.bind("cant"))
+	_install_local.pressed.connect(_on_install_module.bind("local"))
+	_install_cant.pressed.connect(_on_install_module.bind("cant"))
+	_request_common.pressed.connect(_on_ask_common)
 	_radio.pressed.connect(_on_starter_device.bind("radio"))
 	_meeting_selector.item_selected.connect(_on_meeting_selected)
 	_meeting_accept.pressed.connect(_on_meeting_accept)
@@ -191,6 +204,37 @@ func _on_starter_device(device: String) -> void:
 		_conversation = null # Re-read live context on the next conversation.
 	else:
 		_notice_text = "Only one starter device per world; equipment already selected."
+	_render()
+
+
+func _on_drive_market() -> void:
+	if _world.reposition("market"):
+		_conversation = null
+		_notice_text = "Drove along the city roads to the physical language stall."
+	else:
+		_notice_text = "Cannot travel to Market while busy, already there or without road funds."
+	_render()
+
+
+func _on_buy_module(language: String) -> void:
+	_notice_text = "Bought %s module from the Market Linguist; install it from inventory." % language if \
+			_world.buy_language_module(language) else "Go to the open market stall, check stock and credits."
+	_render()
+
+
+func _on_install_module(language: String) -> void:
+	_notice_text = "Installed %s: whole-language access is now active." % language if \
+			_world.install_language_module(language) else "Module not in inventory, already installed or currently busy."
+	_conversation = null # The next NPC encounter uses the newly installed language access.
+	_render()
+
+
+func _on_ask_common() -> void:
+	if _conversation == null or not _conversation.request_common(_world, get_tree()):
+		_notice_text = "Cannot request Common from this speaker right now."
+	else:
+		_notice_text = "Speaker switched to Common." if _conversation.understood() else \
+				"The speaker could not or would not switch to Common."
 	_render()
 
 
@@ -343,7 +387,8 @@ func _render() -> void:
 		_offers.add_item(line)
 		_offers.set_item_metadata(_offers.item_count - 1, str(offer["id"]))
 	if available.size() > 0:
-		if _selected_id.is_empty() or _world.offer_by_id(_selected_id).get("status") != "open":
+		if _selected_id.is_empty() or _world.offer_by_id(_selected_id).get("status") != "open" \
+				or _world.offer_by_id(_selected_id).get("origin") != _world.player_district:
 			# On arrival, focus a *real accessible local request* if one exists.
 			_selected_id = str(available[0]["id"])
 			for offer in available:
@@ -384,31 +429,52 @@ func _render() -> void:
 	_gps.disabled = gear_selected
 	_translator.disabled = gear_selected
 	_radio.disabled = gear_selected
+	var stall: bool = _world.player_district == "market" and SandboxKnowledge.market_open(_world.minute) \
+			and _world.active_offer_id.is_empty() and not _world.meeting_in_progress()
+	_drive_market.disabled = _world.player_district == "market" or \
+			not _world.active_offer_id.is_empty() or _world.meeting_in_progress() \
+			or _world.credits < SandboxRoads.hops(_world.player_district, "market")
+	_buy_local.disabled = not stall or _world.modules_owned.has("local") \
+			or int(_world.market_stock["local"]) == 0 or _world.credits < 8
+	_buy_cant.disabled = not stall or _world.modules_owned.has("cant") \
+			or int(_world.market_stock["cant"]) == 0 or _world.credits < 9
+	_install_local.disabled = not _world.modules_owned.has("local") or _world.modules_installed.has("local")
+	_install_cant.disabled = not _world.modules_owned.has("cant") or _world.modules_installed.has("cant")
 	match _world.starter_device:
 		"gps":
 			_gear_info.text = "GPS active: district graph known. To %s: %d road hops." % [
 				str(chosen.get("destination", _world.player_district)),
 				SandboxRoads.hops(_world.player_district, str(chosen.get("destination", _world.player_district)))
 			]
-		"translator":
-			_gear_info.text = "Translator: local route marker LEARNED; other speech unknown." if _world.knows(SandboxKnowledge.ROUTE_MARKER) else \
-					"Translator: uncalibrated. Ask a local speaker for a route to learn one marker."
+		"module:local":
+			_gear_info.text = "Bonus: Local language module installed. Common and Local understood."
 		"radio":
 			_gear_info.text = "Alien radio: 'Sha-ruu ... vekk nai ...' (no translation; local signal pattern recognized)."
 		_:
-			_gear_info.text = "Choose ONE starter: GPS (maps), Translator (limited phrases), Radio (alien broadcasts)."
+			_gear_info.text = "Choose GPS, Local module or Radio. Common is preinstalled."
+	_gear_info.text += " | Owned %s | Installed %s" % [
+		", ".join(_world.modules_owned), ", ".join(_world.modules_installed)
+	]
+	if not stall:
+		_gear_info.text += " | Travel to Market 06:00–20:00 to buy."
 	_render_meetings()
 	_dialogue_panel.visible = _conversation != null and not _meeting_panel.visible
+	# The equipment stall requires more vertical space; an active Ink or
+	# off-duty scene must never be occluded by the route controls.
+	_route_panel.visible = not _dialogue_panel.visible and not _meeting_panel.visible
 	for button in _dialogue_choices.get_children():
 		button.queue_free()
 	if _conversation != null:
 		var speaker_offer: Dictionary = _world.offer_by_id(_conversation.offer_id)
 		var speaker: Dictionary = _world.resident(str(speaker_offer.get("npc_id", "")))
-		_dialogue_title.text = "SPEAKING  |  %s  |  %s" % [
-			speaker["id"], "trade speech" if _conversation.understood() else \
-					("local speech / route marker recognized" if _conversation.recognizes_route() else "unfamiliar alien language")
+		_dialogue_title.text = "SPEAKING | %s | %s | %s" % [
+			speaker["id"], str(speaker["language"]).to_upper(),
+			"translated" if _conversation.understood() else "untranslated"
 		]
 		var frame: Dictionary = _conversation.current_frame()
+		_request_common.visible = not _conversation.understood() \
+				and not _world.common_requests.has(_conversation.offer_id) \
+				and frame.get("tags", []).has("intent:request_trip")
 		_dialogue_text.text = str(frame.get("text", ""))
 		var choices: Array = frame.get("choices", [])
 		for i in range(choices.size()):
@@ -417,6 +483,8 @@ func _render() -> void:
 			button.custom_minimum_size = Vector2(0, 32)
 			button.pressed.connect(_on_dialogue_choice.bind(i))
 			_dialogue_choices.add_child(button)
+	if _conversation == null:
+		_request_common.visible = false
 	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
 	var departed: int = _count_events("npc_alternative_departed")
 	var arrived: int = _count_events("npc_alternative_arrived")
@@ -465,7 +533,7 @@ func _render() -> void:
 			_world.route_segment + 1, _world.route_nodes.size() - 1
 		]
 	if OS.has_feature("web"):
-		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxRouteMarker:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s,sandboxKnownCabs:'%d',sandboxReturningIndex:'%d',sandboxSelectedRecognizes:'%s',sandboxSelectedMemories:'%d',sandboxDialogueRecognizes:'%s'})" % [
+		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxSelectedLanguage:%s,sandboxOwned:%s,sandboxInstalled:%s,sandboxMarketStock:%s,sandboxCommonRequested:'%s',sandboxMarketOpen:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s,sandboxKnownCabs:'%d',sandboxReturningIndex:'%d',sandboxSelectedRecognizes:'%s',sandboxSelectedMemories:'%d',sandboxDialogueRecognizes:'%s'})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
 			_selected_id, str(not _accept.disabled).to_lower(), _settled_count(),
@@ -474,8 +542,11 @@ func _render() -> void:
 			str(_conversation.understood()).to_lower() if _conversation != null else "false",
 			_conversation.offer_id if _conversation != null else "",
 			_last_intent, _last_outcome, JSON.stringify(_dialogue_text.text if _conversation != null else ""),
-			_world.starter_device, _world.knowledge.size(), str(_world.knows(SandboxKnowledge.ROUTE_MARKER)).to_lower(),
-			JSON.stringify(_gear_info.text), departed, arrived, working, resting, moving,
+			_world.starter_device, _world.knowledge.size(), JSON.stringify(str(npc.get("language", ""))),
+			JSON.stringify(JSON.stringify(_world.modules_owned)), JSON.stringify(JSON.stringify(_world.modules_installed)),
+			JSON.stringify(JSON.stringify(_world.market_stock)),
+			str(_world.common_requests.has(_conversation.offer_id)).to_lower() if _conversation != null else "false",
+			str(stall).to_lower(), JSON.stringify(_gear_info.text), departed, arrived, working, resting, moving,
 			JSON.stringify(_world.route_nodes), _world.route_segment, _world.route_edge_elapsed,
 			_route_waypoint, JSON.stringify(_route_preview.text),
 			JSON.stringify(_world.pending_route_nodes),
@@ -491,6 +562,39 @@ func _render() -> void:
 		]
 		JavaScriptBridge.eval(web_state, true)
 		_expose_meeting_web()
+		call_deferred("_publish_language_web")
+
+
+func _publish_language_web() -> void:
+	if not OS.has_feature("web"):
+		return
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var ink_accept: Vector2 = Vector2.ZERO
+	if _dialogue_panel.visible and _dialogue_choices.get_child_count() >= 2:
+		var ink_button: Button = _dialogue_choices.get_child(1) as Button
+		if ink_button != null and not ink_button.is_queued_for_deletion():
+			ink_accept = ink_button.get_global_rect().get_center()
+	var values: Dictionary = {
+		"sandboxInkAcceptPoint": ink_accept,
+		"sandboxBuyLocalPoint": _buy_local.get_global_rect().get_center(),
+		"sandboxBuyCantPoint": _buy_cant.get_global_rect().get_center(),
+		"sandboxInstallLocalPoint": _install_local.get_global_rect().get_center(),
+		"sandboxInstallCantPoint": _install_cant.get_global_rect().get_center(),
+		"sandboxCommonPoint": _request_common.get_global_rect().get_center(),
+		"sandboxMarketTravelPoint": _drive_market.get_global_rect().get_center(),
+		"sandboxHonorRiderPoint": _honor.get_global_rect().get_center(),
+		"sandboxRefuseRiderPoint": _refuse.get_global_rect().get_center(),
+		"sandboxDistrictPoint": _districts.get_global_rect().get_center(),
+		"sandboxRepositionPoint": _reposition.get_global_rect().get_center(),
+		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center()
+	}
+	var payload: Dictionary = {}
+	for key in values:
+		var pos: Vector2 = values[key]
+		payload[key] = JSON.stringify([roundi(pos.x), roundi(pos.y)])
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify(payload), true)
 
 
 func _render_meetings() -> void:
@@ -647,7 +751,8 @@ func _render_route_picker(offer: Dictionary) -> void:
 		start = _world.route_nodes[_world.route_segment + 1]
 		if pending_question:
 			var speaker: Dictionary = _world.resident(str(offer["npc_id"]))
-			var legible: bool = SandboxKnowledge.understands(str(speaker["language"]), _world.knowledge)
+			var legible: bool = SandboxKnowledge.understands(str(speaker["language"]), _world.modules_installed) \
+					or bool(_world.common_requests.get(_world.active_offer_id, false))
 			_rider_info.text = "Rider requests %s corridor (%s)." % [
 				str(request["via"]).capitalize(), str(request["reason"]).replace("_", " ")
 			] if legible else "Rider gestures toward %s on the map; motive unclear." % str(request["via"]).capitalize()

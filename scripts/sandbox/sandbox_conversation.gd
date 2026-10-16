@@ -12,7 +12,6 @@ var _ink: InkBridge
 var _frame: Dictionary = {}
 var _outcome: String = ""
 var _understood: bool = false
-var _partial_route: bool = false
 var _recognizes_driver: bool = false
 
 
@@ -26,10 +25,10 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	var compiled: String = FileAccess.get_file_as_string(STORY_PATH)
 	if compiled.is_empty():
 		return false
-	var understood: bool = SandboxKnowledge.understands(str(npc["language"]), world.knowledge)
-	var partial_route: bool = SandboxKnowledge.recognizes_route_marker(str(npc["language"]), world.knowledge)
+	var understood: bool = SandboxKnowledge.understands(str(npc["language"]), world.modules_installed) \
+			or bool(world.common_requests.get(requested_offer, false))
 	var globals: Dictionary = {
-		"knows_local_route": partial_route,
+		"knows_local_route": false, # Obsolete S2 Ink branch is unreachable; compiled story remains deterministic.
 		"recognizes_driver": SandboxDriverMemory.recognizes(npc),
 		"understands_speaker": understood,
 		"urgent": int(npc["need"]) >= 70,
@@ -43,10 +42,10 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	_ink = bridge
 	offer_id = requested_offer
 	_understood = understood
-	_partial_route = partial_route
 	_recognizes_driver = SandboxDriverMemory.recognizes(npc)
 	_outcome = ""
 	_frame = _ink.advance()
+	_present_untranslated_frame(world)
 	return true
 
 
@@ -66,16 +65,22 @@ func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 		return false
 	var result: Dictionary = _ink.choose(index)
 	_frame = result
+	_present_untranslated_frame(world)
 	var tags: Array = result.get("tags", [])
-	# This can only learn a bounded phrase after a real language observation.
-	if tags.has("intent:ask_destination"):
-		world.observe_route_language(offer_id)
 	# Ink tags describe a proposed speech act. World validates & owns the effect.
 	if tags.has(ACTION_ACCEPT):
 		_outcome = "accepted" if world.accept(offer_id, waypoint) else "blocked"
 	elif tags.has(ACTION_DECLINE):
 		_outcome = "declined" if world.decline(offer_id) else "blocked"
 	return true
+
+
+func _present_untranslated_frame(world: SandboxWorld) -> void:
+	if _understood or _frame.is_empty():
+		return
+	var offer: Dictionary = world.offer_by_id(offer_id)
+	var npc: Dictionary = world.resident(str(offer.get("npc_id", "")))
+	_frame["text"] = SandboxKnowledge.alien_surface(str(npc.get("language", "")), str(_frame.get("text", "")))
 
 
 func current_frame() -> Dictionary:
@@ -90,8 +95,14 @@ func understood() -> bool:
 	return _understood
 
 
-func recognizes_route() -> bool:
-	return _partial_route
+func request_common(world: SandboxWorld, tree: SceneTree) -> bool:
+	if _ink == null or not still_valid(world) or _frame.get("tags", []).has("intent:ask_destination") \
+			or world.common_requests.has(offer_id) or _understood:
+		return false
+	var target: String = offer_id
+	if not world.request_common(target):
+		return false
+	return open(world, target, tree)
 
 
 func recognizes_driver() -> bool:
@@ -121,6 +132,7 @@ func restore(world: SandboxWorld, value: Dictionary, tree: SceneTree) -> bool:
 		_frame = {}
 		return false
 	_frame = _ink.current_frame()
+	_present_untranslated_frame(world)
 	if not (_frame.get("choices") is Array) or not (_frame.get("tags") is Array):
 		return false
 	return true

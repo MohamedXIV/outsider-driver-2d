@@ -1,6 +1,6 @@
 # Outsider Driver — Living City, Social Bonds, Languages & Routes
 
-> **Design synthesis — October 15, 2026.** Consolidates the discussions after Sandbox S2 about societies, language presentation, personal identity, persistent relationships, off-duty encounters, route planning and restrained Paradox-inspired simulation. This is a **design reference**, not a claim these systems already ship.
+> **Design synthesis — October 15, 2026; updated October 16 with #32 approval and proof.** Consolidates the discussions after Sandbox S2 about societies, language presentation, personal identity, persistent relationships, off-duty encounters, route planning and restrained Paradox-inspired simulation. This is a **design reference**, not a claim these systems already ship.
 >
 > **Status legend:** **Agreed direction** = repeated design intent accepted as a working principle; **Recommended / pending** = assistant proposal or unresolved implementation choice, not locked by explicit approval; **Current proof** = verified in the repository; **Future** = not implemented.
 >
@@ -52,13 +52,13 @@
 
 **Agreed direction:** A language module is **all or nothing for that language**: installed -> translated; not installed -> untranslated. No production partial-word/partial-sentence translation progress or per-dialect upgrade bars. Modules should be associated with **languages, not species**, and purchased as physical goods in reachable neighborhood markets; cost/availability and persistence are meaningful.
 
-**Recommended / pending final loadout decision:** The player begins with a **Basic Translator preloaded with the official/common language** so the game remains understandable. One extra **starter choice** becomes **GPS / one additional language module / Radio**. This replaces the older mutually exclusive GPS / Translator / Radio starting choice *if ratified*. Other-language modules are obtainable in-world. The majority of NPCs may speak Common, but not all will willingly switch to it.
+**Ratified and implemented in #32 (October 16, 2026):** The player begins with a **Basic Translator preloaded with official Common/Trade**. The one-time starter bonus is **GPS / installed Local language cartridge / Radio**, replacing old GPS / Translator / Radio. Local/Cant language cartridges are purchasable at the actual Market stall, then installed from inventory. Common speech is neither universal nor automatic; NPC fluency and willingness constrain the request. [Proof](SANDBOX_LANGUAGES_P0.md).
 
 **Common-language fallback is a social act, not a universal escape:** If the player says 'I don't speak your language', an NPC may switch to Common, refuse, disengage, remain silent for the rest of the ride or test the player's knowledge. Conditions depend on that NPC's genuine abilities, motives, context and memory. Players can often drive using mapped destination, gesture or dispatch details without understanding all dialogue; not speaking a language should create meaningful risk/opportunity rather than make routine rides impossible.
 
 **Radio:** Ordinary channels may broadcast alien-language speech and strange music. A module does not silently translate unsupported broadcasts. Human transmissions through illicit antennas/frequencies remain a *future* restricted mechanism with consequences if overheard, not default radio behavior.
 
-**Current-proof mismatch — intentional future replacement:** [S2](SANDBOX_S2.md) currently proves one-time GPS/Translator/Radio and **partial learned local route-marker comprehension**. It is **not** the finalized module UX above. Treat S2 as a historical/technical proof to refactor; do not preserve obsolete experimental-save compatibility at the cost of the new direction. Do not mark binary module purchasing or glyph transitions as implemented.
+**Current proof and remaining gap:** [S2](SANDBOX_S2.md)'s mutual-exclusive starter and **partial learned route marker** remain historical only; [#32](SANDBOX_LANGUAGES_P0.md) replaced them with binary whole-language modules, physical market purchasing, Common negotiation and persistence. **#33 is still pending:** genuine alien scripts/glyph fonts, localized reveal and Arabic RTL; neither the intermediate Cant phonetic surface nor a translated English Ink frame counts as finishing #33.
 
 ## 4. Optional purchased AR/headset assistant
 
@@ -154,7 +154,7 @@ Time and social bonds compete meaningfully: taking a safe long detour might make
 These should be settled only when building the smallest relevant playable slice:
 
 1. **Disguise/identity:** how obviously human is the protagonist, and what can disguise reveal or conceal? Separate human origin vs legal residency vs cover name.
-2. **Default Translator:** whether Basic Common translation is mandatory from start. **Recommended yes**, with optional GPS / extra language module / Radio starter, but not yet an unambiguous gameplay implementation decision.
+2. **Default Translator — RESOLVED #32:** Basic Common is mandatory and preinstalled, with GPS / Local module / Radio as the one-time bonus; no further starter ratification pending.
 3. **Language inventory:** final names/sound families/glyph aesthetics for the three languages, plus which groups know Common and why.
 4. **Relationship scope:** how many authored significant NPCs, how/when regular NPCs gain salience, how durable low-salience memories should be, and which bounded off-duty locations ship first.
 5. **Route presentation:** exact route-planning interaction, when rerouting pauses/continues, and what knowledge each route preview reveals. Default shortest path vs fastest/safest depends on actual street data and hazards.

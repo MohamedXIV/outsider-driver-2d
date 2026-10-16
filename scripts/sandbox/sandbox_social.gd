@@ -1,8 +1,8 @@
 class_name SandboxSocial
 extends RefCounted
 
-# Bounded co-presence. Existing 'trade/local' are S2 prototype languages,
-# not the later three-language product taxonomy. No remote psychic gossip.
+# Bounded co-presence among the actual three shared city languages.
+# Language is not a one-to-one species mapping. No remote psychic gossip.
 # Affinity and rivalry are independent. Shared origin, language and workplace
 # can create familiarity AND competition at the same time.
 static func affinity(a: Dictionary, b: Dictionary) -> int:
