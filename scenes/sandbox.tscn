@@ -131,6 +131,20 @@ custom_minimum_size = Vector2(225, 38)
 text = "Observe +6h (debug)"
 
 
+[node name="ARActions" type="HBoxContainer" parent="HUD/WorldPanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BuyAR" type="Button" parent="HUD/WorldPanel/Content/ARActions"]
+layout_mode = 2
+custom_minimum_size = Vector2(112, 34)
+text = "AR / 5 cr"
+
+[node name="WearAR" type="Button" parent="HUD/WorldPanel/Content/ARActions"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 34)
+text = "Wear AR"
+
 [node name="MeetingHeading" type="Label" parent="HUD/WorldPanel/Content"]
 layout_mode = 2
 text = "OFF-DUTY CONTACTS"
@@ -209,6 +223,12 @@ visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(460, 30)
 text = "Ask to speak Common"
+
+[node name="AskRumor" type="Button" parent="HUD/DialoguePanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(460, 30)
+visible = false
+text = "Ask about local gossip"
 
 [node name="Choices" type="VBoxContainer" parent="HUD/DialoguePanel/Content"]
 layout_mode = 2
@@ -370,3 +390,38 @@ text = "Honor rider"
 layout_mode = 2
 custom_minimum_size = Vector2(142, 30)
 text = "Refuse rider"
+
+[node name="ARHintPanel" type="PanelContainer" parent="HUD"]
+offset_left = 1015.0
+offset_top = 425.0
+offset_right = 1265.0
+offset_bottom = 695.0
+visible = false
+
+[node name="Content" type="VBoxContainer" parent="HUD/ARHintPanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="HUD/ARHintPanel/Content"]
+layout_mode = 2
+text = "AR / VERIFIED NOTE"
+
+[node name="Body" type="Label" parent="HUD/ARHintPanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(225, 135)
+autowrap_mode = 3
+text = "Only acquired knowledge and sourced hearsay."
+
+[node name="Close" type="Button" parent="HUD/ARHintPanel/Content"]
+layout_mode = 2
+text = "Close AR note"
+focus_mode = 2
+
+[node name="ARContext" type="Button" parent="HUD"]
+offset_left = 847.0
+offset_top = 330.0
+offset_right = 1000.0
+offset_bottom = 358.0
+visible = false
+text = "AR: known note"
+focus_mode = 2

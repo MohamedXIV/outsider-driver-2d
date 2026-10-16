@@ -3,7 +3,7 @@ extends RefCounted
 
 # One authoritative world snapshot; services calculate/transform domain facts.
 # Presentation NEVER owns NPC locations, offer status or fare settlement.
-const SCHEMA_VERSION: int = 9
+const SCHEMA_VERSION: int = 10
 const STEP_MINUTES: int = 10
 const START_MINUTE: int = 480
 
@@ -18,6 +18,8 @@ var modules_owned: Array[String] = ["trade"]
 var modules_installed: Array[String] = ["trade"]
 var market_stock: Dictionary = {"local": 1, "cant": 1}
 var common_requests: Dictionary = {}
+var ar_owned: bool = false
+var ar_equipped: bool = false
 var residents: Array[Dictionary] = []
 var offers: Array[Dictionary] = []
 var events: Array[Dictionary] = []
@@ -91,6 +93,77 @@ func buy_language_module(language: String) -> bool:
 	_record("market_module_purchased", language, {
 		"vendor": SandboxKnowledge.MARKET_VENDOR, "district": "market", "price": price
 	})
+	return true
+
+
+# Optional Market eyewear. The device adds presentation only, not knowledge,
+# translation, route access or an additional simulation service.
+const AR_PRICE: int = 5
+const AR_VENDOR: String = "vendor:market:optics"
+
+
+func buy_ar() -> bool:
+	if ar_owned or player_district != "market" or not SandboxKnowledge.market_open(minute) \
+			or not active_offer_id.is_empty() or meeting_in_progress() or credits < AR_PRICE:
+		return false
+	credits -= AR_PRICE
+	ar_owned = true
+	_record("ar_purchased", "player", {"vendor": AR_VENDOR, "district": "market", "price": AR_PRICE})
+	return true
+
+
+func set_ar_equipped(equipped: bool) -> bool:
+	if not ar_owned or ar_equipped == equipped:
+		return false
+	ar_equipped = equipped
+	_record("ar_equipped" if equipped else "ar_removed", "player", {"equipped": equipped})
+	return true
+
+
+# A rumor becomes player-heard only after this explicit, comprehensible,
+# co-present conversation. NPC private peer_knowledge is never a player hint.
+func rumor_candidate(offer_id: String) -> Dictionary:
+	var offer: Dictionary = offer_by_id(offer_id)
+	if offer.is_empty() or offer.get("status") != "open" \
+			or offer.get("origin") != player_district or not active_offer_id.is_empty() \
+			or meeting_in_progress():
+		return {}
+	var npc: Dictionary = resident(str(offer.get("npc_id", "")))
+	if npc.is_empty() or npc.get("location") != player_district \
+			or not (modules_installed.has(str(npc.get("language", ""))) \
+					or common_requests.get(offer_id, false)):
+		return {}
+	for fact in npc["peer_knowledge"]:
+		var claim: Dictionary = npc["peer_knowledge"][fact]
+		if not str(fact).begins_with("residence:") or not SandboxRoads.DISTRICTS.has(claim.get("value", "")):
+			continue
+		var verified_source: bool = false
+		for event in events:
+			if event.get("id") == claim.get("source") and event.get("kind") == "npc_peer_contact" \
+					and event.get("detail", {}).get("recipient") == npc["id"] \
+					and event.get("detail", {}).get("fact") == fact \
+					and event.get("detail", {}).get("value") == claim["value"]:
+				verified_source = true
+				break
+		if not verified_source:
+			continue
+		var already_heard: bool = false
+		for event in events:
+			if event.get("kind") == "player_rumor_heard" \
+					and event.get("subject") == offer_id and event.get("detail", {}).get("fact") == fact:
+				already_heard = true
+				break
+		if not already_heard:
+			return {"speaker": str(npc["id"]), "fact": str(fact),
+				"value": str(claim["value"]), "claim_source": str(claim["source"])}
+	return {}
+
+
+func hear_rumor(offer_id: String) -> bool:
+	var candidate: Dictionary = rumor_candidate(offer_id)
+	if candidate.is_empty():
+		return false
+	_record("player_rumor_heard", offer_id, candidate)
 	return true
 
 
@@ -387,6 +460,7 @@ func snapshot() -> Dictionary:
 		"starter_device": starter_device, "knowledge": knowledge.duplicate(),
 		"modules_owned": modules_owned.duplicate(), "modules_installed": modules_installed.duplicate(),
 		"market_stock": market_stock.duplicate(true), "common_requests": common_requests.duplicate(true),
+		"ar_owned": ar_owned, "ar_equipped": ar_equipped,
 		"residents": residents.duplicate(true), "offers": offers.duplicate(true),
 		"events": events.duplicate(true), "active_offer_id": active_offer_id,
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
@@ -416,7 +490,26 @@ func restore_snapshot(value: Dictionary) -> bool:
 			or not (value.get("modules_owned") is Array) \
 			or not (value.get("modules_installed") is Array) \
 			or not (value.get("market_stock") is Dictionary) \
-			or not (value.get("common_requests") is Dictionary):
+			or not (value.get("common_requests") is Dictionary) \
+			or not (value.get("ar_owned") is bool) or not (value.get("ar_equipped") is bool):
+		return false
+	var purchases: int = 0
+	var wear_state: bool = false
+	for evt in value["events"]:
+		if evt.get("kind") == "ar_purchased":
+			if evt.get("subject") != "player" or evt.get("detail", {}).get("vendor") != AR_VENDOR \
+					or evt.get("detail", {}).get("district") != "market" \
+					or evt.get("detail", {}).get("price") != AR_PRICE:
+				return false
+			purchases += 1
+		elif evt.get("kind") == "ar_equipped" or evt.get("kind") == "ar_removed":
+			if purchases != 1 or evt.get("subject") != "player" \
+					or evt.get("detail", {}).get("equipped") != (evt["kind"] == "ar_equipped") \
+					or wear_state == (evt["kind"] == "ar_equipped"):
+				return false
+			wear_state = evt["kind"] == "ar_equipped"
+	if purchases > 1 or bool(value["ar_owned"]) != (purchases == 1) \
+			or bool(value["ar_equipped"]) != wear_state:
 		return false
 	var restored_knowledge: Array[String] = []
 	for item in value["knowledge"]:
@@ -465,6 +558,29 @@ func restore_snapshot(value: Dictionary) -> bool:
 				sourced = true
 				break
 		if not sourced:
+			return false
+	# Player hears a rumor only from the genuine recipient of a documented
+	# NPC peer claim. The claim is hearsay even if the underlying fact is true.
+	for heard in value["events"]:
+		if heard.get("kind") != "player_rumor_heard":
+			continue
+		var detail: Dictionary = heard.get("detail", {})
+		var source_ok: bool = false
+		var heard_offer_ok: bool = false
+		for offer in value["offers"]:
+			if offer.get("id") == heard.get("subject") and offer.get("npc_id") == detail.get("speaker"):
+				heard_offer_ok = true
+				break
+		for evt in value["events"]:
+			if evt.get("id") == detail.get("claim_source") and evt.get("kind") == "npc_peer_contact" \
+					and evt.get("minute", 99999999) <= heard.get("minute", -1) \
+					and evt.get("detail", {}).get("recipient") == detail.get("speaker") \
+					and evt.get("detail", {}).get("fact") == detail.get("fact") \
+					and evt.get("detail", {}).get("value") == detail.get("value"):
+				source_ok = true
+				break
+		if not source_ok or not heard_offer_ok or not str(detail.get("fact", "")).begins_with("residence:") \
+				or not SandboxRoads.DISTRICTS.has(detail.get("value", "")):
 			return false
 	if value["residents"].size() != 9:
 		return false
@@ -600,6 +716,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 	modules_installed = installed.duplicate()
 	market_stock = value["market_stock"].duplicate(true)
 	common_requests = value["common_requests"].duplicate(true)
+	ar_owned = bool(value["ar_owned"])
+	ar_equipped = bool(value["ar_equipped"])
 	residents.clear()
 	for npc in value["residents"]:
 		residents.append((npc as Dictionary).duplicate(true))

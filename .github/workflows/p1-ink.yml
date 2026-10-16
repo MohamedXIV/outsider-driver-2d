@@ -2,7 +2,7 @@ name: Playable ride Web/Desktop gate
 
 on:
   push:
-    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*', 'feat/32-*', 'feat/33-*']
+    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*', 'feat/32-*', 'feat/33-*', 'feat/34-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -156,6 +156,13 @@ jobs:
           timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_knowledge.gd 2>&1 | tee /tmp/sandbox-knowledge.log
           grep -q 'SANDBOX_KNOWLEDGE_PASS' /tmp/sandbox-knowledge.log
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-knowledge.log; then exit 1; fi
+      - name: Verify Market AR, witnessed rumors, knowledge-only hints and forged snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_ar.gd 2>&1 | tee /tmp/sandbox-ar-test.log
+          grep -q 'SANDBOX_AR_DOMAIN_PASS' /tmp/sandbox-ar-test.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-ar-test.log; then exit 1; fi
       - name: Prove S3 autonomous routines and idle-day replay
         shell: bash
         run: |
@@ -259,6 +266,11 @@ jobs:
             /tmp/godot --path . --script res://tests/test_sandbox_language_scene.gd \
             2>&1 | tee /tmp/language-scene.log
           grep -q 'SANDBOX_LANGUAGE_SCENE_PASS' /tmp/language-scene.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_sandbox_ar_scene.gd \
+            2>&1 | tee /tmp/ar-scene.log
+          grep -q 'SANDBOX_AR_SCENE_PASS' /tmp/ar-scene.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ar-scene.log; then exit 1; fi
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/language-scene.log; then exit 1; fi
           LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
             /tmp/godot --path . --script res://tests/test_sandbox_autonomy_scene.gd \
@@ -307,6 +319,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" || true' EXIT
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_smoke.cjs
+          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_ar.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_autonomy.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_routes.cjs
           NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_reroute.cjs
