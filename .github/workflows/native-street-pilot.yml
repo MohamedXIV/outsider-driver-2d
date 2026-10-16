@@ -1,8 +1,5 @@
 name: Native street navigation pilot (temporary single-branch gate)
 on:
-  push:
-    branches:
-      - feat/native-pedestrian-crossing-pilot
   workflow_dispatch:
 permissions:
   contents: read
@@ -57,6 +54,5 @@ jobs:
             /tmp/test_taxi_crossing_world.log
             /tmp/test_taxi_crossing_scene.log
             /tmp/test_city_presentation.log
-            /tmp/od2d-street-evidence/*.png
             /tmp/od2d-street-evidence/*.png
           if-no-files-found: ignore

@@ -1,10 +1,10 @@
 # Patchworks street-navigation pilot — implementation in progress
 
-This **bounded standalone proof scene** is opened as `res://scenes/street_pilot.tscn`. It is **not yet the city-wide runtime navigation system**, and is intentionally not the default playable game scene.
+The bounded `res://scenes/street_pilot.tscn` remains a standalone validation scene, **and** the `SandboxStreetPilot` street module is embedded in the default `sandbox.tscn` near Patchworks when a real resident walks. It is still **not** the city-wide runtime navigation system.
 
 ## What is real in the proof
 - Godot `NavigationRegion2D` with two distinct manually authored `NavigationPolygon` sidewalks. Vehicle pavement is NOT part of pedestrian polygons.
-- `NavigationLink2D` crossing at the **only** marked zebra crossing.
+- `NavigationLink2D` links at **authored marked zebras**; one original garage crossing plus east-block and T-branch crossings.
 - Actual `CharacterBody2D` resident with `NavigationAgent2D` and built-in local avoidance; the script applies velocity via Godot physics.
 - A physical prototype `CharacterBody2D` car on a lane; yielding is governed by an explicit crossing rule rather than arbitrary navmesh traversal.
 - One eligible real `SandboxWorld` seeded garage resident is selected from world needs for a local parts-counter errand and reports real arrival to the same world, which validates intent and commits one provenance event. This is a **test fixture**, not a fixed first passenger or automatic city-wide errand.
@@ -70,6 +70,20 @@ The gate returned to **manual-only** after the run. No more Actions minutes shou
 **Still not done:** This is NOT yet a generalized arbitrary-city street-tile builder or a complete junction controller; module composition is still authored locally at Patchworks. The physical yielding car is a **traffic demonstrator, NOT the player taxi**. The game's actual player car is still world-road-graph-driven, and requires grade-safe lane alignment + crossing events before native collision/yielding can safely govern fares. No Web/Windows or human gamefeel validation on this PR yet. Keep #58/#59/#60 open.
 
 **CI policy:** One focused native suite is now PASS; branch-scoped automatic Actions triggering has been removed again. Manual-only for any subsequent required release gate.
+
+## Real player taxi at a grounded Patchworks zebra — verified
+
+**Godot 4.7.2 native PASS:** [run #38967936158](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38967936158), code SHA `fb7e6a23643c4d0fa238dd99e8e550b9991cb094`. **10/10 targeted checks** passed; [logs and PNG evidence](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38967936158/artifacts/12074764453). Earlier street/junction, nearby/offscreen, NPC render, save and bridge presentations still passed.
+
+- `SandboxStreetRouteBinding` places the module's **first zebra crossing center on the actual grade-zero `garage → margin_gate` world road edge** (sampled at 35% of that physical path), orienting its local lane along the sampled route tangent. The nav polygon, physical walker and crossing painting now share the world-road location; the rest of the city still retains its existing curve geometry and elevation graph.
+- `SandboxWorld.begin_crossing_yield()` and `release_crossing_yield()` are **world-owned one-way traffic events**, with an audited `route_hold_id` save field. A hold is allowed only on the actual ground-level approach to this authored zebra. The **city clock and resident ecology keep ticking**, while the player's route segment, remaining travel time, credits and fare settlement remain held until the crossing clears. The renderer also clamps the taxi visual fraction so it does not animate through a stop.
+- The normal `sandbox.tscn` keeps the active native pedestrian in the nearby garage-to-feeder corridor while the taxi approaches. The pedestrian waits while an unheld player taxi physically occupies the crosswalk, and the driver yields to a pedestrian who already reserved it. The existing near/far handoff unloads the walker after the player is actually outside the neighborhood.
+- `test_taxi_crossing_world.gd` exercises a real reroute, safety-gated world hold, ongoing clock, mid-hold world snapshot/restore and matching ledger start/end, followed by route continuation and normal arrival. It also rejects a forged save that clears the hold without a matching end event.
+- `test_taxi_crossing_scene.gd` loads **Player Mode**, finds the world-aligned crossing, holds the real player taxi in a staged native pedestrian-crossing case, saves/loads mid-yield and verifies that the same taxi route resumes after the crossing has cleared. The older eight native tests remain green.
+
+**Not yet a physics-driven player car:** the player taxi is still the authoritative **`SandboxRoads` world-route vehicle**; this is an actual game-rule yielding stop on one validated lane-edge, **not** `CharacterBody2D` car steering/collision, a global traffic graph, traffic signals, grade-independent pedestrian crossing or proof of all six districts. The previous local demo vehicle remains useful for checking the native stop line. Native Linux only; exported Web/Windows and human gameplay acceptance have **not** been run for this latest change.
+
+The scoped Actions runner is **manual-only** again after this passing validation. PR #61 stays stacked DRAFT over PR #55, with #58/#59/#60 open for generalized district lanes, junction controls, player-car bodies and visual playtests.
 
 ## What is NOT implemented
 - Migration of all existing autonomous walking residents away from `SandboxRoads.position_on_path`.
