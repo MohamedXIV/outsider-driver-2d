@@ -22,7 +22,7 @@ func _initialize() -> void:
 	# pedestrian commits. Its old policy froze inside the crossing forever.
 	var clearing_x: float=limit+0.01
 	var timestep: float=1.0/30.0
-	for frame in range(120):
+	for _frame in range(120):
 		var speed: float=SandboxStreetPriority.vehicle_velocity(
 				clearing_x,true,false,timestep)
 		assert(speed>0.0,"Late reservation must not stop a car inside the zebra")
