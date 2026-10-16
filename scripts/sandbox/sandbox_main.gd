@@ -567,7 +567,13 @@ func _publish_language_web() -> void:
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
+	var ink_accept: Vector2 = Vector2.ZERO
+	if _dialogue_panel.visible and _dialogue_choices.get_child_count() >= 2:
+		var ink_button: Button = _dialogue_choices.get_child(1) as Button
+		if ink_button != null and not ink_button.is_queued_for_deletion():
+			ink_accept = ink_button.get_global_rect().get_center()
 	var values: Dictionary = {
+		"sandboxInkAcceptPoint": ink_accept,
 		"sandboxBuyLocalPoint": _buy_local.get_global_rect().get_center(),
 		"sandboxBuyCantPoint": _buy_cant.get_global_rect().get_center(),
 		"sandboxInstallLocalPoint": _install_local.get_global_rect().get_center(),

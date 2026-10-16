@@ -83,8 +83,13 @@ const { chromium } = require('playwright');
     if (d.sandboxCredits !== '3' || !JSON.parse(d.sandboxInstalled).includes('local'))
       throw new Error('Module payment/installation lost after mid-Ink reload.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-installed-restored.png'});
-    // Intro choice #1 = Agree to trip (real Ink action -> SandboxWorld route).
-    await page.mouse.click(700,534);
+    // Ink choice index 1 = Agree. Use the real post-layout button center.
+    await wait(() => {
+      const s = document.documentElement.dataset.sandboxInkAcceptPoint;
+      if (!s) return false;
+      const p = JSON.parse(s); return p[0] > 0 && p[1] > 0;
+    });
+    await click('sandboxInkAcceptPoint');
     await wait(() => document.documentElement.dataset.sandboxPhase === 'enroute');
     await page.mouse.click(120,557);
     await wait(() => document.documentElement.dataset.sandboxSettlements === '1');
