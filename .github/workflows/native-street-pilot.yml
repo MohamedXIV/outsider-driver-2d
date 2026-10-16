@@ -1,5 +1,8 @@
 name: Native street navigation pilot (temporary single-branch gate)
 on:
+  push:
+    branches:
+      - feat/native-pedestrian-crossing-pilot
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,12 +33,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for spec in test_street_pilot_scene test_npc_interpolation_scene; do
+          for spec in test_street_pilot_scene test_npc_interpolation_scene test_street_main_scene test_city_presentation; do
             LIBGL_ALWAYS_SOFTWARE=1 timeout 95s xvfb-run -a -s "-screen 0 1280x720x24" \
               /tmp/godot --audio-driver Dummy --path . --script "res://tests/${spec}.gd" > "/tmp/${spec}.log" 2>&1 || { cat "/tmp/${spec}.log"; exit 1; }
             cat "/tmp/${spec}.log"
             if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' "/tmp/${spec}.log"; then exit 1; fi
-            if ! grep -E 'STREET_PILOT_PASS|NPC_INTERPOLATION_PASS' "/tmp/${spec}.log"; then exit 1; fi
+            if ! grep -E 'STREET_PILOT_PASS|NPC_INTERPOLATION_PASS|STREET_MAIN_PASS|CITY_PRESENTATION_PASS' "/tmp/${spec}.log"; then exit 1; fi
           done
       - name: Upload targeted native proof logs
         uses: actions/upload-artifact@v4
@@ -46,4 +49,6 @@ jobs:
             /tmp/import.log
             /tmp/test_street_pilot_scene.log
             /tmp/test_npc_interpolation_scene.log
+            /tmp/test_street_main_scene.log
+            /tmp/test_city_presentation.log
           if-no-files-found: ignore
