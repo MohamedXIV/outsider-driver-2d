@@ -274,6 +274,7 @@ func _finish_language_reveal() -> void:
 	_reveal_pending = false
 	_reveal_elapsed = 0.0
 	_dialogue_text.text = _translated_text
+	_dialogue_text.text_direction = Control.TEXT_DIRECTION_RTL if _ui_locale == "ar" else Control.TEXT_DIRECTION_LTR
 	_dialogue_text.remove_theme_font_override("font")
 	if _ui_locale == "ar":
 		_dialogue_text.add_theme_font_override("font", load(ARABIC_FONT))
