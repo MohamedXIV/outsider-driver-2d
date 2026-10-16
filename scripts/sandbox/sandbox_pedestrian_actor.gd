@@ -3,9 +3,9 @@ extends CharacterBody2D
 
 signal reached_site(npc_id: String)
 const SPEED: float = 72.0
-const CROSS_X: float = 320.0
-const NORTH_Y: float = 312.0
-const SOUTH_Y: float = 392.0
+const CROSS_X: float = SandboxStreetModule.CROSS_X
+const NORTH_Y: float = SandboxStreetModule.NORTH_Y
+const SOUTH_Y: float = SandboxStreetModule.SOUTH_Y
 var npc_id: String = ""
 var destination: Vector2
 var crossing_reserved: bool = false

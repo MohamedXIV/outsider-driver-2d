@@ -6,9 +6,9 @@ extends Node2D
 # marked crossing, native CharacterBody2D movement and one yielding car.
 # The visible resident always belongs to one shared SandboxWorld; there
 # is no second fake population or autonomous city traffic manager.
-const CROSS_X: float = 320.0
-const NORTH_Y: float = 313.0
-const SOUTH_Y: float = 391.0
+const CROSS_X: float = SandboxStreetModule.CROSS_X
+const NORTH_Y: float = SandboxStreetModule.NORTH_Y
+const SOUTH_Y: float = SandboxStreetModule.SOUTH_Y
 const SITE: String = SandboxLocalPedestrianTrip.PATCHWORKS_PARTS
 var world: SandboxWorld = SandboxWorld.new(8)
 var pedestrian: SandboxPedestrianActor
@@ -42,18 +42,10 @@ func _ready() -> void:
 		if walking_npc_id.is_empty():
 			push_error("No available Patchworks resident for local walking test")
 			return
-	_build_sidewalk(Rect2(100, 300, 460, 26), "NorthSidewalk")
-	_build_sidewalk(Rect2(100, 378, 460, 26), "SouthSidewalk")
-	var link: NavigationLink2D = NavigationLink2D.new()
-	link.name = "MarkedCrosswalkOnly"
-	link.navigation_layers = 1
-	link.bidirectional = true
-	link.start_position = Vector2(CROSS_X, NORTH_Y)
-	link.end_position = Vector2(CROSS_X, SOUTH_Y)
-	add_child(link)
+	SandboxStreetModule.install_navigation(self)
 	car = SandboxTrafficVehicle.new()
 	car.name = "LocalTrafficCar"
-	car.position = Vector2(110, 350)
+	car.position = SandboxStreetModule.VEHICLE_START
 	car.collision_layer = 4
 	car.collision_mask = 2
 	var car_hitbox: CollisionShape2D = CollisionShape2D.new()
@@ -64,8 +56,8 @@ func _ready() -> void:
 	add_child(car)
 	pedestrian = SandboxPedestrianActor.new()
 	pedestrian.name = "ResidentWalkingToPartsCounter"
-	pedestrian.position = Vector2(155, NORTH_Y)
-	pedestrian.destination = Vector2(500, SOUTH_Y)
+	pedestrian.position = SandboxStreetModule.START
+	pedestrian.destination = SandboxStreetModule.SITE
 	pedestrian.npc_id = walking_npc_id
 	pedestrian.traffic = car
 	pedestrian.reached_site.connect(_on_resident_arrived)
@@ -78,17 +70,17 @@ func _ready() -> void:
 		return
 	if resume_state.get("npc_id", "") == walking_npc_id:
 		pedestrian.position = Vector2(
-				clampf(float(resume_state.get("pedestrian_x",155.0)),100.0,560.0),
+				clampf(float(resume_state.get("pedestrian_x",SandboxStreetModule.START.x)),100.0,560.0),
 				clampf(float(resume_state.get("pedestrian_y",NORTH_Y)),300.0,404.0))
 		car.position = Vector2(
-				clampf(float(resume_state.get("car_x",110.0)),100.0,570.0),
+				clampf(float(resume_state.get("car_x",SandboxStreetModule.VEHICLE_START.x)),100.0,570.0),
 				clampf(float(resume_state.get("car_y",350.0)),330.0,374.0))
 		pedestrian.crossing_reserved = bool(resume_state.get("crossing_reserved",false))
 		pedestrian.crossing_completed = bool(resume_state.get("crossing_completed",false))
 		pedestrian.did_arrive = bool(resume_state.get("did_arrive",false))
 	if current_trip.get("status", "") == "arrived":
 		pedestrian.did_arrive = true
-		pedestrian.position = Vector2(500.0,SOUTH_Y)
+		pedestrian.position = SandboxStreetModule.SITE
 		world_reported_arrival = true
 	if embedded:
 		queue_redraw()
@@ -106,21 +98,6 @@ func _ready() -> void:
 	label.add_theme_color_override("font_color",Color("f1e1bd"))
 	notes.add_child(label)
 	queue_redraw()
-
-func _build_sidewalk(rect: Rect2, label: String) -> void:
-	var polygon: NavigationPolygon = NavigationPolygon.new()
-	polygon.vertices = PackedVector2Array([
-		rect.position,
-		Vector2(rect.end.x, rect.position.y),
-		rect.end,
-		Vector2(rect.position.x, rect.end.y)
-	])
-	polygon.add_polygon(PackedInt32Array([0,1,2,3]))
-	var region: NavigationRegion2D = NavigationRegion2D.new()
-	region.name = label
-	region.navigation_layers = 1
-	region.navigation_polygon = polygon
-	add_child(region)
 
 func _physics_process(delta: float) -> void:
 	# This one visible vehicle uses a lane and yields to the marked crossing.
@@ -145,25 +122,7 @@ func _on_resident_arrived(npc_id: String) -> void:
 	world_reported_arrival = SandboxLocalPedestrianTrip.arrive(world,npc_id,SITE)
 
 func _draw() -> void:
-	# Modular geometry: standard frontage strips and fixed lanes, no invented
-	# spline bending every road. Only the marked legal crossing connects sides.
-	draw_rect(Rect2(95,328,475,48),Color("3f5555"))
-	draw_rect(Rect2(95,300,475,26),Color("80908a"))
-	draw_rect(Rect2(95,378,475,26),Color("80908a"))
-	draw_line(Vector2(95,353),Vector2(570,353),Color("d1b985"),1.5)
-	for x in range(112,570,40):
-		if x > 300 and x < 345:
-			continue
-		draw_line(Vector2(x,353),Vector2(x+19,353),Color("e1be85"),2)
-	for y in range(330,377,8):
-		draw_rect(Rect2(CROSS_X-13,y,26,4),Color("e5d6a4"))
-	draw_rect(Rect2(450,405,110,66),Color("8b7867"))
-	draw_rect(Rect2(462,416,26,36),Color("d2c49f"))
-	draw_rect(Rect2(160,235,90,62),Color("768987"))
-	draw_rect(Rect2(270,235,80,62),Color("9d896f"))
-	draw_rect(Rect2(390,235,110,62),Color("768987"))
-	# Draw only the street surface; physical actors draw with their own nodes.
-	draw_string(ThemeDB.fallback_font,Vector2(454,440),"PARTS",HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("28383a"))
+	SandboxStreetModule.paint(self)
 
 func _process(_delta: float) -> void:
 	if car != null:
