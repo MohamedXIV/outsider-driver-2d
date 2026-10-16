@@ -23,7 +23,7 @@ static func refresh(residents: Array[Dictionary], offers: Array[Dictionary], min
 		var hops: int = SandboxRoads.hops(origin, destination)
 		if hops <= 0:
 			continue
-		var fare: int = 4 + hops * 5 + int(npc["need"]) / 25
+		var fare: int = 4 + ceili(SandboxRoads.path_metres(SandboxRoads.path(origin,destination))/1000.0) + int(npc["need"]) / 25
 		if int(npc["cash"]) < fare:
 			npc["cooldown_until"] = minute + 40
 			continue
@@ -43,10 +43,10 @@ static func refresh(residents: Array[Dictionary], offers: Array[Dictionary], min
 		})
 
 
-static func expire(residents: Array[Dictionary], offers: Array[Dictionary], minute: int) -> Array[String]:
+static func expire(residents: Array[Dictionary], offers: Array[Dictionary], minute: int, protected_offer: String = "") -> Array[String]:
 	var expired: Array[String] = []
 	for offer in offers:
-		if offer["status"] != "open" or int(offer["expires_at"]) > minute:
+		if offer["id"]==protected_offer or offer["status"] != "open" or int(offer["expires_at"]) > minute:
 			continue
 		offer["status"] = "expired"
 		expired.append(str(offer["id"]))

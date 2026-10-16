@@ -1,168 +1,169 @@
 class_name SandboxRoads
 extends RefCounted
 
-# Small authored road GRAPH, not an authored passenger route.
-# Nodes and edges are shared between all NPC mobility requests.
-const DISTRICTS: Array[String] = ["docks", "market", "clinic", "shelter", "depot"]
-const LINKS: Dictionary = {
-	"docks": ["market", "depot"],
-	"market": ["docks", "clinic", "shelter"],
-	"clinic": ["market"],
-	"shelter": ["market", "depot"],
-	"depot": ["docks", "shelter"]
-}
-const POSITIONS: Dictionary = {
-	"docks": Vector3(-9, 0, 0),
-	"market": Vector3(-2, 0, 0),
-	"clinic": Vector3(7, 0, -4),
-	"shelter": Vector3(6, 0, 9),
-	"depot": Vector3(-7, 0, 10)
-}
+# Historical API name DISTRICTS now enumerates service/pickup stops. Regions
+# are independent; LINKS includes real intermediate junctions and ramps.
+const DISTRICTS: Array[String] = SandboxCityData.STOPS
+const LINKS: Dictionary = SandboxCityData.LINKS
+static var _curves: Dictionary = {}
+static var _lengths: Dictionary = {}
 
+static func district_for(node: String) -> String:
+	return str(SandboxCityData.NODES.get(node, {}).get("region", ""))
 
-static func hops(origin: String, destination: String) -> int:
-	if not LINKS.has(origin) or not LINKS.has(destination):
-		return -1
-	if origin == destination:
-		return 0
-	var frontier: Array[String] = [origin]
-	var distance: Dictionary = {origin: 0}
-	while not frontier.is_empty():
-		var here: String = frontier.pop_front()
-		for neighbor in LINKS[here]:
-			var next: String = str(neighbor)
-			if distance.has(next):
-				continue
-			distance[next] = int(distance[here]) + 1
-			if next == destination:
-				return int(distance[next])
-			frontier.append(next)
-	return -1
+static func location_name(node: String) -> String:
+	return str(SandboxCityData.NODES.get(node, {}).get("name", node.capitalize()))
 
-
-static func travel_minutes(origin: String, destination: String) -> int:
-	return maxi(0, hops(origin, destination)) * 10
-
-
-static func map_position(district: String) -> Vector3:
-	return POSITIONS.get(district, Vector3.ZERO)
-
-
-# Named, physical edges shared by routing and authoritative fare consequences.
-# The checkpoint on Market/Shelter is posted but only GPS-equipped drivers
-# see its preview; other players discover its consequence by actually using it.
-const ROAD_MINUTES: Dictionary = {"depot|shelter": 20}
-const ROAD_EXPENSE: Dictionary = {"depot|shelter": 2}
-const ROAD_EXPOSURE: Dictionary = {"market|shelter": 1}
-
+static func map_position(node: String) -> Vector3:
+	return SandboxCityData.NODES.get(node, {}).get("position", Vector3.ZERO)
 
 static func edge_key(a: String, b: String) -> String:
-	return "%s|%s" % [a, b] if a < b else "%s|%s" % [b, a]
-
+	return "%s|%s" % [a,b] if a < b else "%s|%s" % [b,a]
 
 static func connected(a: String, b: String) -> bool:
 	return LINKS.has(a) and LINKS[a].has(b)
 
+static func edge_data(a: String, b: String) -> Dictionary:
+	return SandboxCityData.EDGES.get(edge_key(a,b), {})
+
+static func curve(a: String, b: String) -> Curve2D:
+	var key: String = edge_key(a,b)
+	if _curves.has(key):
+		return _curves[key]
+	var pair: PackedStringArray = key.split("|")
+	var p: Vector3 = map_position(pair[0])
+	var q: Vector3 = map_position(pair[1])
+	var start: Vector2 = Vector2(p.x, p.z)
+	var finish: Vector2 = Vector2(q.x, q.z)
+	var delta: Vector2 = finish-start
+	var bend: Vector2 = delta.orthogonal() * float(edge_data(a,b).get("bend", 0.0))
+	var result: Curve2D = Curve2D.new()
+	result.bake_interval = 15.0
+	result.add_point(start, Vector2.ZERO, delta/3.0+bend)
+	result.add_point(finish, -delta/3.0+bend, Vector2.ZERO)
+	_curves[key] = result
+	return result
+
+static func sample_edge(a: String, b: String, fraction: float) -> Vector3:
+	if not connected(a,b):
+		return map_position(a)
+	var t: float = clampf(fraction, 0.0, 1.0)
+	var c: Curve2D = curve(a,b)
+	var xy: Vector2 = c.sample_baked(c.get_baked_length()*(t if a<b else 1.0-t), true)
+	var height: float = lerpf(map_position(a).y, map_position(b).y, smoothstep(0.0,1.0,t))
+	return Vector3(xy.x,height,xy.y)
+
+static func edge_metres(a: String, b: String) -> float:
+	if not connected(a,b): return -1.0
+	var key: String = edge_key(a,b)
+	if not _lengths.has(key):
+		var length: float = 0.0
+		var previous: Vector3 = sample_edge(a,b,0)
+		for i in range(1,65):
+			var p: Vector3 = sample_edge(a,b,float(i)/64.0)
+			length += previous.distance_to(p)
+			previous = p
+		_lengths[key] = length
+	return float(_lengths[key])
 
 static func edge_minutes(a: String, b: String) -> int:
-	return int(ROAD_MINUTES.get(edge_key(a, b), 10)) if connected(a, b) else -1
-
+	return maxi(1, ceili(edge_metres(a,b)/float(edge_data(a,b)["speed"])*0.06)) if connected(a,b) else -1
 
 static func edge_expense(a: String, b: String) -> int:
-	return int(ROAD_EXPENSE.get(edge_key(a, b), 0)) if connected(a, b) else -1
-
+	return int(edge_data(a,b).get("toll",0)) if connected(a,b) else -1
 
 static func edge_exposure(a: String, b: String) -> int:
-	return int(ROAD_EXPOSURE.get(edge_key(a, b), 0)) if connected(a, b) else -1
+	return int(edge_data(a,b).get("exposure",0)) if connected(a,b) else -1
 
+static func _shortest(origin: String, destination: String) -> Array[String]:
+	if not LINKS.has(origin) or not LINKS.has(destination): return []
+	var distances: Dictionary = {origin:0}
+	var parents: Dictionary = {origin:""}
+	var frontier: Array[String] = [origin]
+	while not frontier.is_empty():
+		var here: String = frontier[0]
+		for candidate in frontier:
+			if int(distances[candidate]) < int(distances[here]): here = candidate
+		frontier.erase(here)
+		if here == destination:
+			var result: Array[String] = [here]
+			while not str(parents[here]).is_empty():
+				here = str(parents[here])
+				result.push_front(here)
+			return result
+		for neighbor in LINKS[here]:
+			var next: String = str(neighbor)
+			var cost: int = int(distances[here])+edge_minutes(here,next)
+			if not distances.has(next) or cost < int(distances[next]):
+				distances[next] = cost
+				parents[next] = here
+				if not frontier.has(next): frontier.append(next)
+	return []
 
 static func path(origin: String, destination: String, via: String = "") -> Array[String]:
-	# This compact unweighted authored graph only needs deterministic BFS.
-	# Preserve simple connected paths, not a bespoke city-wide pathfinder.
-	var first: Array[String] = _shortest(origin, via if not via.is_empty() else destination)
-	if first.is_empty() or via.is_empty():
-		return first
-	var second: Array[String] = _shortest(via, destination)
-	if second.is_empty():
-		return []
+	var first: Array[String] = _shortest(origin, destination if via.is_empty() else via)
+	if first.is_empty() or via.is_empty(): return first
+	var second: Array[String] = _shortest(via,destination)
+	if second.is_empty(): return []
 	for node in second.slice(1):
-		if first.has(node):
-			return [] # A waypoint is not an excuse to drive the same street twice.
+		if first.has(node): return []
 		first.append(str(node))
 	return first
 
-
-static func _shortest(origin: String, destination: String) -> Array[String]:
-	if not LINKS.has(origin) or not LINKS.has(destination):
-		return []
-	if origin == destination:
-		return [origin]
-	var queue: Array[String] = [origin]
-	var parents: Dictionary = {origin: ""}
-	while not queue.is_empty():
-		var here: String = queue.pop_front()
-		for neighbor in LINKS[here]:
-			var next: String = str(neighbor)
-			if parents.has(next):
-				continue
-			parents[next] = here
-			if next == destination:
-				var result: Array[String] = [next]
-				var cursor: String = here
-				while not cursor.is_empty():
-					result.push_front(cursor)
-					cursor = str(parents[cursor])
-				return result
-			queue.append(next)
-	return []
-
-
 static func valid_path(nodes: Array[String]) -> bool:
-	if nodes.size() < 2:
-		return false
-	var encountered: Dictionary = {}
+	if nodes.size()<2: return false
+	var seen: Dictionary = {}
 	for i in range(nodes.size()):
-		if not LINKS.has(nodes[i]) or encountered.has(nodes[i]):
-			return false
-		encountered[nodes[i]] = true
-		if i > 0 and not connected(nodes[i - 1], nodes[i]):
-			return false
+		if not LINKS.has(nodes[i]) or seen.has(nodes[i]): return false
+		seen[nodes[i]] = true
+		if i>0 and not connected(nodes[i-1],nodes[i]): return false
 	return true
 
-
 static func path_minutes(nodes: Array[String]) -> int:
-	if not valid_path(nodes):
-		return -1
+	if not valid_path(nodes): return -1
 	var total: int = 0
-	for i in range(nodes.size() - 1):
-		total += edge_minutes(nodes[i], nodes[i + 1])
+	for i in range(nodes.size()-1): total += edge_minutes(nodes[i],nodes[i+1])
 	return total
 
+static func path_metres(nodes: Array[String]) -> float:
+	if nodes.size()==1: return 0
+	if not valid_path(nodes): return -1
+	var total: float = 0
+	for i in range(nodes.size()-1): total += edge_metres(nodes[i],nodes[i+1])
+	return total
 
 static func path_expense(nodes: Array[String]) -> int:
-	if not valid_path(nodes):
-		return -1
+	if not valid_path(nodes): return -1
 	var total: int = 0
-	for i in range(nodes.size() - 1):
-		total += edge_expense(nodes[i], nodes[i + 1])
+	for i in range(nodes.size()-1): total += edge_expense(nodes[i],nodes[i+1])
 	return total
-
 
 static func path_exposure(nodes: Array[String]) -> int:
-	if not valid_path(nodes):
-		return -1
+	if not valid_path(nodes): return -1
 	var total: int = 0
-	for i in range(nodes.size() - 1):
-		total += edge_exposure(nodes[i], nodes[i + 1])
+	for i in range(nodes.size()-1): total += edge_exposure(nodes[i],nodes[i+1])
 	return total
 
+static func hops(origin: String, destination: String) -> int:
+	return path(origin,destination).size()-1
+
+static func travel_minutes(origin: String, destination: String) -> int:
+	return maxi(0,path_minutes(path(origin,destination)))
 
 static func minutes_left(nodes: Array[String], segment: int, elapsed: int) -> int:
-	if not valid_path(nodes) or segment < 0 or segment >= nodes.size() - 1:
-		return -1
-	if elapsed < 0 or elapsed >= edge_minutes(nodes[segment], nodes[segment + 1]) or elapsed % 10 != 0:
-		return -1
+	if not valid_path(nodes) or segment<0 or segment>=nodes.size()-1: return -1
+	if elapsed<0 or elapsed>=edge_minutes(nodes[segment],nodes[segment+1]): return -1
 	var left: int = -elapsed
-	for i in range(segment, nodes.size() - 1):
-		left += edge_minutes(nodes[i], nodes[i + 1])
+	for i in range(segment,nodes.size()-1): left += edge_minutes(nodes[i],nodes[i+1])
 	return left
+
+static func position_on_path(nodes: Array[String], elapsed: float, duration: float = -1.0) -> Vector3:
+	if nodes.is_empty(): return Vector3.ZERO
+	if nodes.size()==1: return map_position(nodes[0])
+	var total: float = float(path_minutes(nodes))
+	var progress: float = elapsed * total/duration if duration>0 else elapsed
+	for i in range(nodes.size()-1):
+		var edge_time: float = float(edge_minutes(nodes[i],nodes[i+1]))
+		if progress<=edge_time: return sample_edge(nodes[i],nodes[i+1],progress/edge_time)
+		progress -= edge_time
+	return map_position(nodes.back())
