@@ -78,7 +78,13 @@ func _walkthrough() -> void:
 	(choices.get_child(0) as Button).pressed.emit()
 	await process_frame
 	assert(recovered.active_offer_id == selected)
+	scene.call("_render")
+	await RenderingServer.frame_post_draw
+	_capture("generated-offers.png")
 	recovered.advance(recovered.remaining_minutes)
+	scene.call("_render")
+	await RenderingServer.frame_post_draw
+	_capture("settled-demand.png")
 	assert(recovered.offer_by_id(selected)["status"] == "completed")
 	print("SANDBOX_SCENE_PASS")
 	quit(0)

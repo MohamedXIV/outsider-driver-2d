@@ -45,6 +45,7 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	_recognizes_driver = SandboxDriverMemory.recognizes(npc)
 	_outcome = ""
 	_frame = _ink.advance()
+	_present_untranslated_frame(world)
 	return true
 
 
@@ -64,6 +65,7 @@ func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 		return false
 	var result: Dictionary = _ink.choose(index)
 	_frame = result
+	_present_untranslated_frame(world)
 	var tags: Array = result.get("tags", [])
 	# Ink tags describe a proposed speech act. World validates & owns the effect.
 	if tags.has(ACTION_ACCEPT):
@@ -71,6 +73,14 @@ func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 	elif tags.has(ACTION_DECLINE):
 		_outcome = "declined" if world.decline(offer_id) else "blocked"
 	return true
+
+
+func _present_untranslated_frame(world: SandboxWorld) -> void:
+	if _understood or _frame.is_empty():
+		return
+	var offer: Dictionary = world.offer_by_id(offer_id)
+	var npc: Dictionary = world.resident(str(offer.get("npc_id", "")))
+	_frame["text"] = SandboxKnowledge.alien_surface(str(npc.get("language", "")), str(_frame.get("text", "")))
 
 
 func current_frame() -> Dictionary:
@@ -122,6 +132,7 @@ func restore(world: SandboxWorld, value: Dictionary, tree: SceneTree) -> bool:
 		_frame = {}
 		return false
 	_frame = _ink.current_frame()
+	_present_untranslated_frame(world)
 	if not (_frame.get("choices") is Array) or not (_frame.get("tags") is Array):
 		return false
 	return true

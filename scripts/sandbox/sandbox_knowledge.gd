@@ -13,6 +13,24 @@ const MODULE_PRICES: Dictionary = {"local": 8, "cant": 9}
 const MARKET_VENDOR: String = "vendor:market:language-stall"
 
 
+# Stable two-phrase taxi surface for the third language. These are surface
+# representations of the SAME shared Ink intents, not random glyph strings.
+# Script-font presentation and per-locale translation belong to #33.
+const CANT_SURFACES: Dictionary = {
+	"Rru'ka shen vorr. Teka-rii?": "Neh-vari tel'nuk. Sai-keth?",
+	"Vrek shaa. Tir-ka.": "Irith aan. Ket-vu."
+}
+
+
+static func alien_surface(language: String, text_line: String) -> String:
+	if language != "cant":
+		return text_line
+	var result: String = text_line
+	for original in CANT_SURFACES:
+		result = result.replace(str(original), str(CANT_SURFACES[original]))
+	return result
+
+
 static func has_fact(facts: Array[String], fact: String) -> bool:
 	return facts.has(fact)
 

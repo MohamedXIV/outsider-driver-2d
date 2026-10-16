@@ -111,6 +111,28 @@ func _initialize() -> void:
 	assert(common_resume.restore(common_restored, common_bundle["dialogue"], self))
 	assert(common_resume.understood())
 
+	# Cant has its own stable language surface before installation; the
+	# compiled Ink semantics and choices remain exactly shared.
+	var cant_speech_world: SandboxWorld = SandboxWorld.new(8)
+	assert(cant_speech_world.reposition("clinic"))
+	var cant_offer: String = ""
+	for candidate in cant_speech_world.open_offers():
+		if candidate["origin"] == "clinic" and candidate["npc_id"] == "npc:07":
+			cant_offer = str(candidate["id"])
+	assert(not cant_offer.is_empty())
+	var cant_speech: SandboxConversation = SandboxConversation.new()
+	assert(cant_speech.open(cant_speech_world, cant_offer, self))
+	assert(not cant_speech.understood())
+	assert(str(cant_speech.current_frame()["text"]).contains("Neh-vari tel'nuk"))
+	assert(cant_speech.choose(0, cant_speech_world))
+	assert(str(cant_speech.current_frame()["text"]).contains("Irith aan"))
+	var cant_file: String = "user://language-cant-ink-v10.json"
+	assert(SandboxSave.save_world(cant_speech_world, cant_file, cant_speech.snapshot()))
+	var cant_bundle: Dictionary = SandboxSave.load_bundle(cant_file)
+	var cant_resumed: SandboxConversation = SandboxConversation.new()
+	assert(cant_resumed.restore(cant_bundle["world"], cant_bundle["dialogue"], self))
+	assert(cant_resumed.current_frame()["text"] == cant_speech.current_frame()["text"])
+
 	# Cant is a distinct full-language cartridge (not another word progress bar).
 	var cant: SandboxWorld = SandboxWorld.new(8)
 	assert(cant.reposition("market"))
