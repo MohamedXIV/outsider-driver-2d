@@ -164,6 +164,7 @@ func paint(canvas: Node2D, role: String) -> void:
 func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
+		if not npc.get("local_pedestrian_trip", {}).is_empty(): continue
 		var pos: Vector3 = world.npc_position(npc,visual_fraction)
 		if (pos.y>0) != elevated: continue
 		var p: Vector2 = project(pos)+Vector2(15,12)

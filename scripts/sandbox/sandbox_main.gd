@@ -60,6 +60,8 @@ extends Node2D
 
 const REAL_SECONDS_PER_STEP: float = 1.0
 
+var _street_pilot: SandboxStreetPilot
+var _street_restore_state: Dictionary = {}
 var _player_ui: SandboxPlayerUI
 var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
@@ -157,6 +159,7 @@ func _process(delta: float) -> void:
 	# fraction belongs to presentation time, NOT the player's travel state.
 	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
+	_ensure_local_pedestrian()
 
 
 func _on_meeting_selected(index: int) -> void:
@@ -462,7 +465,37 @@ func _on_observe() -> void:
 	_render()
 
 
+# Local native Godot navigation runs only for a genuine resident in the garage
+# vicinity. It is one shared world, not an alternate passenger simulator.
+func _ensure_local_pedestrian() -> void:
+	if _street_pilot != null:
+		return
+	if _world.player_district != "garage" or _world.is_travelling():
+		return
+	var npc_id: String = SandboxLocalPedestrianTrip.candidate(_world)
+	if npc_id.is_empty():
+		return
+	var local: SandboxStreetPilot = SandboxStreetPilot.new()
+	local.name = "PatchworksStreetTraffic"
+	local.embedded = true
+	local.world = _world
+	local.walking_npc_id = npc_id
+	local.resume_state = _street_restore_state.duplicate(true)
+	local.position = SandboxCityView.project(SandboxRoads.map_position("garage")) - Vector2(320.0,480.0)
+	local.z_index = 5
+	_street_pilot = local
+	add_child(local)
+	_street_restore_state.clear()
+
+func _reset_local_pedestrian() -> void:
+	if _street_pilot != null:
+		_street_pilot.queue_free()
+		_street_pilot = null
+	_street_restore_state.clear()
+
+
 func _on_new_seed() -> void:
+	_reset_local_pedestrian()
 	_world = SandboxWorld.new(_world.seed + 1)
 	_conversation = null
 	_last_intent = ""
@@ -480,7 +513,8 @@ func _on_new_seed() -> void:
 
 func _on_save() -> void:
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion}) else "Save failed."
+	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,
+			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else {}}) else "Save failed."
 	_render()
 
 
@@ -499,8 +533,10 @@ func _on_load() -> void:
 			_notice_text = "Save has an invalid or expired conversation."
 			_render()
 			return
+	_reset_local_pedestrian()
 	_world = saved
 	_city.world = saved
+	_street_restore_state = bundle.get("presentation",{}).get("street_state",{}).duplicate(true)
 	_conversation = restored
 	_selected_id = restored.offer_id if restored != null else ""
 	_route_for_offer = _selected_id
@@ -515,6 +551,7 @@ func _on_load() -> void:
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
+	_ensure_local_pedestrian()
 	_refresh_web_hitboxes_after_layout()
 
 

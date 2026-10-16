@@ -42,9 +42,9 @@ func _physics_process(_delta: float) -> void:
 	if NavigationServer2D.map_get_iteration_id(_agent.get_navigation_map()) == 0:
 		return
 	if not _target_set:
-		_agent.target_position = destination
+		_agent.target_position = to_global(destination)
 		_target_set = true
-	if _agent.is_navigation_finished() or global_position.distance_to(destination) <= 9.0:
+	if _agent.is_navigation_finished() or global_position.distance_to(to_global(destination)) <= 9.0:
 		did_arrive = true
 		velocity = Vector2.ZERO
 		_agent.set_velocity(Vector2.ZERO)
@@ -52,13 +52,13 @@ func _physics_process(_delta: float) -> void:
 		return
 	# The crossing is the ONLY link between the two walkable sidewalk meshes.
 	# Local right-of-way is separate from NavigationAgent's pathfinding.
-	if not crossing_completed and global_position.x >= CROSS_X - 19.0:
+	if not crossing_completed and position.x >= CROSS_X - 19.0:
 		crossing_reserved = true
-		if traffic != null and traffic.global_position.x > CROSS_X - 33.0 and traffic.global_position.x < CROSS_X + 40.0:
+		if traffic != null and traffic.position.x > CROSS_X - 33.0 and traffic.position.x < CROSS_X + 40.0:
 			velocity = Vector2.ZERO
 			_agent.set_velocity(Vector2.ZERO)
 			return
-	if crossing_reserved and global_position.y > 370.0:
+	if crossing_reserved and position.y > 370.0:
 		crossing_completed = true
 	var next: Vector2 = _agent.get_next_path_position()
 	var wanted: Vector2 = global_position.direction_to(next) * SPEED

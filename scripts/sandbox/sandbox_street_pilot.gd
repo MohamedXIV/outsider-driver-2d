@@ -1,10 +1,10 @@
 class_name SandboxStreetPilot
 extends Node2D
 
-# A standalone, inspectable Outer Margin street-module prototype.
+# Reusable bounded Outer Margin street slice: standalone test or main-scene actor.
 # Separate 2D NavigationRegions for sidewalks, a NavigationLink2D at the
 # marked crossing, native CharacterBody2D movement and one yielding car.
-# The only simulated person comes from one SandboxWorld seed fixture; there
+# The visible resident always belongs to one shared SandboxWorld; there
 # is no second fake population or autonomous city traffic manager.
 const CROSS_X: float = 320.0
 const NORTH_Y: float = 313.0
@@ -16,6 +16,23 @@ var car: CharacterBody2D
 var car_yielded: bool = false
 var world_reported_arrival: bool = false
 var walking_npc_id: String = "npc:07"
+var embedded: bool = false
+var resume_state: Dictionary = {}
+
+func visual_snapshot() -> Dictionary:
+	if pedestrian == null or car == null:
+		return {}
+	return {
+		"npc_id": walking_npc_id,
+		"pedestrian_x": pedestrian.position.x,
+		"pedestrian_y": pedestrian.position.y,
+		"car_x": car.position.x,
+		"car_y": car.position.y,
+		"crossing_reserved": pedestrian.crossing_reserved,
+		"crossing_completed": pedestrian.crossing_completed,
+		"did_arrive": pedestrian.did_arrive
+	}
+
 
 func _ready() -> void:
 	_build_sidewalk(Rect2(100, 300, 460, 26), "NorthSidewalk")
@@ -46,7 +63,29 @@ func _ready() -> void:
 	pedestrian.traffic = car
 	pedestrian.reached_site.connect(_on_resident_arrived)
 	add_child(pedestrian)
-	assert(SandboxLocalPedestrianTrip.begin(world, walking_npc_id, SITE))
+	var current_trip: Dictionary = world.resident(walking_npc_id).get("local_pedestrian_trip", {})
+	if current_trip.is_empty():
+		assert(SandboxLocalPedestrianTrip.begin(world, walking_npc_id, SITE))
+	elif current_trip.get("site", "") != SITE:
+		push_error("Resident has a different local walking destination")
+		return
+	if resume_state.get("npc_id", "") == walking_npc_id:
+		pedestrian.position = Vector2(
+				clampf(float(resume_state.get("pedestrian_x",155.0)),100.0,560.0),
+				clampf(float(resume_state.get("pedestrian_y",NORTH_Y)),300.0,404.0))
+		car.position = Vector2(
+				clampf(float(resume_state.get("car_x",110.0)),100.0,570.0),
+				clampf(float(resume_state.get("car_y",350.0)),330.0,374.0))
+		pedestrian.crossing_reserved = bool(resume_state.get("crossing_reserved",false))
+		pedestrian.crossing_completed = bool(resume_state.get("crossing_completed",false))
+		pedestrian.did_arrive = bool(resume_state.get("did_arrive",false))
+	if current_trip.get("status", "") == "arrived":
+		pedestrian.did_arrive = true
+		pedestrian.position = Vector2(500.0,SOUTH_Y)
+		world_reported_arrival = true
+	if embedded:
+		queue_redraw()
+		return
 	var camera: Camera2D = Camera2D.new()
 	camera.position = Vector2(325, 355)
 	camera.zoom = Vector2(1.7,1.7)

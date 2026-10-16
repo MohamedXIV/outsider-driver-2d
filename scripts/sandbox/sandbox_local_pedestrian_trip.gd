@@ -6,14 +6,43 @@ extends RefCounted
 # This bounded experiment does not change city-wide taxi offer/route semantics.
 const PATCHWORKS_PARTS: String = "patchworks:parts_counter"
 
+static func candidate(world: SandboxWorld) -> String:
+	# Continue an existing errand before picking another resident. No scripted
+	# first passenger, duplicate actor, or synthetic extra simulation person.
+	for npc in world.residents:
+		var active: Dictionary = npc.get("local_pedestrian_trip", {})
+		if active.get("site", "") == PATCHWORKS_PARTS and active.get("status", "") in ["walking", "arrived"]:
+			return str(npc["id"])
+	for npc in world.residents:
+		if str(npc.get("location", "")) != "garage" or str(npc.get("activity", "")) != "available":
+			continue
+		if not ["supplies", "work"].has(str(npc.get("purpose", ""))) or int(npc.get("need", 0)) < 30:
+			continue
+		if int(npc.get("cooldown_until", 0)) > world.minute or not str(npc.get("taxi_offer", "")).is_empty():
+			continue
+		var pending: bool = false
+		for offer in world.offers:
+			if offer.get("npc_id", "") == npc.get("id", "") and offer.get("status", "") in ["open", "accepted"]:
+				pending = true
+				break
+		if not pending:
+			return str(npc["id"])
+	return ""
+
 static func begin(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	if site != PATCHWORKS_PARTS:
 		return false
 	var npc: Dictionary = world.resident(npc_id)
-	if npc.is_empty() or str(npc.get("location", "")) != "garage":
+	if npc.is_empty() or str(npc.get("location", "")) != "garage" \
+			or npc.get("activity", "") != "available":
 		return false
 	if not npc.get("local_pedestrian_trip", {}).is_empty():
 		return false
+	if not ["supplies", "work"].has(str(npc.get("purpose", ""))):
+		return false
+	for offer in world.offers:
+		if offer.get("npc_id", "") == npc_id and offer.get("status", "") in ["open", "accepted"]:
+			return false
 	# A nearby service errand does not erase the resident's independent long
 	# distance need or authorize the player to accept a licensed taxi fare.
 	npc["local_pedestrian_trip"] = {"site": site, "status": "walking", "started": world.minute}

@@ -9,7 +9,8 @@ const MIN_NEED: int = 53
 static func refresh(residents: Array[Dictionary], offers: Array[Dictionary], minute: int, seed: int) -> void:
 	for npc in residents:
 		if int(npc["need"]) < MIN_NEED or int(npc["cooldown_until"]) > minute \
-				or str(npc.get("activity", "")) != "available":
+				or str(npc.get("activity", "")) != "available" \
+				or npc.get("local_pedestrian_trip", {}).get("status", "") == "walking":
 			continue
 		var pending: bool = false
 		for offer in offers:
