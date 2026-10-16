@@ -3,6 +3,11 @@ extends RefCounted
 
 # Persistent agents. Goals depend on personal needs, not on taxi scenario IDs.
 const PURPOSES: Array[String] = ["medical", "supplies", "work", "shelter"]
+# Languages are social geography, not species presets. Shared-home cohorts
+# include i0/i5 (Trade) and i2/i7 (Cant); individuals still differ in biology.
+const CITY_LANGUAGES: Array[String] = [
+	"trade", "local", "cant", "trade", "local", "trade", "trade", "cant", "cant"
+]
 const GOALS: Dictionary = {
 	"medical": "clinic", "supplies": "market",
 	"work": "depot", "shelter": "shelter"
@@ -40,7 +45,7 @@ static func create(seed: int) -> Array[Dictionary]:
 			"peer_knowledge": {},
 			"contacts": {},
 			"last_peer_day": -1,
-			"language": SandboxKnowledge.LANGUAGES[i % 3],
+			"language": CITY_LANGUAGES[i],
 			"speaks_common": i % 4 != 1,
 			"will_use_common": i % 3 != 2,
 			"temperament": "cautious" if i % 2 == 0 else "urgent"
