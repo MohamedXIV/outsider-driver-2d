@@ -162,7 +162,7 @@ text = "Meet at location"
 
 [node name="DialoguePanel" type="PanelContainer" parent="HUD"]
 offset_left = 515.0
-offset_top = 395.0
+offset_top = 325.0
 offset_right = 1005.0
 offset_bottom = 695.0
 visible = false
@@ -175,11 +175,35 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "SPEAKING TO RESIDENT"
 
+[node name="LanguageSettings" type="HBoxContainer" parent="HUD/DialoguePanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="English" type="Button" parent="HUD/DialoguePanel/Content/LanguageSettings"]
+layout_mode = 2
+custom_minimum_size = Vector2(58, 31)
+text = "EN"
+
+[node name="Arabic" type="Button" parent="HUD/DialoguePanel/Content/LanguageSettings"]
+layout_mode = 2
+custom_minimum_size = Vector2(92, 31)
+text = "العربية"
+
+[node name="ReducedMotion" type="CheckButton" parent="HUD/DialoguePanel/Content/LanguageSettings"]
+layout_mode = 2
+text = "Reduced motion"
+
 [node name="Line" type="Label" parent="HUD/DialoguePanel/Content"]
 custom_minimum_size = Vector2(470, 76)
 layout_mode = 2
 autowrap_mode = 3
 text = "A live NPC speaks in their own language."
+
+[node name="SkipTranslation" type="Button" parent="HUD/DialoguePanel/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(460, 30)
+text = "Show translation now"
+visible = false
 
 [node name="RequestCommon" type="Button" parent="HUD/DialoguePanel/Content"]
 layout_mode = 2
