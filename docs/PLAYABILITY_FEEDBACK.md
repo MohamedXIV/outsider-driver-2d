@@ -128,3 +128,7 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - FB-003 proof: `test_city`, `test_city_waypoints`, `test_sandbox_reroute`, native `06-underpass` / `07-ramp` / `08-deck` / `09-connected-descent`, each with authoritative position JSON.
 - FB-004 proof: `test_player_layout`, `test_player_arabic`, `test_player_contacts`, `web-player-dialogue`, `web-gear`, `web-small-arabic`; actual pointer/scrolling and Arabic font/fallback rendering inspected.
 - #23's completed engineering umbrella is closed. #49–52 are implemented on the PR and remain open until merge. #48 and #15 remain open for human feedback and broader sandbox scope. **No FB item is Human accepted.**
+
+### R04 engineering checkpoint — October 16, 2026
+- [PR #61](https://github.com/MohamedXIV/outsider-driver-2d/pull/61) (stacked draft on #55) now embeds one world-chosen native walking NPC and organized crossing at the Patchworks garage in actual Player Mode. Visual walker location is preserved at save/load without duplicating resident identity, economy, dispatch or arrival; world restore rejects a forged local arrival event.
+- [Native runner #38956333840](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38956333840): **4/4 targeted tests PASS**, including actual game-scene navigation and prior city renderer. **Not** a city-wide traffic or NPC pathfinding proof, no Web/Windows runtime verification, no human acceptance. The temporary CI was returned to manual-only.

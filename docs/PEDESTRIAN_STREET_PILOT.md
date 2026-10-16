@@ -30,6 +30,20 @@ This **bounded standalone proof scene** is opened as `res://scenes/street_pilot.
 - Only **one** nearby street module is instantiated; this is not a whole-city native navigation migration. Its physical actor continues running if the camera leaves the garage (acceptable for this one actor, not a completed far-simulation handoff).
 - New targeted `tests/test_street_main_scene.gd` checks real default scene integration and mid-walk save/reload; Godot/Chromium execution must be verified before claiming completion.
 
+## Main-scene integrated native proof (2026-10-16)
+
+**PASS** — [Native Godot 4.7.2 run #38956333840](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38956333840), integrated test source `3018be6f6e0935f4ea2043b5a80738fcc418e9a2`.
+
+The actual Xvfb / software OpenGL runner completed all four checks:
+- `STREET_PILOT_PASS`: separate real sidewalk navigation regions, authorized crossing, yielding physical vehicle, once-only arrival and restore in standalone scene.
+- `NPC_INTERPOLATION_PASS`: default scene advances NPC presentation while player's taxi is parked.
+- `STREET_MAIN_PASS`: normal game scene instantiates a **real seeded world-owned resident** in local nav, actor physically advances, saves and restores mid-walk geometry, reports arrival once, and **rejects forged arrival from save state without event provenance**.
+- `CITY_PRESENTATION_PASS`: previous city/bridge, passenger and save demonstration still works.
+
+`test_street_main_scene.gd` also captures three local PNG frames in `/tmp/od2d-street-evidence/` on the runner, but those frames were **not published in the successful run's artifact**; do not assert independent visual review of those images. The uploaded artifact contains run logs. Native Linux only, not exported Chromium or Windows runtime.
+
+The gate returned to **manual-only** after the run. No more Actions minutes should be used on docs/status updates.
+
 ## What is NOT implemented
 - Migration of all existing autonomous walking residents away from `SandboxRoads.position_on_path`.
 - **Full city-wide** native footpath network, reusable street-module generation and deterministic near/far ownership handoff. The garage slice is now embedded in the normal scene but is the only integrated neighborhood.
