@@ -55,12 +55,25 @@ const {chromium} = require('playwright');
   await click('sandboxARWearPoint');
   await wait(()=>document.documentElement.dataset.sandboxARHint==='true');
   await click('sandboxSavePoint');
-  await page.waitForTimeout(1900);
+  await wait(()=>document.documentElement.dataset.sandboxSaveExists==='true' &&
+   +document.documentElement.dataset.sandboxSaveBytes>100);
+  await page.waitForTimeout(3000); // Allow Godot Web's IndexedDB sync before reload.
   await page.reload({waitUntil:'domcontentloaded'});
   await wait(()=>document.documentElement.dataset.sandboxReady==='true');
+  x=await d();
+  if(x.sandboxSaveExists!=='true'||+x.sandboxSaveBytes<100)
+   throw Error('Web save did not persist across browser reload: '+JSON.stringify({
+    exists:x.sandboxSaveExists,bytes:x.sandboxSaveBytes,notice:x.sandboxNotice}));
   await click('sandboxLoadPoint');
-  await wait(()=>document.documentElement.dataset.sandboxAREquipped==='true' &&
-   document.documentElement.dataset.sandboxDialogueIntent==='restored');
+  try {
+   await wait(()=>document.documentElement.dataset.sandboxAREquipped==='true' &&
+    document.documentElement.dataset.sandboxDialogueIntent==='restored');
+  } catch(e) {
+   x=await d();
+   throw Error('AR reload failed: '+JSON.stringify({
+    ar:x.sandboxAREquipped,owned:x.sandboxAROwned,intent:x.sandboxDialogueIntent,
+    notice:x.sandboxNotice,save:x.sandboxSaveExists,bytes:x.sandboxSaveBytes})+' / '+e.message);
+  }
   x=await d();
   if(x.sandboxCredits!=='6'||x.sandboxARHint!=='true')
    throw Error('Purchased/equipped AR or player-known hint lost on persisted Web reload.');
