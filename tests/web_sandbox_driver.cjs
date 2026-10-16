@@ -31,7 +31,7 @@ const {chromium}=require('playwright');
   await page.mouse.click(336,455);
   await page.waitForFunction(()=>document.documentElement.dataset.sandboxDialogueRecognizes==='true',null,{timeout:15000});
   const text=await page.evaluate(()=>document.documentElement.dataset.sandboxDialogueText);
-  if(!text.includes('recognizes your taxi')||!text.includes("Rru'ka"))
+  if(!text.startsWith('ᚠᛇᚱ')||/recognizes your taxi|Rru'ka/i.test(text))
    throw new Error('Missing grounded alien return line or magical translation.');
   await page.screenshot({path:'/tmp/od2d-ink-evidence/driver-returning-web.png'});
   await page.mouse.click(95,610);

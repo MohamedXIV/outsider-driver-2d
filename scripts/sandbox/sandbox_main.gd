@@ -676,6 +676,11 @@ func _update_dialogue_presentation(frame: Dictionary, offer: Dictionary, speaker
 				and not _reduced_motion
 	_dialogue_text.text = _source_text if _reveal_pending else (
 			_translated_text if _conversation.understood() else str(frame.get("text", "")))
+	# Alien scripts retain their native left-to-right reading order even when
+	# the player's surrounding interface is Arabic RTL.
+	_dialogue_text.text_direction = Control.TEXT_DIRECTION_LTR if (
+			_reveal_pending or not _conversation.understood()) else (
+			Control.TEXT_DIRECTION_RTL if rtl else Control.TEXT_DIRECTION_LTR)
 	_skip_translation.visible = _reveal_pending
 	_dialogue_text.remove_theme_font_override("font")
 	var glyph_font: String = SandboxLanguagePresentation.native_font_path(language)
