@@ -33,6 +33,8 @@ func _run() -> void:
 	assert(crossed, "Pedestrian never used the crosswalk")
 	assert(pilot.car_yielded, "Lane vehicle never yielded")
 	assert(pilot.world_reported_arrival, "Actor failed to report arrival")
+	assert(walker.position.distance_to(SandboxStreetModule.SITE) <= 9.0,
+			"Arrival must be at the physical parts-counter destination")
 	assert(pilot.world.resident(pilot.walking_npc_id)["local_pedestrian_trip"]["status"]=="arrived")
 	assert(not SandboxLocalPedestrianTrip.arrive(pilot.world,pilot.walking_npc_id,pilot.SITE), "Double arrival allowed")
 	var arrivals: int = 0

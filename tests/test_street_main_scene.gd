@@ -48,6 +48,8 @@ func _run() -> void:
 		if scene._street_pilot.world_reported_arrival:
 			break
 	assert(scene._street_pilot.world_reported_arrival, "No arrival after restoring a physical pedestrian")
+	assert(scene._street_pilot.pedestrian.position.distance_to(SandboxStreetModule.SITE)<=9.0,
+			"Main-scene actor arrived away from the actual service site")
 	var arrivals: int = 0
 	for e in scene._world.events:
 		if e["kind"] == "local_pedestrian_arrived":

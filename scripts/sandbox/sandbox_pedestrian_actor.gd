@@ -42,9 +42,14 @@ func _physics_process(_delta: float) -> void:
 	if NavigationServer2D.map_get_iteration_id(_agent.get_navigation_map()) == 0:
 		return
 	if not _target_set:
-		_agent.target_position = to_global(destination)
+		# Destination is authored in the PARENT street-module coordinates,
+		# not the moving character's local frame. Actor.to_global() would
+		# incorrectly add the character's current position to the target.
+		_agent.target_position = get_parent().to_global(destination)
 		_target_set = true
-	if _agent.is_navigation_finished() or global_position.distance_to(to_global(destination)) <= 9.0:
+	# NavigationAgent.is_navigation_finished() alone may be true for a
+	# clipped/unreachable path. Arrival requires actual site proximity.
+	if global_position.distance_to(get_parent().to_global(destination)) <= 9.0:
 		did_arrive = true
 		velocity = Vector2.ZERO
 		_agent.set_velocity(Vector2.ZERO)
