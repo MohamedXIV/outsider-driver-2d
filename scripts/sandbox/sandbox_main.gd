@@ -274,6 +274,9 @@ func _finish_language_reveal() -> void:
 	_reveal_pending = false
 	_reveal_elapsed = 0.0
 	_dialogue_text.text = _translated_text
+	_dialogue_text.remove_theme_font_override("font")
+	if _ui_locale == "ar":
+		_dialogue_text.add_theme_font_override("font", load(ARABIC_FONT))
 	_skip_translation.visible = false
 	_publish_reveal_web()
 
@@ -652,7 +655,7 @@ func _update_dialogue_presentation(frame: Dictionary, offer: Dictionary, speaker
 	_reduce_motion.text = "تقليل الحركة" if rtl else "Reduced motion"
 	_request_common.text = "اطلب التحدث باللغة المشتركة" if rtl else "Ask to speak Common"
 	_skip_translation.text = "اعرض الترجمة الآن" if rtl else "Show translation now"
-	var arabic_font: Font = load(ARABIC_FONT)
+	var arabic_font: Font = load(ARABIC_FONT) as Font
 	for control in [_dialogue_title, _request_common, _reduce_motion, _skip_translation]:
 		if rtl:
 			control.add_theme_font_override("font", arabic_font)
