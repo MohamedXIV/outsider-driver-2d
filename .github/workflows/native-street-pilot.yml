@@ -1,0 +1,52 @@
+name: Native street navigation pilot (temporary single-branch gate)
+on:
+  push:
+    branches:
+      - feat/native-pedestrian-crossing-pilot
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-street:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot editor and Linux display
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+          /tmp/godot --version
+      - name: Import and parse the full project
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/godot --headless --path . --editor --import --quit > /tmp/import.log 2>&1 || { cat /tmp/import.log; exit 1; }
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/import.log; then exit 1; fi
+      - name: Native Godot pedestrian navigation and traffic proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in test_street_pilot_scene test_npc_interpolation_scene; do
+            LIBGL_ALWAYS_SOFTWARE=1 timeout 95s xvfb-run -a -s "-screen 0 1280x720x24" \
+              /tmp/godot --path . --script "res://tests/${spec}.gd" > "/tmp/${spec}.log" 2>&1 || { cat "/tmp/${spec}.log"; exit 1; }
+            cat "/tmp/${spec}.log"
+            if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' "/tmp/${spec}.log"; then exit 1; fi
+            if ! grep -E 'STREET_PILOT_PASS|NPC_INTERPOLATION_PASS' "/tmp/${spec}.log"; then exit 1; fi
+          done
+      - name: Upload targeted native proof logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: street-navigation-test-logs
+          path: |
+            /tmp/import.log
+            /tmp/test_street_pilot_scene.log
+            /tmp/test_npc_interpolation_scene.log
+          if-no-files-found: ignore
