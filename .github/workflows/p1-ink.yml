@@ -1,356 +1,92 @@
-name: Playable ride Web/Desktop gate
-
+name: Integrated city playtest builds
 on:
-  push:
-    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*', 'feat/32-*', 'feat/33-*', 'feat/34-*']
-    paths:
-      - 'addons/inkgd/**'
-      - 'assets/passengers/**'
-      - 'scripts/**'
-      - 'scenes/**'
-      - 'stories/**'
-      - 'tests/**'
-      - 'project.godot'
-      - 'export_presets.cfg'
-      - '.github/workflows/p1-ink.yml'
   workflow_dispatch:
-
-concurrency:
-  group: playable-ride-${{ github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
-
 jobs:
-  ink:
+  city:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Compile actual Ink source using pinned compiler
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prepare pinned toolchain
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/ink-tools
-          npm --prefix /tmp/ink-tools install --no-save --no-audit --no-fund inkjs@2.4.0
-          if test -f stories/p1_probe.ink.json; then
-            cp stories/p1_probe.ink.json /tmp/tracked-ink.json
-          fi
-          /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
-            -o stories/p1_probe.ink.json stories/p1_probe.ink
-          # inkjs writes a UTF-8 BOM; normalize generated JSON to match Git.
-          python3 -c 'from pathlib import Path; p=Path("stories/p1_probe.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
-          # Emit the canonical compiler output even on drift, for review without a second compiler setup.
-          echo P1_COMPILED_INK_BEGIN
-          cat stories/p1_probe.ink.json
-          echo P1_COMPILED_INK_END
-          if test -f /tmp/tracked-ink.json; then
-            cmp -s /tmp/tracked-ink.json stories/p1_probe.ink.json || {
-              echo "Committed Ink JSON drifted from the authored .ink source"
-              exit 1
-            }
-          fi
-          test -s stories/p1_probe.ink.json
-          echo P1_COMPILED_INK_BEGIN
-          cat stories/p1_probe.ink.json
-          echo
-          echo P1_COMPILED_INK_END
-      - name: Compile S1 reusable semantic Ink using the SAME pinned compiler
-        shell: bash
-        run: |
-          set -euo pipefail
-          if test -f stories/sandbox_dialogue.ink.json; then
-            cp stories/sandbox_dialogue.ink.json /tmp/tracked-semantic-ink.json
-          fi
-          /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
-            -o stories/sandbox_dialogue.ink.json stories/sandbox_dialogue.ink
-          python3 -c 'from pathlib import Path; p=Path("stories/sandbox_dialogue.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
-          echo S1_COMPILED_INK_BEGIN
-          cat stories/sandbox_dialogue.ink.json
-          echo S1_COMPILED_INK_END
-          if test -f /tmp/tracked-semantic-ink.json; then
-            cmp -s /tmp/tracked-semantic-ink.json stories/sandbox_dialogue.ink.json || {
-              echo "Committed S1 Ink JSON drifted from authored source"
-              exit 1
-            }
-          fi
-      - name: Compile off-duty Ink and check authored source consistency
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp stories/sandbox_meeting.ink.json /tmp/tracked-meeting-ink.json
-          /tmp/ink-tools/node_modules/.bin/inkjs-compiler \
-            -o stories/sandbox_meeting.ink.json stories/sandbox_meeting.ink
-          python3 -c 'from pathlib import Path; p=Path("stories/sandbox_meeting.ink.json"); p.write_text(p.read_text(encoding="utf-8-sig").strip()+"\n", encoding="utf-8")'
-          echo MEETING_INK_BEGIN
-          cat stories/sandbox_meeting.ink.json
-          echo MEETING_INK_END
-          cmp -s /tmp/tracked-meeting-ink.json stories/sandbox_meeting.ink.json || {
-            echo "Off-duty Ink JSON differs from authored source"
-            exit 1
-          }
-      - name: Install official Godot 4.7.2 standard editor
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fL --retry 3 \
-            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
-            -o /tmp/godot.zip
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
           unzip -q /tmp/godot.zip -d /tmp
           mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
           chmod +x /tmp/godot
           /tmp/godot --version
-      - name: Import and parse inkgd runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          /tmp/godot --headless --path . --import 2>&1 | tee /tmp/import.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/import.log; then exit 1; fi
-      - name: Prove two Ink branches and consequences
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_ink.gd 2>&1 | tee /tmp/ink-test.log
-          grep -q 'P1_INK_NATIVE_PASS' /tmp/ink-test.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ink-test.log; then exit 1; fi
-      - name: Verify GameSession, single fare settlement and saves
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_session.gd 2>&1 | tee /tmp/session-test.log
-          grep -q 'P1_SESSION_NATIVE_PASS' /tmp/session-test.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/session-test.log; then exit 1; fi
-      - name: Verify walkable garage movement and station facts
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_garage.gd 2>&1 | tee /tmp/garage-test.log
-          grep -q 'P2_GARAGE_NATIVE_PASS' /tmp/garage-test.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/garage-test.log; then exit 1; fi
-      - name: Verify repeatable shift and service economy
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_loop.gd 2>&1 | tee /tmp/loop-test.log
-          grep -q 'P2_LOOP_NATIVE_PASS' /tmp/loop-test.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/loop-test.log; then exit 1; fi
-      - name: Check seeded population demand, travel and replay
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox.gd 2>&1 | tee /tmp/sandbox-domain.log
-          grep -q 'SANDBOX_DOMAIN_PASS' /tmp/sandbox-domain.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-domain.log; then exit 1; fi
-      - name: Verify live NPC-context Ink, translation limits and mid-choice save
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_dialogue.gd 2>&1 | tee /tmp/sandbox-ink-test.log
-          grep -q 'SANDBOX_SEMANTIC_INK_PASS' /tmp/sandbox-ink-test.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-ink-test.log; then exit 1; fi
-      - name: Verify Basic Common starter, full-language modules, physical vendor and persistent Common fallback
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_knowledge.gd 2>&1 | tee /tmp/sandbox-knowledge.log
-          grep -q 'SANDBOX_KNOWLEDGE_PASS' /tmp/sandbox-knowledge.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-knowledge.log; then exit 1; fi
-      - name: Verify Market AR, witnessed rumors, knowledge-only hints and forged snapshots
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_ar.gd 2>&1 | tee /tmp/sandbox-ar-test.log
-          grep -q 'SANDBOX_AR_DOMAIN_PASS' /tmp/sandbox-ar-test.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-ar-test.log; then exit 1; fi
-      - name: Prove S3 autonomous routines and idle-day replay
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_autonomy.gd 2>&1 | tee /tmp/autonomy-domain.log
-          grep -q 'SANDBOX_AUTONOMY_PASS' /tmp/autonomy-domain.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/autonomy-domain.log; then exit 1; fi
-      - name: Prove real route graph choices and mid-edge saved progress
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_routes.gd 2>&1 | tee /tmp/routes-domain.log
-          grep -q 'SANDBOX_ROUTES_PASS' /tmp/routes-domain.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/routes-domain.log; then exit 1; fi
-      - name: Prove next-junction reroute and rider consent
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_reroute.gd 2>&1 | tee /tmp/reroute-domain.log
-          grep -q 'SANDBOX_REROUTE_PASS' /tmp/reroute-domain.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/reroute-domain.log; then exit 1; fi
-      - name: Prove grounded NPC peer contact and source-backed memory
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_peer.gd 2>&1 | tee /tmp/peer-domain.log
-          grep -q 'SANDBOX_PEER_PASS' /tmp/peer-domain.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/peer-domain.log; then exit 1; fi
-      - name: Verify passenger recognition, event-sourced personal memory and repeat Ink
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_driver_memory.gd 2>&1 | tee /tmp/driver-memory.log
-          grep -q 'SANDBOX_DRIVER_MEMORY_PASS' /tmp/driver-memory.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/driver-memory.log; then exit 1; fi
-      - name: Verify repeat fare bonds and deterministic off-duty outcomes
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --script res://tests/test_sandbox_meeting.gd 2>&1 | tee /tmp/meeting-domain.log
-          grep -q 'SANDBOX_MEETING_DOMAIN_PASS' /tmp/meeting-domain.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/meeting-domain.log; then exit 1; fi
-      - name: Run scene headless with real Ink
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout 90s /tmp/godot --headless --path . --quit-after 120 2>&1 | tee /tmp/scene.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/scene.log; then exit 1; fi
-      - name: Install matching export templates
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fL --retry 3 \
-            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz \
-            -o /tmp/exports.tpz
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
-          unzip -j -q -o /tmp/exports.tpz \
-            templates/linux_release.x86_64 templates/linux_debug.x86_64 \
-            templates/web_nothreads_release.zip templates/web_nothreads_debug.zip \
-            templates/windows_release_x86_64.exe templates/windows_debug_x86_64.exe \
-            -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
-      - name: Linux x86_64 game export and boot
+          unzip -j -q /tmp/templates.tpz templates/linux_release.x86_64 templates/linux_debug.x86_64 templates/web_nothreads_release.zip templates/web_nothreads_debug.zip templates/windows_release_x86_64.exe templates/windows_debug_x86_64.exe -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          npm --prefix /tmp/city-tools install --no-save --no-audit --no-fund inkjs@2.4.0 playwright@1.56.0
+          /tmp/city-tools/node_modules/.bin/playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+      - name: Verify compiled Ink matches source
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/od2d-ink-evidence build/linux build/web
-          /tmp/godot --headless --path . --export-release Linux build/linux/outsider-driver.x86_64 2>&1 | tee /tmp/linux-export.log
-          test -s build/linux/outsider-driver.x86_64
+          for story in stories/*.ink; do
+            /tmp/city-tools/node_modules/.bin/inkjs-compiler -o /tmp/compiled.json "$story"
+            python3 - "$story.json" <<'PY'
+          import pathlib, sys
+          expected = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8-sig').strip()
+          actual = pathlib.Path('/tmp/compiled.json').read_text(encoding='utf-8-sig').strip()
+          assert expected == actual, sys.argv[1]
+          PY
+          done
+      - name: Domain and adapter gate
+        env:
+          GODOT_BIN: /tmp/godot
+        run: python3 tests/run_city_gate.py
+      - name: Native Linux rendered gameplay gate
+        env:
+          GODOT_BIN: /tmp/godot
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s '-screen 0 1280x720x24' python3 tests/run_city_gate.py --native
+      - name: Export Linux, Windows and Web
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/linux build/windows build/web
+          /tmp/godot --headless --path . --export-release Linux build/linux/outsider-driver.x86_64 > /tmp/linux-export.log 2>&1
+          /tmp/godot --headless --path . --export-release 'Windows Desktop' build/windows/outsider-driver.exe > /tmp/windows-export.log 2>&1
+          /tmp/godot --headless --path . --export-release Web build/web/index.html > /tmp/web-export.log 2>&1
           chmod +x build/linux/outsider-driver.x86_64
-          build/linux/outsider-driver.x86_64 --headless --quit-after 90 2>&1 | tee /tmp/linux-run.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/linux-run.log; then exit 1; fi
-      - name: Windows Desktop x86_64 release export
+          build/linux/outsider-driver.x86_64 --headless --quit-after 90 > /tmp/linux-boot.log 2>&1
+          if rg 'SCRIPT ERROR|ERROR:|Parse Error' /tmp/*-export.log /tmp/linux-boot.log; then exit 1; fi
+          cp docs/CITY_PLAYTEST.md build/PLAYTEST.md
+      - name: Exercise exported Web with real Chromium pointer input
+        env:
+          NODE_PATH: /tmp/city-tools/node_modules
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p build/windows
-          /tmp/godot --headless --path . --export-release "Windows Desktop" build/windows/outsider-driver.exe 2>&1 | tee /tmp/windows-export.log
-          test -s build/windows/outsider-driver.exe
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/windows-export.log; then exit 1; fi
-      - name: Visible Linux desktop scene, choice and save/load walkthrough
-        shell: bash
-        run: |
-          set -euo pipefail
-          if ! command -v xvfb-run >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq xvfb xauth
-          fi
-          mkdir -p /tmp/od2d-ink-evidence/native
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_native_ride.gd \
-            2>&1 | tee /tmp/native-ride.log
-          grep -q 'P1_DESKTOP_NATIVE_PASS' /tmp/native-ride.log
-          test -s /tmp/od2d-ink-evidence/native/waiting.png
-          test -s /tmp/od2d-ink-evidence/native/completed.png
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/native-ride.log; then exit 1; fi
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_scene.gd \
-            2>&1 | tee /tmp/sandbox-scene.log
-          grep -q 'SANDBOX_SCENE_PASS' /tmp/sandbox-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_language_scene.gd \
-            2>&1 | tee /tmp/language-scene.log
-          grep -q 'SANDBOX_LANGUAGE_SCENE_PASS' /tmp/language-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_ar_scene.gd \
-            2>&1 | tee /tmp/ar-scene.log
-          grep -q 'SANDBOX_AR_SCENE_PASS' /tmp/ar-scene.log
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/ar-scene.log; then exit 1; fi
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/language-scene.log; then exit 1; fi
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_autonomy_scene.gd \
-            2>&1 | tee /tmp/autonomy-scene.log
-          grep -q 'SANDBOX_AUTONOMY_SCENE_PASS' /tmp/autonomy-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_routes_scene.gd \
-            2>&1 | tee /tmp/routes-scene.log
-          grep -q 'SANDBOX_ROUTES_SCENE_PASS' /tmp/routes-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_reroute_scene.gd \
-            2>&1 | tee /tmp/reroute-scene.log
-          grep -q 'SANDBOX_REROUTE_SCENE_PASS' /tmp/reroute-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_peer_scene.gd \
-            2>&1 | tee /tmp/peer-scene.log
-          grep -q 'SANDBOX_PEER_SCENE_PASS' /tmp/peer-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_driver_scene.gd \
-            2>&1 | tee /tmp/driver-scene.log
-          grep -q 'SANDBOX_DRIVER_SCENE_PASS' /tmp/driver-scene.log
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
-            /tmp/godot --path . --script res://tests/test_sandbox_meeting_scene.gd \
-            2>&1 | tee /tmp/meeting-scene.log
-          grep -q 'SANDBOX_MEETING_SCENE_PASS' /tmp/meeting-scene.log
-          test -s /tmp/od2d-ink-evidence/sandbox/meeting-in-person-native.png
-          test -s /tmp/od2d-ink-evidence/sandbox/meeting-restored-native.png
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/meeting-scene.log; then exit 1; fi
-          test -s /tmp/od2d-ink-evidence/sandbox/returning-cab-native.png
-          test -s /tmp/od2d-ink-evidence/sandbox/peer-contacts-idle.png
-          test -s /tmp/od2d-ink-evidence/sandbox/rider-reroute-junction.png
-          test -s /tmp/od2d-ink-evidence/sandbox/route-mid-edge.png
-          test -s /tmp/od2d-ink-evidence/sandbox/autonomy-after-idle.png
-          test -s /tmp/od2d-ink-evidence/sandbox/generated-offers.png
-          test -s /tmp/od2d-ink-evidence/sandbox/settled-demand.png
-          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/sandbox-scene.log; then exit 1; fi
-      - name: Real Ink in Chromium Web release
-        shell: bash
-        run: |
-          set -euo pipefail
-          /tmp/godot --headless --path . --export-release Web build/web/index.html 2>&1 | tee /tmp/web-export.log
-          test -s build/web/index.html
-          npm --prefix /tmp/ink-tools install --no-save --no-audit --no-fund playwright@1.56.0
-          /tmp/ink-tools/node_modules/.bin/playwright install chromium
-          python3 -m http.server 8765 --directory build/web >/tmp/webserver.log 2>&1 &
+          python3 -m http.server 8765 --directory build/web > /tmp/city-http.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" || true' EXIT
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_smoke.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_ar.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_autonomy.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_routes.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_reroute.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_peer.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_driver.cjs
-          NODE_PATH=/tmp/ink-tools/node_modules timeout 110s node tests/web_sandbox_meeting.cjs
-      - name: Package downloadable playtest builds
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s build/linux/outsider-driver.x86_64
-          test -s build/windows/outsider-driver.exe
-          test -s build/web/index.html
-          mkdir -p dist
-          tar -czf dist/outsider-driver-playtest-linux-x86_64.tar.gz -C build/linux .
-          (cd build/windows && zip -qr ../../dist/outsider-driver-playtest-windows-x86_64.zip .)
-          (cd build/web && zip -qr ../../dist/outsider-driver-playtest-web.zip .)
-          test -s dist/outsider-driver-playtest-linux-x86_64.tar.gz
-          test -s dist/outsider-driver-playtest-windows-x86_64.zip
-          test -s dist/outsider-driver-playtest-web.zip
-          ls -lh dist/
+          trap 'kill "$server_pid"' EXIT
+          node tests/web_city_playability.cjs | tee /tmp/web-city.log
+          node tests/web_city_routes.cjs | tee /tmp/web-city-routes.log
       - uses: actions/upload-artifact@v4
         with:
-          name: outsider-driver-playtest-builds
-          path: dist/*
-          if-no-files-found: error
+          name: outsider-driver-integrated-builds
+          path: build/
           retention-days: 21
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playable-ride-evidence
+          name: city-playability-evidence
           path: |
-            /tmp/od2d-ink-evidence/
-          if-no-files-found: warn
+            /tmp/od2d-city-evidence/
+            /tmp/od2d-gate-logs/
+            /tmp/*-export.log
+            /tmp/linux-boot.log
+            /tmp/web-city.log
+            /tmp/web-city-routes.log
+          retention-days: 21

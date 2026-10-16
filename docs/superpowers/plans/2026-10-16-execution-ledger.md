@@ -13,3 +13,17 @@
 - Save schema 12 is intentionally incompatible with old experimental saves.
 - Old five-node fixtures require deliberate geographic updates; retain tests for economics, provenance, knowledge and social causality.
 - Xvfb installed into workspace by extracting a Debian package checked against signed apt metadata; no system modifications.
+
+## Review and integrated verification
+
+- Fresh read-only reviewer found: relocation ignored its previewed waypoint; Player meeting controls copied queued debug children; malformed save arrays and missing passenger tag needed rejection. Fixed with failing-then-passing focused tests; reviewer confirmed fixes and no remaining important finding in reviewed changes.
+- Added explicit multi-waypoint planner and a playable clinic/basin/market/margin/ramp/deck/Worker Belt sequence. No inferred crossing links.
+- Browser resizing exposed project-level fixed-aspect letterboxing. Disabled fixed canvas scaling so responsive Player controls retain actual window pixel sizes. Narrow pointer/Arabic check included in Web gate.
+- UI refresh signatures now depend on the active panel's context; unrelated world ticks and background translation no longer rebuild map/settings controls mid-interaction.
+- Current canonical gate: tests/run_city_gate.py (domain/adapters), same with --native (Xvfb rendered scenes), web_city_playability.cjs and web_city_routes.cjs. Original five-stop Web scripts are historical, not a gate for this new topology. No assertions about provenance, once-only money, language access or social memory were retired.
+- Four Ink source/JSON pairs match pinned InkJS 2.4.0.
+- VM: Linux and Windows exports succeeded; Linux exported executable booted. Windows runtime not attempted.
+
+- Actual exported Chromium two-fare evidence: garage→market via depot, 28,155.83 m / 72 minutes; later genuine market→depot request, 13,966.37 m / 35 minutes. Both had travel Ink and settled once. NPCs did not generate a local fare while at work; the test used the real Wait command until a genuine available request emerged, rather than manufacturing demand.
+- Visual review caught Player theme inheritance and Latin fallback defects despite the existing dialogue font tests. Added actual-control Arabic/Latin font regression and visually inspected a corrected 720×900 native frame.
+- Native static scenery now uses retained CanvasItem layers with separate physical actor layers; draw ordering and world immutability regression passed. Reviewer found no important layer-init/depth issue. Contacts availability cache omission fixed after observed RED regression.

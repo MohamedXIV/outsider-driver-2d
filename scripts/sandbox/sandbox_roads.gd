@@ -112,6 +112,22 @@ static func path(origin: String, destination: String, via: String = "") -> Array
 	first.append_array(second.slice(1))
 	return first
 
+static func path_via(origin: String, destination: String, waypoints: Array[String]) -> Array[String]:
+	var targets: Array[String]=waypoints.duplicate()
+	targets.append(destination)
+	var result: Array[String]=[origin]
+	for i in range(targets.size()):
+		var target: String=targets[i]
+		if target==result.back(): continue
+		var blocked: Array[String]=result.duplicate()
+		blocked.pop_back()
+		for future in targets.slice(i+1):
+			if future!=target and not blocked.has(future): blocked.append(future)
+		var leg: Array[String]=_shortest(result.back(),target,blocked)
+		if leg.is_empty(): return []
+		result.append_array(leg.slice(1))
+	return result if valid_path(result) else []
+
 static func valid_path(nodes: Array[String]) -> bool:
 	if nodes.size()<2: return false
 	var seen: Dictionary = {}
@@ -122,6 +138,7 @@ static func valid_path(nodes: Array[String]) -> bool:
 	return true
 
 static func path_minutes(nodes: Array[String]) -> int:
+	if nodes.size()==1 and LINKS.has(nodes[0]): return 0
 	if not valid_path(nodes): return -1
 	var total: int = 0
 	for i in range(nodes.size()-1): total += edge_minutes(nodes[i],nodes[i+1])

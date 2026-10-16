@@ -127,7 +127,7 @@ func set_ar_equipped(equipped: bool) -> bool:
 func rumor_candidate(offer_id: String) -> Dictionary:
 	var offer: Dictionary = offer_by_id(offer_id)
 	if offer.is_empty() or offer.get("status") != "open" \
-			or offer.get("origin") != player_district or not active_offer_id.is_empty() \
+			or offer.get("origin") != player_district or is_travelling() \
 			or meeting_in_progress():
 		return {}
 	var npc: Dictionary = resident(str(offer.get("npc_id", "")))
@@ -182,7 +182,7 @@ func install_language_module(language: String) -> bool:
 func request_common(offer_id: String) -> bool:
 	var offer: Dictionary = offer_by_id(offer_id)
 	if offer.is_empty() or common_requests.has(offer_id) or offer.get("status") != "open" \
-			or offer.get("origin") != player_district or not active_offer_id.is_empty() \
+			or offer.get("origin") != player_district or is_travelling() \
 			or meeting_in_progress():
 		return false
 	var npc: Dictionary = resident(str(offer.get("npc_id", "")))
@@ -310,10 +310,10 @@ func engage_offer(id: String) -> bool:
 	return true
 
 
-func reposition(destination: String, via: String = "") -> bool:
+func reposition(destination: String, via: String = "", waypoints: Array[String] = []) -> bool:
 	if meeting_in_progress() or is_travelling() or not SandboxRoads.DISTRICTS.has(destination) or destination==player_district:
 		return false
-	var nodes: Array[String] = SandboxRoads.path(player_district,destination)
+	var nodes: Array[String] = SandboxRoads.path(player_district,destination,via) if waypoints.is_empty() else SandboxRoads.path_via(player_district,destination,waypoints)
 	var move_cost: int = maxi(1,ceili(SandboxRoads.path_metres(nodes)/5000.0))
 	if not SandboxRoads.valid_path(nodes) or credits < move_cost+SandboxRoads.path_expense(nodes): return false
 	credits -= move_cost
@@ -525,6 +525,9 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if not (value.get("residents") is Array) or not (value.get("offers") is Array) or not (value.get("events") is Array) \
 			or not (value.get("meetings") is Array):
 		return false
+	for collection in ["residents","offers","events","meetings"]:
+		for entry in value[collection]:
+			if not (entry is Dictionary): return false
 	var district: String = str(value.get("player_district", ""))
 	var remaining: int = int(value.get("remaining_minutes", -1))
 	var active: String = str(value.get("active_offer_id", ""))
@@ -724,6 +727,12 @@ func restore_snapshot(value: Dictionary) -> bool:
 			actual_active += 1
 			if id != active:
 				return false
+	for accepted in value["offers"]:
+		if accepted.get("status")=="accepted":
+			var matching: bool=false
+			for npc in value["residents"]:
+				if npc.get("id")==accepted.get("npc_id") and npc.get("taxi_offer")==active: matching=true
+			if not matching: return false
 	if actual_active != (1 if not active.is_empty() else 0):
 		return false
 	if not (value.get("route_nodes") is Array) or not (value.get("pending_route_nodes") is Array) \

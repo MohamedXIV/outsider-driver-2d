@@ -16,12 +16,17 @@ var _portrait_title: Label
 var _tabs: HBoxContainer
 var _mode: Button
 var _actions: Dictionary = {}
+var _planned_stops: Array[String] = []
 var _planned_via: String = ""
 var _map_selected: String = "market"
 var _last_signature: String = ""
+var _action_serial: int = 0
+var _arabic_font: Font
 
 func bind(host: Node) -> void:
 	controller=host
+	_arabic_font=load(controller.ARABIC_FONT).duplicate()
+	_arabic_font.fallbacks=[ThemeDB.fallback_font]
 	layer=20
 	root=Control.new();root.name="Root";root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -52,6 +57,7 @@ func bind(host: Node) -> void:
 		var button: Button=Button.new();button.name=key;button.custom_minimum_size=Vector2(0,44);_tabs.add_child(button);button.pressed.connect(_tab.bind(key))
 	_panel=PanelContainer.new();root.add_child(_panel);_panel.position=Vector2(24,140)
 	_scroll=ScrollContainer.new();_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;_panel.add_child(_scroll)
+	_scroll.get_v_scroll_bar().value_changed.connect(func(_value: float): call_deferred("_publish"))
 	_body=VBoxContainer.new();_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;_body.add_theme_constant_override("separation",10);_scroll.add_child(_body)
 	_portrait=SandboxPassengerView.new();root.add_child(_portrait);_portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	_portrait_title=Label.new();root.add_child(_portrait_title);_portrait_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -70,6 +76,7 @@ func _layout() -> void:
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
 	_header.size.x=area.x-200;_hint.size.x=area.x-60
 	_header.clip_text=true;_hint.clip_text=true
+	call_deferred("_fit_panel");call_deferred("_publish")
 
 func toggle_debug() -> void:
 	debug_mode=not debug_mode
@@ -81,7 +88,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		toggle_debug();get_viewport().set_input_as_handled()
 
 func _tab(key: String) -> void:
-	tab=key;_last_signature="";sync()
+	tab=key;_last_signature="";sync();_ack()
 
 func _label(text: String, heading: bool=false) -> Label:
 	var label: Label=Label.new();label.text=text;label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -91,7 +98,7 @@ func _label(text: String, heading: bool=false) -> Label:
 
 func _button(id: String, text: String, action: Callable, disabled: bool=false) -> Button:
 	var button: Button=Button.new();button.name=id;button.text=text;button.custom_minimum_size=Vector2(0,44)
-	button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.disabled=disabled;button.pressed.connect(action)
+	button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.disabled=disabled;button.pressed.connect(func(): action.call();_ack())
 	_body.add_child(button);_actions[id]=button;return button
 
 func _call(method: String) -> void:
@@ -104,7 +111,7 @@ func _local_select(id: String) -> void:
 	controller._selected_id=id;controller._render();_last_signature="";sync()
 
 func _drive(stop: String) -> void:
-	if controller._world.reposition(stop,_planned_via):
+	if controller._world.reposition(stop,_planned_via,_planned_stops):
 		controller._conversation=null;controller._elapsed=0;controller._notice_text=trp("Following city roads to ","على طرق المدينة إلى ")+place(stop)
 	controller._render();_last_signature="";sync()
 
@@ -114,15 +121,17 @@ func sync() -> void:
 	_panel.visible=not debug_mode;_tabs.visible=not debug_mode;_header.visible=not debug_mode;_hint.visible=not debug_mode
 	_mode.text=trp("Player · F3","اللعب · F3") if debug_mode else trp("Debug · F3","التشخيص · F3")
 	controller._city.reduced_motion=controller._reduced_motion
+	controller._city.ui_rtl=controller._ui_locale=="ar"
 	var world: SandboxWorld=controller._world
 	var locale: String=controller._ui_locale
 	root.layout_direction=Control.LAYOUT_DIRECTION_RTL if locale=="ar" else Control.LAYOUT_DIRECTION_LTR
-	if locale=="ar": root.add_theme_font_override("font",load(controller.ARABIC_FONT))
-	else: root.remove_theme_font_override("font")
+	var font: Font=_arabic_font if locale=="ar" else ThemeDB.fallback_font
+	if root.theme.default_font!=font: root.theme.default_font=font
 	for child in _tabs.get_children():
 		child.text={"requests":trp("Street","الشارع"),"map":trp("Map","الخريطة"),"gear":trp("Gear","الأجهزة"),"contacts":trp("Contacts","المعارف"),"settings":trp("Options","الخيارات")}[child.name]
 	_header.text=trp("OUTSIDER / ","غريب / ")+SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["ar" if locale=="ar" else "name"]+"   ·   %d cr"%world.credits
 	_hint.text="%02d:%02d  ·  %s  ·  %s"%[(world.minute%1440)/60,world.minute%60,place(world.player_district),trp("On the road · %dm remaining","على الطريق · المتبقي %d د")%world.remaining_minutes if world.is_travelling() else trp("Parked · look for a fare","متوقف · ابحث عن راكب")]
+	if world.risk>0: _hint.text+=trp(" · Attention %d"," · الانتباه %d")%world.risk
 	var conversation: SandboxConversation=controller._conversation
 	var speaker: Dictionary={}
 	if conversation!=null: speaker=world.resident(str(world.offer_by_id(conversation.offer_id).get("npc_id","")))
@@ -131,7 +140,18 @@ func sync() -> void:
 	_portrait.visible=not debug_mode and not speaker.is_empty()
 	_portrait_title.visible=_portrait.visible
 	_portrait_title.text=trp("Passenger · ","الراكب · ")+str(speaker.get("language","")).capitalize()
-	var signature: String=JSON.stringify([tab,debug_mode,world.minute/60,world.open_offers(),world.route_nodes,world.pending_route_nodes,world.modules_owned,world.modules_installed,world.meetings,controller._reduced_motion,world.credits,world.active_offer_id,world.player_district,controller._dialogue_text.text,controller._selected_id,controller._notice_text,locale,world.starter_device,world.ar_equipped,controller._meeting_text.text])
+	var context: Array=[]
+	match tab:
+		"requests":
+			var local: Array=[]
+			for offer in world.open_offers():
+				if offer["origin"]==world.player_district: local.append(offer)
+			context=[local,world.player_district,world.active_offer_id,world.is_travelling(),controller._selected_id,controller._dialogue_text.text,controller._notice_text]
+		"map": context=[world.route_nodes,world.pending_route_nodes,world.rider_route_request,world.player_district,world.credits,_map_selected,_planned_via,_planned_stops]
+		"gear": context=[world.starter_device,world.modules_owned,world.modules_installed,world.market_stock,world.player_district,world.is_travelling(),SandboxKnowledge.market_open(world.minute),world.credits,world.ar_owned,world.ar_equipped,controller._ar_note]
+		"contacts": context=[world.meetings,controller._selected_meeting_id,controller._meeting_text.text,controller._meeting_info.text,controller._meeting_accept.disabled,controller._meeting_decline.disabled,controller._meeting_attend.disabled]
+		"settings": context=[controller._notice_text]
+	var signature: String=JSON.stringify([tab,debug_mode,locale,controller._reduced_motion,context])
 	if signature==_last_signature: return
 	_last_signature=signature
 	var scroll_position: int=_scroll.scroll_vertical
@@ -176,20 +196,23 @@ func sync() -> void:
 		_label(controller._notice_text)
 	elif tab=="map":
 		_label(trp("The charter port","مدينة الميناء"),true)
-		var map: SandboxMapView=SandboxMapView.new();map.world=world;map.selected=_map_selected;_body.add_child(map);map.stop_selected.connect(_map_pick)
-		_label(trp("Select a stop. Crossings connect only at marked road junctions.","اختر موقفًا. تتصل الطرق عند التقاطعات المحددة فقط."))
-		var picker: OptionButton=OptionButton.new();picker.custom_minimum_size.y=44;_body.add_child(picker)
+		var map: SandboxMapView=SandboxMapView.new();map.world=world;map.locale=locale;map.selected=_map_selected;_body.add_child(map);map.stop_selected.connect(_map_pick)
+		_label(trp("Bright rings show currently visible requests. Select a stop. Roads connect only at marked junctions.","الحلقات المضيئة تشير إلى الطلبات المتاحة. اختر موقفًا. تتصل الطرق عند التقاطعات المحددة فقط."))
+		var picker: OptionButton=OptionButton.new();picker.custom_minimum_size.y=44;_body.add_child(picker);_actions["destination"]=picker;picker.pressed.connect(_ack)
 		for stop in SandboxRoads.DISTRICTS:
 			picker.add_item(place(stop));picker.set_item_metadata(picker.item_count-1,stop)
 			if stop==_map_selected: picker.select(picker.item_count-1)
 		picker.item_selected.connect(func(i: int): _map_pick(str(picker.get_item_metadata(i))))
-		var via_picker: OptionButton=OptionButton.new();via_picker.custom_minimum_size.y=44;_body.add_child(via_picker)
+		var via_picker: OptionButton=OptionButton.new();via_picker.custom_minimum_size.y=44;_body.add_child(via_picker);_actions["via"]=via_picker;via_picker.pressed.connect(_ack)
 		via_picker.add_item(trp("Fastest connected route","أسرع مسار متصل"));via_picker.set_item_metadata(0,"")
 		for node in SandboxRoads.LINKS:
 			via_picker.add_item(trp("Via: ","عبر: ")+place(str(node)));via_picker.set_item_metadata(via_picker.item_count-1,node)
 			if node==_planned_via: via_picker.select(via_picker.item_count-1)
 		via_picker.item_selected.connect(func(i: int): _planned_via=str(via_picker.get_item_metadata(i));_last_signature="";sync())
-		var path: Array[String]=SandboxRoads.path(world.player_district,_map_selected,_planned_via)
+		_label(trp("Waypoints: ","النقاط: ")+waypoint_names())
+		_button("add_waypoint",trp("Add selected waypoint","أضف النقطة المحددة"),_add_waypoint,_planned_via.is_empty() or _planned_stops.has(_planned_via))
+		_button("clear_waypoints",trp("Clear waypoints","امسح النقاط"),_clear_waypoints,_planned_stops.is_empty())
+		var path: Array[String]=SandboxRoads.path(world.player_district,_map_selected,_planned_via) if _planned_stops.is_empty() else SandboxRoads.path_via(world.player_district,_map_selected,_planned_stops)
 		_label("%s · %.1f km · %d min"%[place(_map_selected),SandboxRoads.path_metres(path)/1000,SandboxRoads.path_minutes(path)])
 		_button("drive",trp("Drive to this stop","قد إلى الموقف"),_drive.bind(_map_selected),world.is_travelling() or world.player_district==_map_selected or not SandboxRoads.valid_path(path))
 		if not world.is_travelling():
@@ -203,7 +226,7 @@ func sync() -> void:
 		_label(trp("Your working kit","أدوات عملك"),true)
 		if world.starter_device.is_empty():
 			_label(trp("Basic Common translator included. Choose one free starter bonus.","مترجم اللغة المشتركة متاح. اختر إضافة مجانية واحدة."))
-			for device in ["gps","module:local","radio"]: _button(device,trp({"gps":"GPS · route display","module:local":"Local language module","radio":"Radio · underground dispatch"}[device],{"gps":"نظام الملاحة","module:local":"وحدة اللغة المحلية","radio":"راديو الطلبات السرية"}[device]),controller._on_starter_device.bind(device))
+			for device in ["gps","module:local","radio"]: _button(device,trp({"gps":"GPS · route display","module:local":"Local language module","radio":"Radio · underground dispatch"}[device],{"gps":"نظام الملاحة","module:local":"وحدة اللغة المحلية","radio":"راديو الطلبات السرية"}[device]),controller._on_starter_device.bind(device),world.is_travelling())
 		else: _label(controller._gear_info.text)
 		_label(trp("Concourse Market · Linguist · 06:00–20:00","سوق الملتقى · اللغوي · ٠٦:٠٠–٢٠:٠٠"))
 		_button("market",trp("Drive to the market","قد إلى السوق"),_drive.bind("market"),world.is_travelling() or world.player_district=="market")
@@ -217,14 +240,15 @@ func sync() -> void:
 		_label(trp("People, not quest markers","أناس تعرفهم"),true)
 		_label(controller._meeting_info.text)
 		for meeting in world.meetings:
-			_button("meeting_"+str(meeting["id"]),str(meeting["npc_id"])+" · "+str(meeting["status"]),_select_meeting.bind(str(meeting["id"])))
+			_button("meeting_"+str(meeting["id"]),trp("Resident ","المقيم ")+str(meeting["npc_id"]).trim_prefix("npc:")+" · "+str(meeting["status"]),_select_meeting.bind(str(meeting["id"])))
 		_button("meeting_accept",trp("Accept invitation","اقبل الدعوة"),_call.bind("_on_meeting_accept"),controller._meeting_accept.disabled)
 		_button("meeting_decline",trp("Decline invitation","ارفض الدعوة"),_call.bind("_on_meeting_decline"),controller._meeting_decline.disabled)
 		_button("meeting_attend",trp("Meet here","التقِ هنا"),_call.bind("_on_meeting_attend"),controller._meeting_attend.disabled)
 		if controller._meeting_dialogue!=null:
 			_label(controller._meeting_text.text)
-			for child in controller._meeting_choices.get_children():
-				if child is Button: _button("meeting_choice_"+str(child.get_index()),child.text,controller._on_meeting_choice.bind(child.get_index()))
+			var meeting_choices: Array=controller._meeting_dialogue.current_frame().get("choices",[])
+			for i in range(meeting_choices.size()):
+				_button("meeting_choice_"+str(i),str(meeting_choices[i]),controller._on_meeting_choice.bind(i))
 	elif tab=="settings":
 		_label(trp("Make yourself at home","خياراتك"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))
@@ -246,6 +270,7 @@ func _select_meeting(id: String) -> void:
 func _publish() -> void:
 	if not OS.has_feature("web"): return
 	await get_tree().process_frame
+	await get_tree().process_frame
 	if not is_inside_tree(): return
 	var bounds: Dictionary={}
 	for key in _actions:
@@ -253,7 +278,7 @@ func _publish() -> void:
 		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
-	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
@@ -269,3 +294,18 @@ func _plan_fare() -> void:
 	controller._route_waypoint=_planned_via
 	controller._render()
 	tab="requests";_last_signature="";sync()
+
+func _add_waypoint() -> void:
+	if not _planned_via.is_empty() and not _planned_stops.has(_planned_via): _planned_stops.append(_planned_via)
+	_last_signature="";sync()
+func _clear_waypoints() -> void:
+	_planned_stops.clear();_planned_via="";_last_signature="";sync()
+
+func waypoint_names() -> String:
+	var names: PackedStringArray=[]
+	for stop in _planned_stops: names.append(place(stop))
+	return " → ".join(names)
+
+func _ack() -> void:
+	_action_serial+=1
+	call_deferred("_publish")

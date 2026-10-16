@@ -20,7 +20,7 @@ func open(world: SandboxWorld, id: String, tree: SceneTree) -> bool:
 	if not bridge.open_compiled(compiled, tree, {
 		"is_late": bool(meeting["late"]),
 		"is_cautious": str(npc["temperament"]) == "cautious",
-		"understands_speaker": SandboxKnowledge.understands(str(npc["language"]), world.knowledge)
+		"understands_speaker": SandboxKnowledge.understands(str(npc["language"]), world.modules_installed)
 	}):
 		return false
 	meeting_id = id

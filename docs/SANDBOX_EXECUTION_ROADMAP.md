@@ -1,5 +1,7 @@
 # Outsider Driver — Active Sandbox Execution Roadmap
 
+> **October 16 integrated reboot:** #49–52 are implemented on `feat/playability-city-integration`, ready for human check. [Build, current city contracts and evidence](CITY_PLAYTEST.md). All prior next-slice/status entries below are historical where superseded; #48 remains the human feedback parent.
+
 > **Active roadmap, October 15, 2026.** This supersedes the **archived prototype** `ROADMAP.md` for future sandbox implementation. It contains the dependency order for small independently verifiable PRs, not a promise that the designs already run. It is linked to the GitHub Epic and detailed issues.
 >
 > **Epic:** [#15 — Sandbox Foundation](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). **Canonical design:** [Living City Conclusions](LIVING_CITY_DESIGN_CONCLUSIONS.md) and [Sandbox Game DNA](SANDBOX_GAME_DNA.md).

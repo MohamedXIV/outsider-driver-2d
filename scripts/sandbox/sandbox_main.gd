@@ -397,7 +397,7 @@ func _on_talk() -> void:
 	_conversation = conversation
 	_last_intent = "request_trip"
 	_last_outcome = ""
-	_notice_text = "The resident speaks. Speech is determined by NPC state."
+	_notice_text = "The resident is speaking."
 	_render()
 
 
@@ -414,7 +414,7 @@ func _on_dialogue_choice(index: int) -> void:
 			_last_intent = str(tag).trim_prefix("intent:")
 	if _conversation.is_finished():
 		_last_outcome = _conversation.outcome()
-		_notice_text = "Conversation outcome: %s. The world owns the decision." % _last_outcome
+		_notice_text = {"accepted":"Passenger aboard. Following your selected route.","declined":"You pass on this fare.","quiet":"You give the passenger a quiet ride.","blocked":"You cannot take this fare right now."}.get(_last_outcome,"Conversation ended.")
 		_conversation = null
 	_render()
 
@@ -423,7 +423,7 @@ func _on_accept() -> void:
 	if _world.accept(_selected_id, _route_waypoint):
 		_conversation = null
 		_last_outcome = "accepted"
-		_notice_text = "Job accepted. Your chosen road segments now control taxi movement."
+		_notice_text = "Passenger aboard. Following your selected route."
 	else:
 		_notice_text = "Not accessible: travel to origin or avoid licensed dispatch."
 	_render()
@@ -433,7 +433,7 @@ func _on_decline() -> void:
 	if _world.decline(_selected_id):
 		_conversation = null
 		_last_outcome = "declined"
-		_notice_text = "Offer declined. This NPC must reconsider its travel plans."
+		_notice_text = "You pass on this fare."
 	_render()
 
 
@@ -441,7 +441,7 @@ func _on_reposition() -> void:
 	var destination: String = SandboxRoads.DISTRICTS[_districts.get_selected_id()]
 	if _world.reposition(destination):
 		_conversation = null
-		_notice_text = "Repositioned via city roads; offers continued aging."
+		_notice_text = "On the way. The city carries on around you."
 	else:
 		_notice_text = "Cannot move: already here, busy or insufficient credits."
 	_render()
@@ -601,8 +601,8 @@ func _render_debug() -> void:
 			or int(_world.market_stock["local"]) == 0 or _world.credits < 8
 	_buy_cant.disabled = not stall or _world.modules_owned.has("cant") \
 			or int(_world.market_stock["cant"]) == 0 or _world.credits < 9
-	_install_local.disabled = not _world.modules_owned.has("local") or _world.modules_installed.has("local")
-	_install_cant.disabled = not _world.modules_owned.has("cant") or _world.modules_installed.has("cant")
+	_install_local.disabled = _world.is_travelling() or not _world.modules_owned.has("local") or _world.modules_installed.has("local")
+	_install_cant.disabled = _world.is_travelling() or not _world.modules_owned.has("cant") or _world.modules_installed.has("cant")
 	match _world.starter_device:
 		"gps":
 			_gear_info.text = "GPS active: district graph known. To %s: %d road hops." % [
@@ -1025,7 +1025,7 @@ func _render_route_picker(offer: Dictionary) -> void:
 		_route_preview.text = "Final edge: next junction is the destination." if active else "No connected path."
 		return
 	var selected: int = 0
-	for district in SandboxRoads.DISTRICTS:
+	for district in SandboxRoads.LINKS:
 		if district == start or district == dest:
 			continue
 		var path: Array[String] = SandboxRoads.path(start, dest, district)
