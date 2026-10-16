@@ -1,30 +1,34 @@
 class_name SandboxKnowledge
 extends RefCounted
 
-# Knowledge is an explicit, world-owned ledger. Devices reveal *different*
-# evidence; no invented fluent translation, omniscient GPS or human radio.
-const DEVICES: Array[String] = ["gps", "translator", "radio"]
+# A single translator with installed whole-language cartridges, not learned
+# words, route markers, or per-phrase progress. Three languages are communal.
+const LANGUAGES: Array[String] = ["trade", "local", "cant"]
+const DEVICES: Array[String] = ["gps", "module:local", "radio"]
 const FIRST_FACT: Dictionary = {
 	"gps": "map:district-graph",
-	"translator": "tool:local-phrase-scanner",
 	"radio": "radio:alien-signal-pattern"
 }
-const ROUTE_MARKER: String = "lexicon:local:route-marker"
+const MODULE_PRICES: Dictionary = {"local": 8, "cant": 9}
+const MARKET_VENDOR: String = "vendor:market:language-stall"
 
 
 static func has_fact(facts: Array[String], fact: String) -> bool:
 	return facts.has(fact)
 
 
-static func understands(language: String, facts: Array[String]) -> bool:
-	# Trade speech is a known lingua franca. Local dialect is *never* fully
-	# translated in S2, not even after learning one route expression.
-	return language == "trade"
+static func understands(language: String, installed_languages: Array[String]) -> bool:
+	return LANGUAGES.has(language) and installed_languages.has(language)
 
 
-static func recognizes_route_marker(language: String, facts: Array[String]) -> bool:
-	return language == "local" and facts.has(ROUTE_MARKER)
+static func can_switch_to_common(npc: Dictionary) -> bool:
+	# Fluency and willingness are separate NPC capabilities, not a universal
+	# escape from missing cartridges. High-need cautious riders may refuse.
+	return bool(npc.get("speaks_common", false)) \
+			and bool(npc.get("will_use_common", false)) \
+			and not (npc.get("temperament") == "cautious" and int(npc.get("need", 0)) >= 75)
 
 
-static func can_observe_route(device: String, language: String, fact: String) -> bool:
-	return device == "translator" and language == "local" and fact == ROUTE_MARKER
+static func market_open(minute: int) -> bool:
+	var hour: int = (minute % 1440) / 60
+	return hour >= 6 and hour < 20

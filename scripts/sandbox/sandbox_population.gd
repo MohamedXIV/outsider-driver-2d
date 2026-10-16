@@ -40,7 +40,9 @@ static func create(seed: int) -> Array[Dictionary]:
 			"peer_knowledge": {},
 			"contacts": {},
 			"last_peer_day": -1,
-			"language": "trade" if i % 3 == 0 else "local",
+			"language": SandboxKnowledge.LANGUAGES[i % 3],
+			"speaks_common": i % 4 != 1,
+			"will_use_common": i % 3 != 2,
 			"temperament": "cautious" if i % 2 == 0 else "urgent"
 		})
 	return residents

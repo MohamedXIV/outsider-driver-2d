@@ -12,7 +12,6 @@ var _ink: InkBridge
 var _frame: Dictionary = {}
 var _outcome: String = ""
 var _understood: bool = false
-var _partial_route: bool = false
 var _recognizes_driver: bool = false
 
 
@@ -26,10 +25,10 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	var compiled: String = FileAccess.get_file_as_string(STORY_PATH)
 	if compiled.is_empty():
 		return false
-	var understood: bool = SandboxKnowledge.understands(str(npc["language"]), world.knowledge)
-	var partial_route: bool = SandboxKnowledge.recognizes_route_marker(str(npc["language"]), world.knowledge)
+	var understood: bool = SandboxKnowledge.understands(str(npc["language"]), world.modules_installed) \
+			or bool(world.common_requests.get(requested_offer, false))
 	var globals: Dictionary = {
-		"knows_local_route": partial_route,
+		"knows_local_route": false, # Obsolete S2 Ink branch is unreachable; compiled story remains deterministic.
 		"recognizes_driver": SandboxDriverMemory.recognizes(npc),
 		"understands_speaker": understood,
 		"urgent": int(npc["need"]) >= 70,
@@ -43,7 +42,6 @@ func open(world: SandboxWorld, requested_offer: String, tree: SceneTree) -> bool
 	_ink = bridge
 	offer_id = requested_offer
 	_understood = understood
-	_partial_route = partial_route
 	_recognizes_driver = SandboxDriverMemory.recognizes(npc)
 	_outcome = ""
 	_frame = _ink.advance()
@@ -67,9 +65,6 @@ func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 	var result: Dictionary = _ink.choose(index)
 	_frame = result
 	var tags: Array = result.get("tags", [])
-	# This can only learn a bounded phrase after a real language observation.
-	if tags.has("intent:ask_destination"):
-		world.observe_route_language(offer_id)
 	# Ink tags describe a proposed speech act. World validates & owns the effect.
 	if tags.has(ACTION_ACCEPT):
 		_outcome = "accepted" if world.accept(offer_id, waypoint) else "blocked"
@@ -90,8 +85,14 @@ func understood() -> bool:
 	return _understood
 
 
-func recognizes_route() -> bool:
-	return _partial_route
+func request_common(world: SandboxWorld, tree: SceneTree) -> bool:
+	if _ink == null or not still_valid(world) or _frame.get("tags", []).has("intent:ask_destination") \
+			or world.common_requests.has(offer_id) or _understood:
+		return false
+	var target: String = offer_id
+	if not world.request_common(target):
+		return false
+	return open(world, target, tree)
 
 
 func recognizes_driver() -> bool:
