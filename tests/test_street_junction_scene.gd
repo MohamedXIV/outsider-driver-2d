@@ -16,7 +16,7 @@ func _run() -> void:
 		assert(scene.get_node(item) is NavigationLink2D)
 	for i in range(8):
 		await physics_frame
-	var agent: NavigationAgent2D=scene.pedestrian.get_node("NavigationAgent2D") if scene.pedestrian.has_node("NavigationAgent2D") else null
+	var agent: NavigationAgent2D=scene.pedestrian._agent
 	assert(agent!=null)
 	var map: RID=agent.get_navigation_map()
 	assert(NavigationServer2D.map_get_iteration_id(map)>0)
