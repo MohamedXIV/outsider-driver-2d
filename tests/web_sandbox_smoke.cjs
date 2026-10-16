@@ -100,6 +100,9 @@ const { chromium } = require('playwright');
     if (d.sandboxCredits !== '3' || !JSON.parse(d.sandboxInstalled).includes('local'))
       throw new Error('Module payment/installation lost after mid-Ink reload.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-installed-restored.png'});
+    // The glyph reveal collapses the Skip button slot. Wait for the final
+    // post-reveal layout rather than clicking a previously published center.
+    await wait(() => document.documentElement.dataset.sandboxRevealPending === 'false');
     // Ink choice index 1 = Agree. Use the real post-layout button center.
     await wait(() => {
       const s = document.documentElement.dataset.sandboxInkAcceptPoint;

@@ -280,6 +280,11 @@ func _finish_language_reveal() -> void:
 		_dialogue_text.add_theme_font_override("font", load(ARABIC_FONT))
 	_skip_translation.visible = false
 	_publish_reveal_web()
+	# Hiding Skip collapses its VBox slot and moves every Ink choice.
+	# Republish *after* Godot lays out the frame so Web clicks cannot hit
+	# an obsolete pre-reveal position.
+	if OS.has_feature("web"):
+		call_deferred("_publish_language_web")
 
 
 func _publish_reveal_web() -> void:
