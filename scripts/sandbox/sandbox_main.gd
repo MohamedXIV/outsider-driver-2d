@@ -12,6 +12,7 @@ extends Node2D
 @onready var _clock: Label = $HUD/DockPanel/Content/Clock
 @onready var _world_info: Label = $HUD/WorldPanel/Content/WorldInfo
 @onready var _observe: Button = $HUD/WorldPanel/Content/Observe
+@onready var _route_panel: PanelContainer = $HUD/RoutePanel
 @onready var _via: OptionButton = $HUD/RoutePanel/Content/Via
 @onready var _route_preview: Label = $HUD/RoutePanel/Content/Preview
 @onready var _rider_info: Label = $HUD/RoutePanel/Content/RiderInfo
@@ -458,6 +459,9 @@ func _render() -> void:
 		_gear_info.text += " | Travel to Market 06:00–20:00 to buy."
 	_render_meetings()
 	_dialogue_panel.visible = _conversation != null and not _meeting_panel.visible
+	# The equipment stall requires more vertical space; an active Ink or
+	# off-duty scene must never be occluded by the route controls.
+	_route_panel.visible = not _dialogue_panel.visible and not _meeting_panel.visible
 	for button in _dialogue_choices.get_children():
 		button.queue_free()
 	if _conversation != null:
@@ -580,6 +584,8 @@ func _publish_language_web() -> void:
 		"sandboxInstallCantPoint": _install_cant.get_global_rect().get_center(),
 		"sandboxCommonPoint": _request_common.get_global_rect().get_center(),
 		"sandboxMarketTravelPoint": _drive_market.get_global_rect().get_center(),
+		"sandboxHonorRiderPoint": _honor.get_global_rect().get_center(),
+		"sandboxRefuseRiderPoint": _refuse.get_global_rect().get_center(),
 		"sandboxDistrictPoint": _districts.get_global_rect().get_center(),
 		"sandboxRepositionPoint": _reposition.get_global_rect().get_center(),
 		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center()
