@@ -11,6 +11,7 @@ var destination: Vector2
 var crossing_reserved: bool = false
 var crossing_completed: bool = false
 var did_arrive: bool = false
+var block_for_player: bool = false
 var traffic: CharacterBody2D
 var _agent: NavigationAgent2D
 var _target_set: bool = false
@@ -59,7 +60,8 @@ func _physics_process(_delta: float) -> void:
 	# Local right-of-way is separate from NavigationAgent's pathfinding.
 	if not crossing_completed and position.x >= CROSS_X - 19.0:
 		crossing_reserved = true
-		if traffic != null and not SandboxStreetPriority.pedestrian_may_enter(traffic.position.x):
+		if block_for_player or (traffic != null and \
+				not SandboxStreetPriority.pedestrian_may_enter(traffic.position.x)):
 			velocity = Vector2.ZERO
 			_agent.set_velocity(Vector2.ZERO)
 			return

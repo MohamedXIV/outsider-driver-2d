@@ -150,14 +150,20 @@ func _process(delta: float) -> void:
 		_city.visual_fraction = 0.0
 		_city.queue_redraw()
 		return
+	# Reconcile real scene proximity before advancing the next world tick.
+	# A local pedestrian can hold the actual player taxi at a grounded zebra;
+	# never stop the city clock, other NPCs or money settlement elsewhere.
+	_sync_local_pedestrian()
 	_elapsed += maxf(delta, 0.0)
 	while _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
+		_update_player_crossing_yield()
 		_world.advance(1)
 		_render()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
 	# fraction belongs to presentation time, NOT the player's travel state.
-	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
+	_city.visual_fraction = 0.0 if not _world.route_hold_id.is_empty() else \
+			clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
 	_sync_local_pedestrian()
 
@@ -467,8 +473,20 @@ func _on_observe() -> void:
 
 # Local native Godot navigation runs only for a genuine resident in the garage
 # vicinity. It is one shared world, not an alternate passenger simulator.
+func _update_player_crossing_yield() -> void:
+	if not _world.route_hold_id.is_empty():
+		if _street_pilot==null or _street_pilot.world_reported_arrival \
+				or _street_pilot.pedestrian.crossing_completed:
+			_world.release_crossing_yield()
+		return
+	if _street_pilot!=null and _street_pilot.pedestrian.crossing_reserved \
+			and not _street_pilot.pedestrian.crossing_completed \
+			and SandboxStreetRouteBinding.approaching(_world):
+		_world.begin_crossing_yield()
+
+
 func _sync_local_pedestrian() -> void:
-	var visible_neighborhood: bool=_world.player_district=="garage" and not _world.is_travelling()
+	var visible_neighborhood: bool=SandboxStreetRouteBinding.in_neighborhood(_world)
 	if not visible_neighborhood:
 		if _street_pilot != null:
 			if not _street_pilot.world_reported_arrival:
@@ -504,7 +522,9 @@ func _sync_local_pedestrian() -> void:
 	local.world=_world
 	local.walking_npc_id=npc_id
 	local.resume_state=_street_restore_state.duplicate(true)
-	local.position=SandboxCityView.project(SandboxRoads.map_position("garage"))-Vector2(320.0,480.0)
+	# Author the crossing on the actual route-graph edge and in the actual
+	# ground plane; no unrelated screen-space fake crossing.
+	local.transform=SandboxStreetRouteBinding.street_transform()
 	local.z_index=5
 	_street_pilot=local
 	_city.local_active_npc_id=npc_id

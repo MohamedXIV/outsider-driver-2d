@@ -19,8 +19,11 @@ func _run() -> void:
 	assert(scene._street_pilot.world == original_world)
 	assert(scene._street_pilot.walking_npc_id == initial_actor)
 	assert(original_world.resident(initial_actor)["local_pedestrian_trip"]["status"] == "walking")
-	var expected_anchor: Vector2 = SandboxCityView.project(SandboxRoads.map_position("garage")) - Vector2(320.0,480.0)
-	assert(scene._street_pilot.position.distance_to(expected_anchor) < .1)
+	var zebra: Vector2=scene._street_pilot.to_global(Vector2(
+			SandboxStreetModule.CROSS_X,SandboxStreetModule.LANE_Y))
+	assert(zebra.distance_to(SandboxStreetRouteBinding.crossing_position())<.01,
+			"The garage zebra must be on the real ground-level taxi road edge")
+	assert(SandboxStreetRouteBinding.grounded())
 	var departure_events: int = 0
 	for e in original_world.events:
 		if e["kind"] == "local_pedestrian_departed":

@@ -105,6 +105,8 @@ func _physics_process(delta: float) -> void:
 	# Crossing priority is traffic policy, not an automatic NavMesh feature.
 	if car == null or pedestrian == null:
 		return
+	pedestrian.block_for_player = embedded and \
+			SandboxStreetRouteBinding.taxi_occupies_crosswalk(world)
 	var occupied: bool = pedestrian.crossing_reserved and not pedestrian.crossing_completed
 	var traffic_speed: float = SandboxStreetPriority.vehicle_velocity(
 			car.position.x,pedestrian.crossing_reserved,
