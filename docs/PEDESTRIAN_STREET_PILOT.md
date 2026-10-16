@@ -57,6 +57,20 @@ The gate returned to **manual-only** after the run. No more Actions minutes shou
 
 **Deliberate limits:** This is **one authored Patchworks street module**, not automated six-district sidewalk generation, complex intersections, human acceptance or full pedestrian-car traffic in the normal taxi driving routes. The taxi still follows the legacy route-graph presentation; the demonstrator traffic car yields locally. No Web/Windows play-through of this new slice is claimed. The Godot action is now returned to **manual-only** to conserve CI minutes.
 
+## Two-block Patchworks junction + physical arrival verification — October 16, 2026
+
+**Native PASS:** [Godot 4.7.2 run #38964666601](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38964666601), tested source `f7719f7cbf0128fb2ee90e2bbde3b0cf73641733`; **8/8 targeted tests** passed, including the existing city render and near/far/save invariants. [Test logs and previous integration captures](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38964666601/artifacts/12074197435).
+
+- The existing `SandboxStreetModule` now also composes a **second connected east avenue block and a perpendicular T-branch**, with an explicit navmesh cut at the vehicle branch, two new `NavigationLink2D` marked crossings, and consistent block/lot paintings. Same actual Godot navigation map, no unrestricted paved-road polygon.
+- `test_street_junction_scene.gd` verifies Native `NavigationServer2D.map_get_path` routes across the T crossing, between the connected blocks and along a branch sidewalk. `test_street_module.gd` verifies the contiguous module geometry.
+- `SandboxStreetPriority` provides a small, testable local **vehicle stop-line/yield contract**, with speed capped by distance-to-stop-line and physics frame duration; the existing demonstration traffic car uses the shared policy. Tests confirm no step overshoots the stop line and residents wait for a vehicle already occupying the crossing.
+- **Important fix:** `SandboxPedestrianActor` now resolves target coordinates from the **street-module parent**, not the moving pedestrian's own transform. Arrival is accepted only when the body is physically within 9 px of the authored parts-counter location; both standalone pilot and main-game tests assert it. This prevents false arrivals from clipped/ended nav paths.
+- The previous two failed runs [#38964285698](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38964285698) and [#38964401215](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38964401215) stopped at an incorrect test lookup of a child NavigationAgent2D node by auto-generated name, *before* checking the new route graph. The test was corrected to use the actual typed actor reference; final run passed all 8 tests. The target-coordinate bug was independently corrected and added to strict site-distance checks.
+
+**Still not done:** This is NOT yet a generalized arbitrary-city street-tile builder or a complete junction controller; module composition is still authored locally at Patchworks. The physical yielding car is a **traffic demonstrator, NOT the player taxi**. The game's actual player car is still world-road-graph-driven, and requires grade-safe lane alignment + crossing events before native collision/yielding can safely govern fares. No Web/Windows or human gamefeel validation on this PR yet. Keep #58/#59/#60 open.
+
+**CI policy:** One focused native suite is now PASS; branch-scoped automatic Actions triggering has been removed again. Manual-only for any subsequent required release gate.
+
 ## What is NOT implemented
 - Migration of all existing autonomous walking residents away from `SandboxRoads.position_on_path`.
 - **Full city-wide** native footpath network, reusable street-module generation and deterministic near/far ownership handoff. The garage slice is now embedded in the normal scene but is the only integrated neighborhood.
