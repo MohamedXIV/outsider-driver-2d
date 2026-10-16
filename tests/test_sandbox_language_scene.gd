@@ -77,6 +77,7 @@ func _walkthrough() -> void:
 	assert(get_root().get_texture().get_image().save_png(
 			"/tmp/od2d-ink-evidence/sandbox/languages-arabic-reduced-native.png") == OK)
 	scene.get_node("HUD/DialoguePanel/Content/LanguageSettings/English").pressed.emit()
+	await process_frame # Flush queue_free() on previous locale's choice buttons.
 	assert(line.text.contains("heading to"))
 	assert((choices.get_child(0) as Button).text == "Agree to the trip.")
 	print("SANDBOX_LANGUAGE_SCENE_PASS")
