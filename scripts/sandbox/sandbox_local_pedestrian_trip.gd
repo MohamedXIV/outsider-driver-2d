@@ -14,6 +14,9 @@ static func candidate(world: SandboxWorld) -> String:
 		if active.get("site", "") == PATCHWORKS_PARTS and active.get("status", "") in ["walking", "offscreen"]:
 			return str(npc["id"])
 	for npc in world.residents:
+		# Completed residents do not start the same unique local errand twice.
+		if not npc.get("local_pedestrian_trip", {}).is_empty():
+			continue
 		if str(npc.get("location", "")) != "garage" or str(npc.get("activity", "")) != "available":
 			continue
 		if not ["supplies", "work"].has(str(npc.get("purpose", ""))) or int(npc.get("need", 0)) < 30:
