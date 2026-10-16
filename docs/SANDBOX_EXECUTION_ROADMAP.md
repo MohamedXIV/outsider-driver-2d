@@ -4,6 +4,19 @@
 >
 > **Epic:** [#15 — Sandbox Foundation](https://github.com/MohamedXIV/outsider-driver-2d/issues/15). **Canonical design:** [Living City Conclusions](LIVING_CITY_DESIGN_CONCLUSIONS.md) and [Sandbox Game DNA](SANDBOX_GAME_DNA.md).
 
+## Current product priority — Playability Reboot (human feedback, October 16 2026)
+
+**Canonical ongoing feedback board:** [Playability Feedback Register](PLAYABILITY_FEEDBACK.md) and [Issue #48](https://github.com/MohamedXIV/outsider-driver-2d/issues/48). The user has tested the sandbox enough to identify **crowded developer-facing UI** and **a rushed journey without space to observe the rider and city**, and approved natural curved and elevated roads. Their detailed personal gameplay checklist is **pending**; do not invent playtest scores or close a task based on green CI.
+
+Approved executable slices, in a coordinated sequence:
+
+1. [#49 — Player Mode default / explicit Debug Mode](https://github.com/MohamedXIV/outsider-driver-2d/issues/49): make the actual taxi loop playable without the debug wall, preserving QA mode.
+2. [#51 — Larger physically meaningful city and naturally breathable rides](https://github.com/MohamedXIV/outsider-driver-2d/issues/51): separate high-level districts from road/junction nodes; varied authentic travel lengths rather than applying arbitrary global time slowdown.
+3. [#52 — Curve2D-style road geometry, believable bridges and grade separation](https://github.com/MohamedXIV/outsider-driver-2d/issues/52): visually curving roads and the actual taxi following them; no invented intersections at overpass crossings.
+4. [#50 — Player HUD legibility/beauty, contextual controls and accessibility](https://github.com/MohamedXIV/outsider-driver-2d/issues/50): iterative small UI passes following #49, not another developer dashboard.
+
+**Two distinct Done gates:** (1) reproducible native + exported Chromium technical acceptance and documented builds/screenshots, **then** (2) user feedback explicitly accepting the feel; don't conflate them. After each playable build, update feedback IDs/status/what changed and what is still painful. Do not require the user's pending checklist to start engineering.
+
 ## Verified foundation — do not reimplement
 
 | Slice | Status and evidence |
@@ -37,7 +50,7 @@
 ## Explicit ordering rules
 
 1. **#26 COMPLETE** with [S3 P0 proof](SANDBOX_S3_P0.md). Do not rebuild basic idle-day NPC autonomy, expand obsolete S2 partial translation, or tune full city traffic before player driving works.
-2. **Implement #27 NEXT**: player-facing selectable paths and real taxi travel; then #28 junction reroute; do not finish a giant social simulation or introduce hundreds of character records before the taxi has selectable paths. #29 can proceed after #26 when ready, but **not as a blocker** for #27.
+2. **#27 and #28 DONE**: connected road path selection, actual segment progress and junction rerouting were proved in native/Web. The new **#51/#52** pass must increase physical city scale and curved/elevated road presentation without creating an independent route authority.
 3. Build on concrete encounter outcomes for #29–#31. A recurring driver can be *recognized* without the NPC learning the driver's human origin, legal status or real name. More detailed characters can emerge from normal NPCs, but large handcrafted companion questlines are not required.
 4. **Only then** broaden language/equipment presentation (#32–#33). Languages are shared across species; start with **three**, fourth only if useful. Module access is binary installed/absent, not gradual linguistic proficiency. The Basic Translator with Common preinstalled and one GPS / Local-language / Radio bonus starter is **ratified and implemented in #32**.
 5. Headset AR #34 **shipped as optional equipment**, not a critical dependency for the core taxi sandbox. It never invents facts or gives optimal answer flags.
