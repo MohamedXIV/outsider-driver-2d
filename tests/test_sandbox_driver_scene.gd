@@ -49,7 +49,8 @@ func _walk() -> void:
 	await process_frame
 	var conversation: SandboxConversation = scene.get("_conversation")
 	assert(conversation != null and conversation.recognizes_driver())
-	assert(conversation.current_frame()["text"].contains("recognizes your taxi"))
+	assert(conversation.current_frame()["text"] == SandboxLanguagePresentation.source_line(
+			str(world.resident(speaker)["language"]), "intro_repeat"))
 	await RenderingServer.frame_post_draw
 	assert(get_root().get_texture().get_image().save_png(SHOTS.path_join("returning-cab-native.png")) == OK)
 	scene.call("_on_save")

@@ -80,7 +80,15 @@ func _present_untranslated_frame(world: SandboxWorld) -> void:
 		return
 	var offer: Dictionary = world.offer_by_id(offer_id)
 	var npc: Dictionary = world.resident(str(offer.get("npc_id", "")))
-	_frame["text"] = SandboxKnowledge.alien_surface(str(npc.get("language", "")), str(_frame.get("text", "")))
+	_frame["text"] = SandboxLanguagePresentation.source_line(str(npc.get("language", "")),
+			SandboxLanguagePresentation.speech_key(_frame, npc))
+
+
+func spoken_language(world: SandboxWorld) -> String:
+	if _understood and bool(world.common_requests.get(offer_id, false)):
+		return "trade" # This speaker explicitly switched to Common.
+	var offer: Dictionary = world.offer_by_id(offer_id)
+	return str(world.resident(str(offer.get("npc_id", ""))).get("language", "trade"))
 
 
 func current_frame() -> Dictionary:

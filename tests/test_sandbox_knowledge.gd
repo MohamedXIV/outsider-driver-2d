@@ -123,9 +123,9 @@ func _initialize() -> void:
 	var cant_speech: SandboxConversation = SandboxConversation.new()
 	assert(cant_speech.open(cant_speech_world, cant_offer, self))
 	assert(not cant_speech.understood())
-	assert(str(cant_speech.current_frame()["text"]).contains("Neh-vari tel'nuk"))
+	assert(str(cant_speech.current_frame()["text"]).contains("᚛"))
 	assert(cant_speech.choose(0, cant_speech_world))
-	assert(str(cant_speech.current_frame()["text"]).contains("Irith aan"))
+	assert(str(cant_speech.current_frame()["text"]).contains("᚛"))
 	var cant_file: String = "user://language-cant-ink-v10.json"
 	assert(SandboxSave.save_world(cant_speech_world, cant_file, cant_speech.snapshot()))
 	var cant_bundle: Dictionary = SandboxSave.load_bundle(cant_file)

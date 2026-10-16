@@ -2,7 +2,7 @@ name: Playable ride Web/Desktop gate
 
 on:
   push:
-    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*', 'feat/32-*']
+    branches: ['feat/p1-*', 'feat/p2-*', 'feat/sandbox-*', 'feat/31-*', 'feat/32-*', 'feat/33-*']
     paths:
       - 'addons/inkgd/**'
       - 'assets/passengers/**'
@@ -255,6 +255,11 @@ jobs:
             /tmp/godot --path . --script res://tests/test_sandbox_scene.gd \
             2>&1 | tee /tmp/sandbox-scene.log
           grep -q 'SANDBOX_SCENE_PASS' /tmp/sandbox-scene.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
+            /tmp/godot --path . --script res://tests/test_sandbox_language_scene.gd \
+            2>&1 | tee /tmp/language-scene.log
+          grep -q 'SANDBOX_LANGUAGE_SCENE_PASS' /tmp/language-scene.log
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script|Invalid call' /tmp/language-scene.log; then exit 1; fi
           LIBGL_ALWAYS_SOFTWARE=1 timeout 90s xvfb-run -a -s "-screen 0 1280x720x24" \
             /tmp/godot --path . --script res://tests/test_sandbox_autonomy_scene.gd \
             2>&1 | tee /tmp/autonomy-scene.log

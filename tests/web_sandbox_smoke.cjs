@@ -27,7 +27,9 @@ const { chromium } = require('playwright');
     await click('sandboxOfferTalkPoint');
     await wait(() => document.documentElement.dataset.sandboxDialogue === 'true');
     d = await data();
-    if (d.sandboxDialogueUnderstood !== 'false' || d.sandboxSelectedLanguage !== 'local')
+    if (d.sandboxDialogueUnderstood !== 'false' || d.sandboxSelectedLanguage !== 'local' ||
+      !/[ᚠ-ᛪ]/u.test(d.sandboxDialogueText) ||
+      /points at|stranger|taxi|destination/i.test(d.sandboxDialogueText))
       throw new Error('Missing baseline untranslated Local passenger.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-local-uninstalled.png'});
     await click('sandboxCommonPoint');
@@ -71,6 +73,21 @@ const { chromium } = require('playwright');
     await wait(() => document.documentElement.dataset.sandboxDialogue === 'true' &&
       document.documentElement.dataset.sandboxDialogueUnderstood === 'true');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-local-installed.png'});
+    await click('sandboxLocaleArabicPoint');
+    await wait(() => document.documentElement.dataset.sandboxUILocale === 'ar');
+    await wait(() => /[\u0621-\u064A]/u.test(document.documentElement.dataset.sandboxDialogueText));
+    d = await data();
+    if (!JSON.parse(d.sandboxChoiceLabels).some(x => x.includes('الوجهة')))
+      throw new Error('Arabic RTL choice labels are missing.');
+    await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-arabic-rtl.png'});
+    await click('sandboxReducedMotionPoint');
+    await click('sandboxLocaleEnglishPoint');
+    await click('sandboxLocaleArabicPoint');
+    d = await data();
+    if (d.sandboxRevealPending !== 'false' || !/[\u0621-\u064A]/u.test(d.sandboxDialogueText))
+      throw new Error('Reduced-motion must translate immediately.');
+    await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-arabic-reduced.png'});
+    await click('sandboxLocaleEnglishPoint');
     // Save active contextual Ink BEFORE deciding; replay it after a Chromium reload.
     await page.mouse.click(95,610);
     await page.waitForTimeout(2200);
@@ -83,6 +100,9 @@ const { chromium } = require('playwright');
     if (d.sandboxCredits !== '3' || !JSON.parse(d.sandboxInstalled).includes('local'))
       throw new Error('Module payment/installation lost after mid-Ink reload.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-installed-restored.png'});
+    // The glyph reveal collapses the Skip button slot. Wait for the final
+    // post-reveal layout rather than clicking a previously published center.
+    await wait(() => document.documentElement.dataset.sandboxRevealPending === 'false');
     // Ink choice index 1 = Agree. Use the real post-layout button center.
     await wait(() => {
       const s = document.documentElement.dataset.sandboxInkAcceptPoint;

@@ -24,6 +24,10 @@ extends Node2D
 @onready var _dialogue_title: Label = $HUD/DialoguePanel/Content/Title
 @onready var _dialogue_text: Label = $HUD/DialoguePanel/Content/Line
 @onready var _dialogue_choices: VBoxContainer = $HUD/DialoguePanel/Content/Choices
+@onready var _locale_en: Button = $HUD/DialoguePanel/Content/LanguageSettings/English
+@onready var _locale_ar: Button = $HUD/DialoguePanel/Content/LanguageSettings/Arabic
+@onready var _reduce_motion: CheckButton = $HUD/DialoguePanel/Content/LanguageSettings/ReducedMotion
+@onready var _skip_translation: Button = $HUD/DialoguePanel/Content/SkipTranslation
 @onready var _gear_panel: PanelContainer = $HUD/GearPanel
 @onready var _gear_info: Label = $HUD/GearPanel/Content/Info
 @onready var _gps: Button = $HUD/GearPanel/Content/Devices/GPS
@@ -59,6 +63,15 @@ var _route_waypoint: String = ""
 var _route_for_offer: String = ""
 var _selected_meeting_id: String = ""
 var _meeting_dialogue: SandboxMeetingDialogue
+var _ui_locale: String = "en"
+var _reduced_motion: bool = false
+var _speech_identity: String = ""
+var _source_text: String = ""
+var _translated_text: String = ""
+var _reveal_pending: bool = false
+var _reveal_elapsed: float = 0.0
+const REVEAL_SECONDS: float = 0.7
+const ARABIC_FONT: String = "res://assets/fonts/NotoNaskhArabicUI[wght].ttf"
 
 
 func _ready() -> void:
@@ -80,6 +93,14 @@ func _ready() -> void:
 	_install_local.pressed.connect(_on_install_module.bind("local"))
 	_install_cant.pressed.connect(_on_install_module.bind("cant"))
 	_request_common.pressed.connect(_on_ask_common)
+	_locale_en.pressed.connect(_on_language_locale.bind("en"))
+	_locale_ar.pressed.connect(_on_language_locale.bind("ar"))
+	_reduce_motion.toggled.connect(_on_reduced_motion)
+	_skip_translation.pressed.connect(_finish_language_reveal)
+	if OS.has_feature("web"):
+		_reduced_motion = bool(JavaScriptBridge.eval(
+				"window.matchMedia('(prefers-reduced-motion: reduce)').matches", true))
+	_reduce_motion.set_pressed_no_signal(_reduced_motion)
 	_radio.pressed.connect(_on_starter_device.bind("radio"))
 	_meeting_selector.item_selected.connect(_on_meeting_selected)
 	_meeting_accept.pressed.connect(_on_meeting_accept)
@@ -98,6 +119,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _reveal_pending and _conversation != null:
+		_reveal_elapsed += maxf(delta, 0.0)
+		if _reveal_elapsed >= REVEAL_SECONDS:
+			_finish_language_reveal()
 	if _world.meeting_in_progress():
 		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
 		return
@@ -227,6 +252,48 @@ func _on_install_module(language: String) -> void:
 			_world.install_language_module(language) else "Module not in inventory, already installed or currently busy."
 	_conversation = null # The next NPC encounter uses the newly installed language access.
 	_render()
+
+
+func _on_language_locale(locale: String) -> void:
+	if locale != "en" and locale != "ar":
+		return
+	_ui_locale = locale
+	_render()
+
+
+func _on_reduced_motion(enabled: bool) -> void:
+	_reduced_motion = enabled
+	if enabled and _reveal_pending:
+		_finish_language_reveal()
+	_render()
+
+
+func _finish_language_reveal() -> void:
+	if not _reveal_pending:
+		return
+	_reveal_pending = false
+	_reveal_elapsed = 0.0
+	_dialogue_text.text = _translated_text
+	_dialogue_text.text_direction = Control.TEXT_DIRECTION_RTL if _ui_locale == "ar" else Control.TEXT_DIRECTION_LTR
+	_dialogue_text.remove_theme_font_override("font")
+	if _ui_locale == "ar":
+		_dialogue_text.add_theme_font_override("font", load(ARABIC_FONT))
+	_skip_translation.visible = false
+	_publish_reveal_web()
+	# Hiding Skip collapses its VBox slot and moves every Ink choice.
+	# Republish *after* Godot lays out the frame so Web clicks cannot hit
+	# an obsolete pre-reveal position.
+	if OS.has_feature("web"):
+		call_deferred("_publish_language_web")
+
+
+func _publish_reveal_web() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval(
+				"Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
+					"sandboxDialogueText": _dialogue_text.text,
+					"sandboxRevealPending": str(_reveal_pending).to_lower()
+				}), true)
 
 
 func _on_ask_common() -> void:
@@ -467,24 +534,34 @@ func _render() -> void:
 	if _conversation != null:
 		var speaker_offer: Dictionary = _world.offer_by_id(_conversation.offer_id)
 		var speaker: Dictionary = _world.resident(str(speaker_offer.get("npc_id", "")))
-		_dialogue_title.text = "SPEAKING | %s | %s | %s" % [
-			speaker["id"], str(speaker["language"]).to_upper(),
+		var language: String = _conversation.spoken_language(_world)
+		_dialogue_title.text = ("%s | %s | %s" % [
+			str(speaker["id"]), language.to_upper(),
+			"مترجم" if _conversation.understood() else "غير مترجم"
+		]) if _ui_locale == "ar" else ("SPEAKING | %s | %s | %s" % [
+			str(speaker["id"]), language.to_upper(),
 			"translated" if _conversation.understood() else "untranslated"
-		]
+		])
 		var frame: Dictionary = _conversation.current_frame()
 		_request_common.visible = not _conversation.understood() \
 				and not _world.common_requests.has(_conversation.offer_id) \
 				and frame.get("tags", []).has("intent:request_trip")
-		_dialogue_text.text = str(frame.get("text", ""))
+		_update_dialogue_presentation(frame, speaker_offer, speaker, language)
 		var choices: Array = frame.get("choices", [])
 		for i in range(choices.size()):
 			var button: Button = Button.new()
-			button.text = str(choices[i])
+			button.text = SandboxLanguagePresentation.localized_choice(str(choices[i]), _ui_locale)
 			button.custom_minimum_size = Vector2(0, 32)
+			if _ui_locale == "ar":
+				button.add_theme_font_override("font", load(ARABIC_FONT))
+				button.text_direction = Control.TEXT_DIRECTION_RTL
 			button.pressed.connect(_on_dialogue_choice.bind(i))
 			_dialogue_choices.add_child(button)
 	if _conversation == null:
+		_speech_identity = ""
+		_reveal_pending = false
 		_request_common.visible = false
+		_skip_translation.visible = false
 	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
 	var departed: int = _count_events("npc_alternative_departed")
 	var arrived: int = _count_events("npc_alternative_arrived")
@@ -561,8 +638,62 @@ func _render() -> void:
 			str(_conversation.recognizes_driver()).to_lower() if _conversation != null else "false"
 		]
 		JavaScriptBridge.eval(web_state, true)
+		JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
+			"sandboxUILocale": _ui_locale,
+			"sandboxRevealPending": str(_reveal_pending).to_lower(),
+			"sandboxGlyphText": _source_text if _conversation != null else "",
+			"sandboxChoiceLabels": JSON.stringify(
+				_dialogue_choices.get_children().map(func(c: Node) -> String: return str(c.text)))
+		}), true)
 		_expose_meeting_web()
 		call_deferred("_publish_language_web")
+
+
+
+func _update_dialogue_presentation(frame: Dictionary, offer: Dictionary, speaker: Dictionary,
+		language: String) -> void:
+	var rtl: bool = _ui_locale == "ar"
+	_dialogue_panel.layout_direction = Control.LAYOUT_DIRECTION_RTL if rtl else Control.LAYOUT_DIRECTION_LTR
+	_dialogue_text.text_direction = Control.TEXT_DIRECTION_RTL if rtl else Control.TEXT_DIRECTION_LTR
+	_dialogue_title.text_direction = Control.TEXT_DIRECTION_RTL if rtl else Control.TEXT_DIRECTION_LTR
+	_locale_en.disabled = not rtl
+	_locale_ar.disabled = rtl
+	_reduce_motion.text = "تقليل الحركة" if rtl else "Reduced motion"
+	_request_common.text = "اطلب التحدث باللغة المشتركة" if rtl else "Ask to speak Common"
+	_skip_translation.text = "اعرض الترجمة الآن" if rtl else "Show translation now"
+	var arabic_font: Font = load(ARABIC_FONT) as Font
+	for control in [_dialogue_title, _request_common, _reduce_motion, _skip_translation]:
+		if rtl:
+			control.add_theme_font_override("font", arabic_font)
+		else:
+			control.remove_theme_font_override("font")
+	var stamp: String = "%d|%s|%s|%s|%s" % [
+		_conversation.get_instance_id(), _conversation.offer_id, JSON.stringify(frame),
+		_ui_locale, str(_conversation.understood())
+	]
+	if stamp != _speech_identity:
+		_speech_identity = stamp
+		_source_text = SandboxLanguagePresentation.source_line(language,
+				SandboxLanguagePresentation.speech_key(frame, speaker))
+		_translated_text = SandboxLanguagePresentation.localized_line(frame, speaker, offer, _ui_locale) \
+				if _conversation.understood() else ""
+		_reveal_elapsed = 0.0
+		_reveal_pending = _conversation.understood() and not _source_text.is_empty() \
+				and not _reduced_motion
+	_dialogue_text.text = _source_text if _reveal_pending else (
+			_translated_text if _conversation.understood() else str(frame.get("text", "")))
+	# Alien scripts retain their native left-to-right reading order even when
+	# the player's surrounding interface is Arabic RTL.
+	_dialogue_text.text_direction = Control.TEXT_DIRECTION_LTR if (
+			_reveal_pending or not _conversation.understood()) else (
+			Control.TEXT_DIRECTION_RTL if rtl else Control.TEXT_DIRECTION_LTR)
+	_skip_translation.visible = _reveal_pending
+	_dialogue_text.remove_theme_font_override("font")
+	var glyph_font: String = SandboxLanguagePresentation.native_font_path(language)
+	if _reveal_pending or (not _conversation.understood() and not glyph_font.is_empty()):
+		_dialogue_text.add_theme_font_override("font", load(glyph_font))
+	elif rtl:
+		_dialogue_text.add_theme_font_override("font", arabic_font)
 
 
 func _publish_language_web() -> void:
@@ -588,7 +719,11 @@ func _publish_language_web() -> void:
 		"sandboxRefuseRiderPoint": _refuse.get_global_rect().get_center(),
 		"sandboxDistrictPoint": _districts.get_global_rect().get_center(),
 		"sandboxRepositionPoint": _reposition.get_global_rect().get_center(),
-		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center()
+		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center(),
+		"sandboxLocaleEnglishPoint": _locale_en.get_global_rect().get_center(),
+		"sandboxLocaleArabicPoint": _locale_ar.get_global_rect().get_center(),
+		"sandboxReducedMotionPoint": _reduce_motion.get_global_rect().get_center(),
+		"sandboxSkipRevealPoint": _skip_translation.get_global_rect().get_center()
 	}
 	var payload: Dictionary = {}
 	for key in values:

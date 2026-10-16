@@ -1,6 +1,6 @@
 # Outsider Driver — Living City, Social Bonds, Languages & Routes
 
-> **Design synthesis — October 15, 2026; updated October 16 with #32 approval and proof.** Consolidates the discussions after Sandbox S2 about societies, language presentation, personal identity, persistent relationships, off-duty encounters, route planning and restrained Paradox-inspired simulation. This is a **design reference**, not a claim these systems already ship.
+> **Design synthesis — October 15, 2026; updated October 16 with #32–#33 implementation evidence.** Consolidates the discussions after Sandbox S2 about societies, language presentation, personal identity, persistent relationships, off-duty encounters, route planning and restrained Paradox-inspired simulation. This is a **design reference**, not a claim these systems already ship.
 >
 > **Status legend:** **Agreed direction** = repeated design intent accepted as a working principle; **Recommended / pending** = assistant proposal or unresolved implementation choice, not locked by explicit approval; **Current proof** = verified in the repository; **Future** = not implemented.
 >
@@ -58,7 +58,7 @@
 
 **Radio:** Ordinary channels may broadcast alien-language speech and strange music. A module does not silently translate unsupported broadcasts. Human transmissions through illicit antennas/frequencies remain a *future* restricted mechanism with consequences if overheard, not default radio behavior.
 
-**Current proof and remaining gap:** [S2](SANDBOX_S2.md)'s mutual-exclusive starter and **partial learned route marker** remain historical only; [#32](SANDBOX_LANGUAGES_P0.md) replaced them with binary whole-language modules, physical market purchasing, Common negotiation and persistence. **#33 is still pending:** genuine alien scripts/glyph fonts, localized reveal and Arabic RTL; neither the intermediate Cant phonetic surface nor a translated English Ink frame counts as finishing #33.
+**Current proof and remaining gap:** [S2](SANDBOX_S2.md)'s mutual-exclusive starter and **partial learned route marker** remain historical only; [#32](SANDBOX_LANGUAGES_P0.md) replaced them with binary whole-language modules, physical market purchasing, Common negotiation and persistence. **#33 is implemented and verified:** deterministic local Runic-styled and Cant Ogham-styled semantic phrase writing, vendored OFL script and Arabic fonts, skippable glyph-to-localized EN/Arabic Ink dialogue, RTL and reduced-motion, with native Linux and exported Chromium acceptance. [D2 proof](SANDBOX_LANGUAGES_P1.md). This is a bounded glyph aesthetic and authored phrase catalog, **not** a custom complete conlang, whole-HUD Arabic translation, or final cultural language naming.
 
 ## 4. Optional purchased AR/headset assistant
 

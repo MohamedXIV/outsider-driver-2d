@@ -43,8 +43,9 @@ func _initialize() -> void:
 	var talk: SandboxConversation = SandboxConversation.new()
 	assert(talk.open(w, str(followup["id"]), self))
 	assert(talk.recognizes_driver() and not talk.understood())
-	assert(talk.current_frame()["text"].contains("recognizes your taxi"))
-	assert(talk.current_frame()["text"].contains("untranslated"))
+	assert(talk.current_frame()["text"] == SandboxLanguagePresentation.source_line(
+			str(person["language"]), "intro_repeat"))
+	assert(not str(talk.current_frame()["text"]).contains("taxi"))
 	var save: String = "user://s3-returning-passenger.json"
 	assert(SandboxSave.save_world(w, save, talk.snapshot()))
 	var saved: Dictionary = SandboxSave.load_bundle(save)
