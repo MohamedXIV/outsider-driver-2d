@@ -7,7 +7,7 @@ This **bounded standalone proof scene** is opened as `res://scenes/street_pilot.
 - `NavigationLink2D` crossing at the **only** marked zebra crossing.
 - Actual `CharacterBody2D` resident with `NavigationAgent2D` and built-in local avoidance; the script applies velocity via Godot physics.
 - A physical prototype `CharacterBody2D` car on a lane; yielding is governed by an explicit crossing rule rather than arbitrary navmesh traversal.
-- One real `SandboxWorld` seeded resident (`npc:07`, garage home) is given a local parts-counter errand and reports real arrival to the same world, which validates intent and commits one provenance event. This is a **test fixture**, not a fixed first passenger or automatic city-wide errand.
+- One eligible real `SandboxWorld` seeded garage resident is selected from world needs for a local parts-counter errand and reports real arrival to the same world, which validates intent and commits one provenance event. This is a **test fixture**, not a fixed first passenger or automatic city-wide errand.
 - Simple orthogonal pavement, frontage/building blocks and crossing markers to validate the modular street-building approach from #58.
 
 ## Actual native test evidence (2026-10-16)
@@ -28,7 +28,7 @@ This **bounded standalone proof scene** is opened as `res://scenes/street_pilot.
 - The duplicate coarse `CanvasItem` NPC marker is suppressed for a resident with a local trip. Dispatch does not create a taxi offer while the resident is physically walking.
 - Save/load now stores the **presentation actor's** local position/crossing flags separately from the authoritative trip + provenance event, while the latter remains in `SandboxWorld`. This avoids treating physics frame positions as world-tick economic state. Old experimental saves are not a compatibility gate.
 - Only **one** nearby street module is instantiated; this is not a whole-city native navigation migration. Its physical actor continues running if the camera leaves the garage (acceptable for this one actor, not a completed far-simulation handoff).
-- New targeted `tests/test_street_main_scene.gd` checks real default scene integration and mid-walk save/reload; Godot/Chromium execution must be verified before claiming completion.
+- Targeted `tests/test_street_main_scene.gd` has passed in native Godot; exported Chromium gameplay remains unverified for this branch.
 
 ## Main-scene integrated native proof (2026-10-16)
 
@@ -43,6 +43,19 @@ The actual Xvfb / software OpenGL runner completed all four checks:
 `test_street_main_scene.gd` also captures three local PNG frames in `/tmp/od2d-street-evidence/` on the runner, but those frames were **not published in the successful run's artifact**; do not assert independent visual review of those images. The uploaded artifact contains run logs. Native Linux only, not exported Chromium or Windows runtime.
 
 The gate returned to **manual-only** after the run. No more Actions minutes should be used on docs/status updates.
+
+## Modular streets and near/far movement fidelity — verified 2026-10-16
+
+**PASS:** [single targeted native Godot run #38960875587](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38960875587), source `191240ede20494d2a395a6f82599f75fcf208adf`. Six targeted tests passed in native Godot 4.7.2: `STREET_MODULE_PASS`, `STREET_PILOT_PASS`, `NPC_INTERPOLATION_PASS`, `STREET_MAIN_PASS`, `STREET_HANDOFF_PASS`, `CITY_PRESENTATION_PASS`. [Logs and captured integration PNGs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38960875587/artifacts/12072821581). Captured images were uploaded but have **not been separately human-reviewed** for aesthetics.
+
+- `SandboxStreetModule` is the single source of the Patchworks **road slab, sidewalks, one crosswalk, traffic lane, lot footprints and walker path waypoints**. A straight 4-point path supports interpolation anchors; active walking still uses Godot's `NavigationAgent2D`/physics, not a replacement scripted route.
+- On leaving the garage neighborhood, the player-scene native actor is uninstantiated and the **same** `SandboxWorld` resident changes to `offscreen`, recording `local_pedestrian_handoff` with a bounded spatial progress anchor.
+- During offscreen world ticks, the resident advances on an **inexpensive deterministic coarse clock**, with no physics body; only one true arrival is committed. Returning before arrival records `local_pedestrian_resumed` and instantiates the Godot actor at the reconciled shared module position (using `NavigationRegion2D` and the legal crossing link again).
+- The world validates each resident's sequential local departure/handoff/resumption/arrival provenance in save restoration; tampering a previous progress anchor does not load. A resident with an already-completed local errand cannot restart the same trip accidentally.
+- Presentation hides only the active nearby actor's **duplicate** coarse marker (and any offscreen walker), leaving other NPC visibility intact.
+- `SandboxPopulation` treats an in-progress local errand as travelling; no new fare is generated for that walking NPC.
+
+**Deliberate limits:** This is **one authored Patchworks street module**, not automated six-district sidewalk generation, complex intersections, human acceptance or full pedestrian-car traffic in the normal taxi driving routes. The taxi still follows the legacy route-graph presentation; the demonstrator traffic car yields locally. No Web/Windows play-through of this new slice is claimed. The Godot action is now returned to **manual-only** to conserve CI minutes.
 
 ## What is NOT implemented
 - Migration of all existing autonomous walking residents away from `SandboxRoads.position_on_path`.
