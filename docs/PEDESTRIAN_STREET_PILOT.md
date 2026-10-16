@@ -91,7 +91,18 @@ The scoped Actions runner is **manual-only** again after this passing validation
 - Complete taxi physics/lane movement, complex intersection controls, signals, crowd avoidance or traffic simulation.
 - No runtime gates have been claimed passed solely because the code is present. Run `tests/test_street_pilot_scene.gd` with a matching Godot 4.7.2 editor and native renderer before promotion.
 
+## Follow-up: late crosswalk reservation vs vehicle already past stop line — October 17, 2026
+
+A P0 audit found a possible deadlock in the **local demo traffic vehicle**: if the resident reserved the zebra a fraction of a frame after the car had crossed its stop line, the old `SandboxStreetPriority.vehicle_velocity` returned zero before the car cleared the crossing. The pedestrian simultaneously waited for that car to leave the lane. Neither could progress.
+
+- If a car is still at or before the stop line when a pedestrian has reserved the crossing, variable-frame step clamping keeps its front at or before that line.
+- If the car is **already beyond** its stop line, it continues forward to clear the zebra rather than freezing inside it. `pedestrian_may_enter` now refuses entry for any car beyond the stop line until the car passes the clear-ahead threshold. The former 4 px grace after the line was removed.
+- `tests/test_street_priority.gd` now reproduces the late-reservation race from **0.01 px beyond the stop line**, checking finite time to clear the pedestrian crossing, pedestrian entry gating and existing variable-delta braking bounds.
+- Godot collision and the physical actor's waiting rule remain necessary; this narrow fix does **not** establish multi-car traffic, collision-free city-wide driving or a physics-body player taxi.
+
+**Validation status:** These new code/test changes are committed but **have not yet been executed under Godot**. The earlier [10/10 native run #38967936158](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38967936158) tested `fb7e6a2` before this fix. Do not report the new regression as passing until the test runs in Godot 4.7.2. The targeted workflow remains `workflow_dispatch`-only; no extra Actions run was requested for this small change.
+
 ## Next increment
-After actual native visual proof, derive the sidewalk polygons, road lanes and crosswalk links from reusable street modules, integrate a resident's genuine world-generated pedestrian goal into the main scene, and ensure physics arrival is authoritative for nearby walkers. Preserve cheap off-screen schedules for distant residents and avoid frame-rate dependent economic randomness.
+Run the amended priority regression together with the existing native crossing scenes at the next justified Godot gate. Then test actual start/clear/resume ordering around the player's own world-graph taxi, including a pedestrian that becomes blocked or leaves the local actor range, opposite traversal direction, and safe grade separation. Afterward broaden the street-module pilot to additional regular blocks while keeping the current one-world near/far handoff model.
 
 Feedback: [#59](https://github.com/MohamedXIV/outsider-driver-2d/issues/59), [#60](https://github.com/MohamedXIV/outsider-driver-2d/issues/60), [#58](https://github.com/MohamedXIV/outsider-driver-2d/issues/58), [#57](https://github.com/MohamedXIV/outsider-driver-2d/issues/57).
