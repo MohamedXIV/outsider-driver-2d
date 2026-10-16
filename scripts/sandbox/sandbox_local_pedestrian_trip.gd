@@ -167,7 +167,9 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 	if state!=trip.get("status","") or trip.get("site","")!=PATCHWORKS_PARTS \
 			or began!=int(trip.get("started",-1)) or began<SandboxWorld.START_MINUTE:
 		return false
-	if state=="offscreen":
+	# The last recorded spatial anchor is immutable even after resuming or
+	# arriving. Otherwise a saved world could silently rewrite an offscreen trip.
+	if handed_off>=0:
 		if handed_off!=int(trip.get("handoff_minute",-1)) or handed_off<began:
 			return false
 		var progress: Variant=trip.get("handoff_progress",null)
