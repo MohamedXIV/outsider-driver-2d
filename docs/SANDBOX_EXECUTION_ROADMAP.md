@@ -30,7 +30,7 @@
 | **DONE — C3** | [#31 Relationships P0: optional off-duty meeting](https://github.com/MohamedXIV/outsider-driver-2d/issues/31) | #30 | **Merged PR #43, CI #38823128499 PASS:** real repeat fares unlock voluntary time/place invite; player attends/declines/misses; native + Chromium Ink meeting and mid-event Save/Load |
 | **DONE — D1** | [#32 Languages P0: 3 shared languages + market modules](https://github.com/MohamedXIV/outsider-driver-2d/issues/32) | #29 complete | **PR #45, CI #38835072560 PASS:** Trade/Common free, Local/Cant cartridges, physical stock and charged market purchase, separate install, NPC Common request, Linux/Chromium and mid-choice Save/Load |
 | **DONE — D2** | [#33 Languages P1: scripts, translation reveal and localization](https://github.com/MohamedXIV/outsider-driver-2d/issues/33) | #32 done | **PR #46, CI #38838251079 PASS:** OFL Runic/Ogham glyph surfaces, localized EN/Arabic Ink, RTL, 0.7s skippable reveal, reduced motion, Linux native + Chromium Web |
-| **OPTIONAL E** | [#34 AR knowledge-only contextual hints](https://github.com/MohamedXIV/outsider-driver-2d/issues/34) | #32, preferably #33 | Purchased headgear shows only player-known facts with rumor/source, no hidden-answer cheats |
+| **DONE — OPTIONAL E** | [#34 AR knowledge-only contextual hints](https://github.com/MohamedXIV/outsider-driver-2d/issues/34) | #32–#33 complete | **PR #47 / CI #38876799731 PASS:** 5-cr physical purchase, equip/persist, event-provenanced known place/GPS facts, explicitly heard uncertain rumor, focus/tap/hover/ESC, Linux + Chromium |
 
 **Milestone/area-level tracking:** [#22 Living NPCs](https://github.com/MohamedXIV/outsider-driver-2d/issues/22) covers #26, #29, #30; [#24 Route Gameplay](https://github.com/MohamedXIV/outsider-driver-2d/issues/24) covers #27–#28; [#23 Languages & Equipment](https://github.com/MohamedXIV/outsider-driver-2d/issues/23) covers #32–#34. #31 is a deliberate small follow-on to #30, NOT a dating-system prerequisite for S3.
 
@@ -40,7 +40,7 @@
 2. **Implement #27 NEXT**: player-facing selectable paths and real taxi travel; then #28 junction reroute; do not finish a giant social simulation or introduce hundreds of character records before the taxi has selectable paths. #29 can proceed after #26 when ready, but **not as a blocker** for #27.
 3. Build on concrete encounter outcomes for #29–#31. A recurring driver can be *recognized* without the NPC learning the driver's human origin, legal status or real name. More detailed characters can emerge from normal NPCs, but large handcrafted companion questlines are not required.
 4. **Only then** broaden language/equipment presentation (#32–#33). Languages are shared across species; start with **three**, fourth only if useful. Module access is binary installed/absent, not gradual linguistic proficiency. The Basic Translator with Common preinstalled and one GPS / Local-language / Radio bonus starter is **ratified and implemented in #32**.
-5. Headset AR #34 is **optional**, not a critical dependency for completing the core taxi sandbox. It never invents facts or gives optimal answer flags.
+5. Headset AR #34 **shipped as optional equipment**, not a critical dependency for the core taxi sandbox. It never invents facts or gives optimal answer flags.
 
 ## Mandatory supersession preflight — avoid repeating retired work
 
@@ -70,7 +70,7 @@ This is a **working execution board**, not a rigid time estimate. Adjust the ord
 
 [Relationships P0 PR #43](https://github.com/MohamedXIV/outsider-driver-2d/pull/43) merged at `4bcbb354f9a00eeb9cd4c9219e1dcd2b617f8314`. [Godot 4.7.2 run #38823128499](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38823128499) **PASS** on gameplay head `2fb75b0dcc54d773937d37b1be65f7b6ff01bf43`; follow-up was docs only. Genuine repeat taxi passenger, source-backed invitation, accepted/declined/late/missed appointment, bounded off-duty kiosk scene with contextual Ink, frozen active-dialogue time and mid-meeting Save/Load. Native Linux scene and exported Chromium real interactions PASS. Windows was exported, **not** executed; human playtest/feel remains unverified. [Detailed acceptance](SANDBOX_RELATIONSHIPS_P0.md).
 
-**Current:** #32 establishes the three-language, purchasable whole-module contract; **#33 now supplies deterministic semantic glyphs and localized EN/Arabic dialogue with accessible, skippable reveal**. [D2 acceptance](SANDBOX_LANGUAGES_P1.md). #34 AR remains **optional** and later; do not add speculative language progress, another translator authority or omniscient hints.
+**Current:** #32 establishes the three-language, purchasable whole-module contract; **#33 now supplies deterministic semantic glyphs and localized EN/Arabic dialogue with accessible, skippable reveal**. [D2 acceptance](SANDBOX_LANGUAGES_P1.md). #34 optional AR is now verified as a **knowledge-only presentation accessory**. Do not add speculative language progress, another translator authority or omniscient hints.
 
 ## Verified D1 closure — October 16, 2026
 
@@ -81,3 +81,7 @@ This is a **working execution board**, not a rigid time estimate. Adjust the ord
 ## Verified D2 closure — October 16, 2026
 
 [Languages P1 PR #46](https://github.com/MohamedXIV/outsider-driver-2d/pull/46) gameplay head `2232b4504d31de48ce9cb396896e6b302a853bfb` passed [Godot 4.7.2 CI #38838251079](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38838251079), **31/31 workflow steps successful** including authored/native semantic Ink, licensed glyph font coverage, visible Arabic RTL native screenshot, reduced-motion and skip controls, exported Chromium physical-market → localized dialogue → mid-Ink reload → fare settlement, all S0–S3 Web regressions. Windows release **exported but not executed**; Arabic entire HUD, touch-device hardware and subjective pacing/quality **not accepted as proven**. [Detailed D2 contract](SANDBOX_LANGUAGES_P1.md).
+
+## Verified optional E / AR P0 closure — October 16, 2026
+
+[Equipment AR PR #47](https://github.com/MohamedXIV/outsider-driver-2d/pull/47) gameplay head `36bbfb77b0bb4664f63b41606a6a85d3e0c2e058` passed [Godot 4.7.2 CI #38876799731](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38876799731), **32/32 steps green**. Verified: legitimate physical Market purchase and equipment toggles, event-backed visited district and GPS hints, unknown/untranslated suppression, source-attested heard rumors marked explicitly unverified, forged-save rejection, native Linux focus/screenshot tests, actual exported Chromium hover/click/ESC, purchase and Web reload; all S0–S3 and Languages P0/P1 regressions passed. Windows **export only**, not runtime. Device hardware touch/screen reader, subjective UI fit and Arabic localization of the AR card remain unverified; this is still a schematic debug HUD. [Detailed contract](SANDBOX_AR_P0.md).

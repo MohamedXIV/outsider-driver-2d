@@ -64,7 +64,9 @@
 
 **Agreed direction:** Smart glasses / AR headwear can display small contextual inline tooltips or on-demand overlays while listening, talking or navigating. Their data source is **only what the player already knows**, with provenance/uncertainty for suspected facts or rumors. They must never reveal secret identities, hidden relationship truth, correct answer flags, future outcomes, omniscient translations or navigation information the player has not obtained.
 
-Example: a highlighted town name can show its known district and local reputation, allowing the player to *reason* about a response. On touch/controller, pressing/focusing the term opens the same information; hover cannot be the only way to access it. The wearable is an **information presentation device**, not an all-knowing AI agent or a second gameplay authority. Purchase, power/inventory and UI polish belong to an incremental equipment slice.
+Example: a highlighted town name can show its known district and local reputation, allowing the player to *reason* about a response. On touch/controller, pressing/focusing the term opens the same information; hover cannot be the only way to access it. The wearable is an **information presentation device**, not an all-knowing AI agent or a second gameplay authority.
+
+**Verified optional AR P0, October 16, 2026:** [PR #47](https://github.com/MohamedXIV/outsider-driver-2d/pull/47), [CI #38876799731](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38876799731) passed native/Web. The player buys 5-cr eyewear at the Market and separately equips it. Its contextual Ink overlay shows source-backed GPS or personally visited districts and only player-heard second-hand NPC reports, explicitly labeled **unverified**. Untranslated or unknown facts do not become known just because the device is worn. Hover, focus, click/touch, Escape/Close and persistence are exercised; no full wearable OS, best-choice assistant or private NPC-memory reader. [Details](SANDBOX_AR_P0.md).
 
 ## 5. Persistent recognition, the player's secret, and character depth
 

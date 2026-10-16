@@ -1,0 +1,25 @@
+# AR P0 — Optional Knowledge-Only Market Eyewear
+
+**Status:** Verified Godot 4.7.2 slice, October 16, 2026. [PR #47](https://github.com/MohamedXIV/outsider-driver-2d/pull/47), gameplay head `36bbfb77b0bb4664f63b41606a6a85d3e0c2e058`; [CI #38876799731](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38876799731) **SUCCESS (32/32 steps)**. [Linux/Windows export/Web playtest builds](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38876799731/artifacts/12035189358) · [Native and Chromium screenshots](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38876799731/artifacts/12035199279).
+
+## Player contract
+
+- **Optional 5-cr eyewear** sold only at the reachable Market during **06:00–20:00**, no active job/meeting; separate **wear/remove** toggle. Credits, one-time ownership and equipped state are authoritative in `SandboxWorld` with purchase/wear/unwear ledger events. World schema v10, save envelope v11. No requirement to migrate old experimental saves.
+- The **AR button appears only while worn**, with an actual known contextual term. It never changes actual NPC state, player knowledge, Ink result, funds, translated language access, or route outcomes. Unequipping immediately hides both the hint and overlay.
+- `SandboxARHints` is a read-only knowledge projection. It can cite **personally reached districts** (initial Docks or real `reposition`/`fare_settled` events) and **GPS links** only when the player's existing `map:district-graph` knowledge has a real `knowledge_learned` ledger source.
+- A destination may become contextual **only after an understood** `intent:ask_destination` Ink line. An untranslated NPC never exposes a destination through AR even though `SandboxWorld` internally needs it to generate offers.
+- A distinct **Ask about local gossip** speech action is available only in a local comprehensible conversation with an NPC who has a real, source-backed peer contact to report. `SandboxWorld.hear_rumor` then emits a **player-heard** event linked to the real speaker and original `npc_peer_contact` source. The equipped AR annotates the report as **UNVERIFIED RUMOR** with both source IDs, not as objective truth or a forecast. An unseen NPC private knowledge record never becomes player knowledge automatically.
+- Hover, keyboard focus and press/tap use the same AR note, with a clear Close button and Escape. Content remains on demand; there is no hover-only access path. No animated transition is required, so reduced-motion users do not lose information.
+
+## Authority, integrity and test evidence
+
+- **Single simulation:** `SandboxWorld` owns equipment, time, credits, sources, and heard rumor events. `SandboxARHints` is presentation-only. No parallel `PlayerKnowledge` store, oracle, systemic invention, alternative Ink branch, or tool-based translation.
+- Snapshot validation rejects forged ownership/equip flags without actual events, replays wear/unwear sequence, and rejects player-heard rumors lacking a true peer-contact source tied to the real passenger. Current event-ledger provenance and NPC validation remain in force.
+- `SANDBOX_AR_DOMAIN_PASS`: physical Market purchase, one-time transaction, equipped gating, GPS-verified vs unknown districts, untranslated suppression, valid heard rumor chain, confidence label and saved-world tamper rejection. A bounded domain test constructs a reachable live dispatch from an NPC who genuinely acquired peer knowledge earlier; this is **fixture setup**, not evidence every future encounter always has gossip.
+- `SANDBOX_AR_SCENE_PASS`: actual Godot Linux scene buys/wears eyewear, opens locally incomprehensible NPC conversation and refuses clue, requests Common, then shows verified mapped term with a focusable overlay and source; close/remove and mid-Ink save/restore tested. Screenshot: `ar-verified-native.png`.
+- `SANDBOX_AR_WEB_PASS`: actual Chromium on exported Godot Web clicks physical market, buys and wears, checks unknown language has no AR clue, negotiates Common, reveals sourced verified GPS hint, Escape/tap reopen/close, unworn privacy and IndexedDB saved equipment/dialogue. Screenshots `sandbox-ar-verified-web.png`, `sandbox-ar-unworn-web.png`, `sandbox-ar-restored-web.png`. Publishing post-layout hitboxes also corrects Save/Load routing after page reload.
+- Existing languages, seeded NPCs, genuine rides, reroute, contacts, driver memory, off-duty meetings, native/Linux/Web regression gates all passed. Windows **exported**, **not actually executed**.
+
+## Not claimed
+
+This is a bounded first-pass contextual accessory in a **schematic debug sandbox**, not a visually polished wearable operating system. It does **not** promise a general-purpose AI assistant, automatic rumor truth detection, actual identity discovery, controller/phone hardware acceptance, screen-reader end-to-end proof, Arabic localization of this AR card, or human subjective UX assessment. Real headphones/antenna, human broadcasts and elaborate world-cultural knowledge remain separate future design decisions; don't inflate #34 into those systems.
