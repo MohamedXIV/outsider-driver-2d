@@ -1,6 +1,6 @@
 # Relationships P0 — Systemic Off-Duty Rendezvous (#31)
 
-> Implementation candidate on `feat/31-off-duty-meeting`. This document describes mechanics; do not treat tests as PASS until live CI and visual evidence are reviewed.
+> Verified gameplay and technical acceptance on the tested head below. Human UX/visual feel remains unverified.
 
 ## Authority / supersession preflight
 
@@ -19,6 +19,15 @@
 4. The player must physically reach the stated map district (repositioning costs road time/credits, and active trips prevent attending), arrive while the actual NPC is co-present and available, and press **Meet at location**. A visible staged kiosk/bench encounter is rendered with both figures.
 5. The same authored off-duty Ink speech-act scene gives **listen / brief / leave** choices. The world, not Ink, advances 10–20 real minutes and applies sourced trust deltas. Lateness reduces the positive result. Missing the deadline decreases trust; no double completion.
 6. Save/Load restores invited, accepted, in-progress and terminal statuses from the single `SandboxWorld` snapshot. Ink in the first-step meeting reconstructs its same context/choices after load; there is no separate off-duty scheduler or hidden narrative truth.
+
+
+## Actual completed execution — October 16, 2026
+
+- **Latest gameplay/test head:** `2fb75b0dcc54d773937d37b1be65f7b6ff01bf43`.
+- **[Godot 4.7.2 gate #38823128499](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38823128499): SUCCESS** including compiled Ink source parity, native import/typed script tests, previous P0–S3/route regressions, domain `SANDBOX_MEETING_DOMAIN_PASS`, visible native scene `SANDBOX_MEETING_SCENE_PASS`, and actual exported Chromium mouse-input `SANDBOX_MEETING_WEB_PASS`.
+- **[Evidence artifact #12014295103](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38823128499/artifacts/12014295103)** includes native/Web screenshots; **[builds artifact #12014042988](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38823128499/artifacts/12014042988)** includes Linux, Windows and Web exports.
+- GitGuardian check completed successfully on this gameplay head; Windows was **exported only**, not executed on Windows. Native Linux was executed; Web was executed through actual Chromium. Automated screenshot generation and interaction were verified, but independent human review of art, UX and pacing **was not performed**.
+- Superseded S2 partial Translator is still historical experimental behavior, not the approved language-module successor; no Basic Common starting loadout selection was made in this slice.
 
 ## Proof gates
 
