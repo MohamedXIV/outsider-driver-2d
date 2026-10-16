@@ -154,6 +154,7 @@ func _process(delta: float) -> void:
 	# A local pedestrian can hold the actual player taxi at a grounded zebra;
 	# never stop the city clock, other NPCs or money settlement elsewhere.
 	_sync_local_pedestrian()
+	_update_player_crossing_yield()
 	_elapsed += maxf(delta, 0.0)
 	while _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
