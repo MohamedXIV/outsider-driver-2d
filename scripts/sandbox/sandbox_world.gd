@@ -310,7 +310,7 @@ func engage_offer(id: String) -> bool:
 	return true
 
 
-func reposition(destination: String) -> bool:
+func reposition(destination: String, via: String = "") -> bool:
 	if meeting_in_progress() or is_travelling() or not SandboxRoads.DISTRICTS.has(destination) or destination==player_district:
 		return false
 	var nodes: Array[String] = SandboxRoads.path(player_district,destination)

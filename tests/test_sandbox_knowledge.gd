@@ -36,6 +36,7 @@ func _initialize() -> void:
 		if offer["origin"] == "docks" and offer["npc_id"] == "npc:01":
 			dock_request = str(offer["id"])
 	assert(not dock_request.is_empty())
+	both_species.player_district="docks" # Local speech fixture.
 	var refused: SandboxConversation = SandboxConversation.new()
 	assert(refused.open(both_species, dock_request, self))
 	assert(not refused.understood())
@@ -51,7 +52,8 @@ func _initialize() -> void:
 	var world: SandboxWorld = SandboxWorld.new(8)
 	assert(not world.buy_language_module("local"))
 	assert(world.reposition("market"))
-	assert(world.credits == 11)
+	assert(world.advance(world.remaining_minutes))
+	assert(world.credits == 10)
 	var market_offer: String = ""
 	for offer in world.open_offers():
 		if offer["origin"] == "market" and offer["npc_id"] == "npc:04":
@@ -61,7 +63,7 @@ func _initialize() -> void:
 	assert(before.open(world, market_offer, self))
 	assert(not before.understood())
 	assert(world.buy_language_module("local"))
-	assert(world.credits == 3)
+	assert(world.credits == 2)
 	assert(world.market_stock["local"] == 0)
 	assert(world.modules_owned.has("local") and not world.modules_installed.has("local"))
 	assert(not world.buy_language_module("local"), "Cannot pay twice for one owned module.")
@@ -82,7 +84,7 @@ func _initialize() -> void:
 	var bundle: Dictionary = SandboxSave.load_bundle(saved)
 	assert(not bundle.is_empty())
 	var restored: SandboxWorld = bundle["world"] as SandboxWorld
-	assert(restored.credits == 3 and restored.market_stock["local"] == 0)
+	assert(restored.credits == 2 and restored.market_stock["local"] == 0)
 	assert(restored.modules_owned == world.modules_owned)
 	assert(restored.modules_installed == world.modules_installed)
 	var resumed: SandboxConversation = SandboxConversation.new()
@@ -94,19 +96,19 @@ func _initialize() -> void:
 
 	# Bilingual willingness belongs to that individual, not the species.
 	var speaker: SandboxWorld = SandboxWorld.new(8)
-	assert(speaker.reposition("market"))
+	var common_offer: String="offer:npc:07:480"
 	var fallback: SandboxConversation = SandboxConversation.new()
-	assert(fallback.open(speaker, market_offer, self))
+	assert(fallback.open(speaker, common_offer, self))
 	assert(not fallback.understood())
 	assert(fallback.request_common(speaker, self))
 	assert(fallback.understood())
-	assert(speaker.common_requests[market_offer] == true)
+	assert(speaker.common_requests[common_offer] == true)
 	assert(not fallback.request_common(speaker, self))
 	var middle_save: String = "user://language-common-v10.json"
 	assert(SandboxSave.save_world(speaker, middle_save, fallback.snapshot()))
 	var common_bundle: Dictionary = SandboxSave.load_bundle(middle_save)
 	var common_restored: SandboxWorld = common_bundle["world"] as SandboxWorld
-	assert(common_restored.common_requests[market_offer])
+	assert(common_restored.common_requests[common_offer])
 	var common_resume: SandboxConversation = SandboxConversation.new()
 	assert(common_resume.restore(common_restored, common_bundle["dialogue"], self))
 	assert(common_resume.understood())
@@ -114,10 +116,10 @@ func _initialize() -> void:
 	# Cant has its own stable language surface before installation; the
 	# compiled Ink semantics and choices remain exactly shared.
 	var cant_speech_world: SandboxWorld = SandboxWorld.new(8)
-	assert(cant_speech_world.reposition("clinic"))
+	assert(cant_speech_world.player_district=="garage")
 	var cant_offer: String = ""
 	for candidate in cant_speech_world.open_offers():
-		if candidate["origin"] == "clinic" and candidate["npc_id"] == "npc:07":
+		if candidate["origin"] == "garage" and candidate["npc_id"] == "npc:07":
 			cant_offer = str(candidate["id"])
 	assert(not cant_offer.is_empty())
 	var cant_speech: SandboxConversation = SandboxConversation.new()
@@ -136,6 +138,7 @@ func _initialize() -> void:
 	# Cant is a distinct full-language cartridge (not another word progress bar).
 	var cant: SandboxWorld = SandboxWorld.new(8)
 	assert(cant.reposition("market"))
+	assert(cant.advance(cant.remaining_minutes))
 	assert(cant.buy_language_module("cant"))
 	assert(cant.modules_owned.has("cant") and not cant.modules_installed.has("cant"))
 	assert(cant.install_language_module("cant"))
@@ -155,8 +158,10 @@ func _initialize() -> void:
 	assert(not SandboxWorld.new().restore_snapshot(forged))
 	var replay: SandboxWorld = SandboxWorld.new(8)
 	assert(replay.reposition("market"))
+	assert(replay.advance(replay.remaining_minutes))
 	assert(replay.buy_language_module("local"))
 	assert(replay.install_language_module("local"))
+	replay.engage_offer(market_offer)
 	assert(JSON.stringify(replay.snapshot()) == JSON.stringify(world.snapshot()))
 	print("SANDBOX_KNOWLEDGE_PASS")
 	quit(0)

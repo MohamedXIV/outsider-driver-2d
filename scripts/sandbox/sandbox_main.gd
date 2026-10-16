@@ -58,11 +58,12 @@ extends Node2D
 @onready var _meeting_text: Label = $HUD/MeetingPanel/Content/Line
 @onready var _meeting_choices: VBoxContainer = $HUD/MeetingPanel/Content/Choices
 
-const REAL_SECONDS_PER_STEP: float = 10.0
+const REAL_SECONDS_PER_STEP: float = 1.0
 
+var _player_ui: SandboxPlayerUI
 var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
-var _notice_text: String = "No scripted passengers. NPC needs generate every offer."
+var _notice_text: String = "Patchworks Garage, Outer Margin. Your shift begins at home."
 var _elapsed: float = 0.0
 var _conversation: SandboxConversation
 var _last_intent: String = ""
@@ -131,6 +132,9 @@ func _ready() -> void:
 	$HUD/DockPanel/Content/TimeActions/NewSeed.pressed.connect(_on_new_seed)
 	$HUD/DockPanel/Content/Persistence/Save.pressed.connect(_on_save)
 	$HUD/DockPanel/Content/Persistence/Load.pressed.connect(_on_load)
+	_player_ui=SandboxPlayerUI.new()
+	add_child(_player_ui)
+	_player_ui.bind(self)
 	_render()
 
 
@@ -143,11 +147,11 @@ func _process(delta: float) -> void:
 		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
 		return
 	_elapsed += maxf(delta, 0.0)
-	if _elapsed >= REAL_SECONDS_PER_STEP:
+	while _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
-		_world.advance(10)
+		_world.advance(1)
 		_render()
-	if not _world.active_offer_id.is_empty():
+	if _world.is_travelling():
 		_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 		_city.queue_redraw()
 
@@ -296,6 +300,7 @@ func _finish_language_reveal() -> void:
 		_dialogue_text.add_theme_font_override("font", load(ARABIC_FONT))
 	_skip_translation.visible = false
 	_publish_reveal_web()
+	if _player_ui!=null: _player_ui.sync()
 	# Hiding Skip collapses its VBox slot and moves every Ink choice.
 	# Republish *after* Godot lays out the frame so Web clicks cannot hit
 	# an obsolete pre-reveal position.
@@ -385,7 +390,7 @@ func _on_ask_common() -> void:
 
 func _on_talk() -> void:
 	var conversation: SandboxConversation = SandboxConversation.new()
-	if not conversation.open(_world, _selected_id, get_tree()):
+	if not conversation.open(_world, _world.active_offer_id if not _world.active_offer_id.is_empty() else _selected_id, get_tree()):
 		_notice_text = "Speak locally to an available resident; no valid offer here."
 		_render()
 		return
@@ -472,7 +477,7 @@ func _on_new_seed() -> void:
 
 func _on_save() -> void:
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot) else "Save failed."
+	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion}) else "Save failed."
 	_render()
 
 
@@ -499,7 +504,10 @@ func _on_load() -> void:
 	_selected_meeting_id = ""
 	_meeting_dialogue = null
 	_route_waypoint = ""
-	_elapsed = 0.0
+	_elapsed = float(bundle.get("presentation",{}).get("clock_fraction",0.0))
+	_city.visual_fraction=_elapsed
+	_ui_locale=str(bundle.get("presentation",{}).get("locale",_ui_locale))
+	_reduced_motion=bool(bundle.get("presentation",{}).get("reduced_motion",_reduced_motion))
 	_last_intent = "restored" if restored != null else ""
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
@@ -508,6 +516,11 @@ func _on_load() -> void:
 
 
 func _render() -> void:
+	_render_debug()
+	if _player_ui != null: _player_ui.sync()
+
+
+func _render_debug() -> void:
 	if _conversation != null and not _conversation.still_valid(_world):
 		_conversation = null
 		_last_outcome = "expired"
@@ -552,7 +565,7 @@ func _render() -> void:
 	var chosen: Dictionary = _world.offer_by_id(_selected_id)
 	var npc: Dictionary = _world.resident(str(chosen.get("npc_id", "")))
 	var eligible: bool = not chosen.is_empty() and chosen["origin"] == _world.player_district \
-			and chosen["channel"] != "official" and _world.active_offer_id.is_empty()
+			and chosen["channel"] != "official" and not _world.is_travelling()
 	_accept.disabled = not eligible
 	_talk.disabled = chosen.is_empty() or chosen["origin"] != _world.player_district \
 			or not _world.active_offer_id.is_empty()
@@ -572,7 +585,7 @@ func _render() -> void:
 	_gear_panel.visible = true
 	_ar_buy.disabled = _world.ar_owned or _world.player_district != "market" \
 			or not SandboxKnowledge.market_open(_world.minute) or _world.credits < SandboxWorld.AR_PRICE \
-			or not _world.active_offer_id.is_empty() or _world.meeting_in_progress()
+			or _world.is_travelling() or _world.meeting_in_progress()
 	_ar_wear.disabled = not _world.ar_owned
 	_ar_wear.text = "Remove AR" if _world.ar_equipped else "Wear AR"
 	var gear_selected: bool = not _world.starter_device.is_empty()
@@ -580,7 +593,7 @@ func _render() -> void:
 	_translator.disabled = gear_selected
 	_radio.disabled = gear_selected
 	var stall: bool = _world.player_district == "market" and SandboxKnowledge.market_open(_world.minute) \
-			and _world.active_offer_id.is_empty() and not _world.meeting_in_progress()
+			and not _world.is_travelling() and not _world.meeting_in_progress()
 	_drive_market.disabled = _world.player_district == "market" or \
 			not _world.active_offer_id.is_empty() or _world.meeting_in_progress() \
 			or _world.credits < SandboxRoads.hops(_world.player_district, "market")

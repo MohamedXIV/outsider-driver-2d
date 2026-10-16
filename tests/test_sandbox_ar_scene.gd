@@ -8,6 +8,7 @@ func _walk() -> void:
 	DirAccess.make_dir_recursive_absolute("/tmp/od2d-ink-evidence/sandbox")
 	var scene: Node2D = (load("res://scenes/sandbox.tscn") as PackedScene).instantiate()
 	get_root().add_child(scene)
+	scene._player_ui.toggle_debug()
 	await process_frame
 	await process_frame
 	var world: SandboxWorld = scene.get("_world")
@@ -15,9 +16,11 @@ func _walk() -> void:
 	assert(not ar.visible)
 	scene.call("_on_starter_device", "gps")
 	scene.call("_on_drive_market")
+	world.advance(world.remaining_minutes)
+	scene.call("_render")
 	assert(world.player_district == "market" and world.knows("map:district-graph"))
 	scene.get_node("HUD/WorldPanel/Content/ARActions/BuyAR").pressed.emit()
-	assert(world.ar_owned and not world.ar_equipped and world.credits == 6)
+	assert(world.ar_owned and not world.ar_equipped and world.credits == 5)
 	scene.get_node("HUD/WorldPanel/Content/ARActions/WearAR").pressed.emit()
 	assert(world.ar_equipped)
 	var talk: Button = scene.get_node("HUD/DockPanel/Content/Actions/Talk")
@@ -25,6 +28,7 @@ func _walk() -> void:
 	await process_frame
 	var dialog: SandboxConversation = scene.get("_conversation")
 	assert(dialog != null and not dialog.understood() and not ar.visible)
+	world.resident("npc:04")["need"]=70 # Comprehensible AR-context fixture; Common refusal covered in domain tests.
 	scene.get_node("HUD/DialoguePanel/Content/RequestCommon").pressed.emit()
 	await process_frame
 	dialog = scene.get("_conversation")

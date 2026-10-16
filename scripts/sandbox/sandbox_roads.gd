@@ -75,7 +75,7 @@ static func edge_expense(a: String, b: String) -> int:
 static func edge_exposure(a: String, b: String) -> int:
 	return int(edge_data(a,b).get("exposure",0)) if connected(a,b) else -1
 
-static func _shortest(origin: String, destination: String) -> Array[String]:
+static func _shortest(origin: String, destination: String, blocked: Array[String] = []) -> Array[String]:
 	if not LINKS.has(origin) or not LINKS.has(destination): return []
 	var distances: Dictionary = {origin:0}
 	var parents: Dictionary = {origin:""}
@@ -93,6 +93,7 @@ static func _shortest(origin: String, destination: String) -> Array[String]:
 			return result
 		for neighbor in LINKS[here]:
 			var next: String = str(neighbor)
+			if blocked.has(next): continue
 			var cost: int = int(distances[here])+edge_minutes(here,next)
 			if not distances.has(next) or cost < int(distances[next]):
 				distances[next] = cost
@@ -101,13 +102,14 @@ static func _shortest(origin: String, destination: String) -> Array[String]:
 	return []
 
 static func path(origin: String, destination: String, via: String = "") -> Array[String]:
-	var first: Array[String] = _shortest(origin, destination if via.is_empty() else via)
-	if first.is_empty() or via.is_empty(): return first
-	var second: Array[String] = _shortest(via,destination)
+	if via.is_empty() or via==origin or via==destination: return _shortest(origin,destination)
+	var first: Array[String] = _shortest(origin,via,[destination])
+	if first.is_empty(): return []
+	var blocked: Array[String] = first.duplicate()
+	blocked.erase(via)
+	var second: Array[String] = _shortest(via,destination,blocked)
 	if second.is_empty(): return []
-	for node in second.slice(1):
-		if first.has(node): return []
-		first.append(str(node))
+	first.append_array(second.slice(1))
 	return first
 
 static func valid_path(nodes: Array[String]) -> bool:

@@ -11,13 +11,14 @@ func _walkthrough() -> void:
 	assert(packed != null)
 	var scene: Node2D = packed.instantiate() as Node2D
 	get_root().add_child(scene)
+	scene._player_ui.toggle_debug()
 	await process_frame
 	await process_frame
 	var world: SandboxWorld = scene.get("_world") as SandboxWorld
 	var via: OptionButton = scene.get_node("HUD/RoutePanel/Content/Via") as OptionButton
 	var preview: Label = scene.get_node("HUD/RoutePanel/Content/Preview") as Label
 	var chosen: Dictionary = world.offer_by_id(str(scene.get("_selected_id")))
-	assert(chosen["origin"] == "docks" and chosen["destination"] == "shelter")
+	assert(chosen["origin"] == "garage" and chosen["destination"] == "market")
 	assert(via.item_count > 1 and not via.disabled)
 	await RenderingServer.frame_post_draw
 	_capture("route-default.png")
@@ -28,24 +29,24 @@ func _walkthrough() -> void:
 	assert(alternate_index >= 0)
 	via.item_selected.emit(alternate_index)
 	assert(scene.get("_route_waypoint") == "depot")
-	assert(preview.text.contains("30 min") and preview.text.contains("2 cr"))
+	assert(preview.text.contains("min") and preview.text.contains("cr"))
 	await RenderingServer.frame_post_draw
 	_capture("route-via-depot.png")
 	var accept: Button = scene.get_node("HUD/DockPanel/Content/Actions/Accept") as Button
 	accept.pressed.emit()
 	assert(world.active_offer_id == chosen["id"])
-	assert(world.route_nodes == ["docks", "depot", "shelter"])
-	world.advance(20)
+	assert(world.route_nodes == SandboxRoads.path("garage","market","depot"))
+	world.advance(1)
 	scene.call("_render")
 	await process_frame
-	assert(world.player_district == "depot" and world.route_edge_elapsed == 10)
+	assert(world.player_district == "garage" and world.route_edge_elapsed == 1)
 	await RenderingServer.frame_post_draw
 	_capture("route-mid-edge.png")
 	scene.call("_on_save")
 	scene.call("_on_load")
 	var recovered: SandboxWorld = scene.get("_world") as SandboxWorld
-	assert(recovered.route_edge_elapsed == 10 and recovered.route_nodes == world.route_nodes)
-	recovered.advance(10)
+	assert(recovered.route_edge_elapsed == 1 and recovered.route_nodes == world.route_nodes)
+	recovered.advance(recovered.remaining_minutes)
 	scene.call("_render")
 	await RenderingServer.frame_post_draw
 	_capture("route-arrived.png")

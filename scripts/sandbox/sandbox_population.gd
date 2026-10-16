@@ -18,7 +18,7 @@ static func create(seed: int) -> Array[Dictionary]:
 	var residents: Array[Dictionary] = []
 	for i in range(9):
 		var kind: String = PURPOSES[posmod(seed + i * 3, PURPOSES.size())]
-		var home: String = SandboxRoads.DISTRICTS[posmod(seed + i, SandboxRoads.DISTRICTS.size())]
+		var home: String = str(["docks", "docks", "garage", "depot", "market", "lantern", "docks", "garage", "terraces"][posmod(seed - 8 + i, 9)])
 		var destination: String = destination_for(home, kind)
 		residents.append({
 			"id": "npc:%02d" % i,

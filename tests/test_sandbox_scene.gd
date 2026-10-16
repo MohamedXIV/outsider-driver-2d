@@ -13,6 +13,7 @@ func _walkthrough() -> void:
 	assert(packed != null)
 	var scene: Node2D = packed.instantiate() as Node2D
 	get_root().add_child(scene)
+	scene._player_ui.toggle_debug()
 	await process_frame
 	await process_frame
 	var world: SandboxWorld = scene.get("_world") as SandboxWorld
@@ -30,8 +31,11 @@ func _walkthrough() -> void:
 	var district: OptionButton = scene.get_node("HUD/DockPanel/Content/Navigation/District")
 	district.select(1)
 	scene.call("_on_reposition")
+	var moving_world: SandboxWorld=scene.get("_world")
+	if moving_world.is_travelling(): moving_world.advance(moving_world.remaining_minutes)
+	scene.call("_render")
 	await process_frame
-	assert(world.player_district == "market" and world.credits == 11)
+	assert(world.player_district == "market" and world.credits == 10)
 	var buy: Button = scene.get_node("HUD/GearPanel/Content/MarketBuy/BuyLocal")
 	var install: Button = scene.get_node("HUD/GearPanel/Content/MarketInstall/InstallLocal")
 	assert(not buy.disabled and install.disabled)
@@ -48,7 +52,7 @@ func _walkthrough() -> void:
 	_capture("market-before-module.png")
 	buy.pressed.emit()
 	await process_frame
-	assert(world.credits == 3 and world.modules_owned.has("local"))
+	assert(world.credits == 2 and world.modules_owned.has("local"))
 	assert(not world.modules_installed.has("local") and buy.disabled and not install.disabled)
 	await RenderingServer.frame_post_draw
 	_capture("physical-module-purchased.png")
@@ -70,7 +74,7 @@ func _walkthrough() -> void:
 	scene.call("_on_load")
 	var recovered: SandboxWorld = scene.get("_world") as SandboxWorld
 	var pending: SandboxConversation = scene.get("_conversation") as SandboxConversation
-	assert(recovered.credits == 3 and recovered.modules_installed.has("local"))
+	assert(recovered.credits == 2 and recovered.modules_installed.has("local"))
 	assert(recovered.market_stock["local"] == 0)
 	assert(pending != null and pending.offer_id == selected and pending.understood())
 	await RenderingServer.frame_post_draw

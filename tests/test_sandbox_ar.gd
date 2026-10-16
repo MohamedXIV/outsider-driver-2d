@@ -6,8 +6,9 @@ func _initialize() -> void:
 	assert(not world.buy_ar() and not world.set_ar_equipped(true))
 	assert(SandboxARHints.known_district(world, "docks").is_empty())
 	assert(world.reposition("market"))
-	assert(world.credits == 11)
-	assert(world.buy_ar() and world.credits == 6)
+	assert(world.advance(world.remaining_minutes))
+	assert(world.credits == 10)
+	assert(world.buy_ar() and world.credits == 5)
 	assert(not world.buy_ar())
 	assert(not world.ar_equipped)
 	assert(SandboxARHints.known_district(world, "market").is_empty())
@@ -43,12 +44,14 @@ func _initialize() -> void:
 	var save: String = "user://sandbox-ar-v11-test.json"
 	assert(SandboxSave.save_world(world, save))
 	var loaded: SandboxWorld = SandboxSave.load_world(save)
-	assert(loaded != null and loaded.ar_owned and loaded.ar_equipped and loaded.credits == 6)
+	assert(loaded != null and loaded.ar_owned and loaded.ar_equipped and loaded.credits == 5)
 	assert(loaded.snapshot() == world.snapshot())
 	var fresh: SandboxWorld = SandboxWorld.new(8)
 	assert(fresh.select_starter_device("gps"))
 	assert(fresh.knows("map:district-graph"))
-	assert(fresh.reposition("market") and fresh.buy_ar() and fresh.set_ar_equipped(true))
+	assert(fresh.reposition("market"))
+	assert(fresh.advance(fresh.remaining_minutes))
+	assert(fresh.buy_ar() and fresh.set_ar_equipped(true))
 	var gps_hint: Dictionary = SandboxARHints.known_district(fresh, "clinic")
 	assert(gps_hint.get("certainty") == "verified")
 	assert(str(gps_hint.get("source")).contains("starter:gps"))
@@ -71,9 +74,12 @@ func _initialize() -> void:
 	# Controlled fixture places the SAME resident at a legitimate market
 	# dispatch encounter, preserving its real sourced peer contact.
 	assert(rumors.reposition("market"))
+	assert(rumors.advance(rumors.remaining_minutes))
 	# A unit scenario with a still-current peer-knowledge source.
 	listener["location"] = "market"
 	listener["activity"] = "available"
+	listener["transit_until"]=0;listener["transit_started"]=0;listener["transit_nodes"]=[]
+	listener["transit_to"]="";listener["transit_from_offer"]="";listener["transit_method"]=""
 	listener["need"] = 95
 	listener["cash"] = 100
 	listener["cooldown_until"] = 0
