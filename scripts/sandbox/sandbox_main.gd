@@ -145,15 +145,18 @@ func _process(delta: float) -> void:
 			_finish_language_reveal()
 	if _world.meeting_in_progress():
 		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
+		_city.visual_fraction = 0.0
+		_city.queue_redraw()
 		return
 	_elapsed += maxf(delta, 0.0)
 	while _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
 		_world.advance(1)
 		_render()
-	if _world.is_travelling():
-		_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
-		_city.queue_redraw()
+	# Nearby NPCs keep walking when the player's taxi is parked. The visual
+	# fraction belongs to presentation time, NOT the player's travel state.
+	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
+	_city.queue_redraw()
 
 
 func _on_meeting_selected(index: int) -> void:
