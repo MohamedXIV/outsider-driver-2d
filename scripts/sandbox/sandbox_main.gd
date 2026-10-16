@@ -39,6 +39,14 @@ extends Node2D
 @onready var _install_local: Button = $HUD/GearPanel/Content/MarketInstall/InstallLocal
 @onready var _install_cant: Button = $HUD/GearPanel/Content/MarketInstall/InstallCant
 @onready var _request_common: Button = $HUD/DialoguePanel/Content/RequestCommon
+@onready var _ask_rumor: Button = $HUD/DialoguePanel/Content/AskRumor
+@onready var _ar_buy: Button = $HUD/WorldPanel/Content/ARActions/BuyAR
+@onready var _ar_wear: Button = $HUD/WorldPanel/Content/ARActions/WearAR
+@onready var _ar_context: Button = $HUD/DialoguePanel/ARContext
+@onready var _ar_panel: PanelContainer = $HUD/ARHintPanel
+@onready var _ar_title: Label = $HUD/ARHintPanel/Content/Title
+@onready var _ar_text: Label = $HUD/ARHintPanel/Content/Body
+@onready var _ar_close: Button = $HUD/ARHintPanel/Content/Close
 @onready var _meeting_selector: OptionButton = $HUD/WorldPanel/Content/MeetingSelect
 @onready var _meeting_info: Label = $HUD/WorldPanel/Content/MeetingInfo
 @onready var _meeting_accept: Button = $HUD/WorldPanel/Content/MeetingActions/AcceptMeeting
@@ -63,6 +71,7 @@ var _route_waypoint: String = ""
 var _route_for_offer: String = ""
 var _selected_meeting_id: String = ""
 var _meeting_dialogue: SandboxMeetingDialogue
+var _ar_note: Dictionary = {}
 var _ui_locale: String = "en"
 var _reduced_motion: bool = false
 var _speech_identity: String = ""
@@ -93,6 +102,13 @@ func _ready() -> void:
 	_install_local.pressed.connect(_on_install_module.bind("local"))
 	_install_cant.pressed.connect(_on_install_module.bind("cant"))
 	_request_common.pressed.connect(_on_ask_common)
+	_ask_rumor.pressed.connect(_on_ask_rumor)
+	_ar_buy.pressed.connect(_on_buy_ar)
+	_ar_wear.pressed.connect(_on_wear_ar)
+	_ar_context.pressed.connect(_show_ar_hint)
+	_ar_context.mouse_entered.connect(_show_ar_hint)
+	_ar_context.focus_entered.connect(_show_ar_hint)
+	_ar_close.pressed.connect(_close_ar_hint)
 	_locale_en.pressed.connect(_on_language_locale.bind("en"))
 	_locale_ar.pressed.connect(_on_language_locale.bind("ar"))
 	_reduce_motion.toggled.connect(_on_reduced_motion)
@@ -296,6 +312,64 @@ func _publish_reveal_web() -> void:
 				}), true)
 
 
+
+func _on_buy_ar() -> void:
+	_notice_text = "Bought optics at Market; wear them to inspect learned facts." if \
+			_world.buy_ar() else "AR eyewear requires 5 cr, Market hours and no active ride."
+	_render()
+
+
+func _on_wear_ar() -> void:
+	var equip: bool = not _world.ar_equipped
+	_notice_text = ("AR eyewear equipped." if equip else "AR eyewear removed.") if \
+			_world.set_ar_equipped(equip) else "No eyewear available to change."
+	_render()
+
+
+func _on_ask_rumor() -> void:
+	if _conversation == null or not _conversation.understood() \
+			or not _world.hear_rumor(_conversation.offer_id):
+		_notice_text = "No comprehensible, source-backed local news from this speaker."
+	else:
+		_notice_text = "Heard a second-hand claim from this resident. It remains unverified."
+	_render()
+
+
+func _show_ar_hint() -> void:
+	if not _world.ar_equipped or _ar_note.is_empty() or not _ar_context.visible:
+		return
+	_ar_title.text = "AR / UNVERIFIED RUMOR" if _ar_note["certainty"] == "unverified" else "AR / VERIFIED NOTE"
+	_ar_text.text = "%s\nSource: %s" % [str(_ar_note["text"]), str(_ar_note["source"])]
+	_ar_panel.visible = true
+	_publish_ar_web()
+
+
+func _close_ar_hint() -> void:
+	_ar_panel.visible = false
+	_publish_ar_web()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if _ar_panel.visible and event.is_action_pressed("ui_cancel"):
+		_close_ar_hint()
+		get_viewport().set_input_as_handled()
+
+
+func _publish_ar_web() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
+		"sandboxAROwned": str(_world.ar_owned).to_lower(),
+		"sandboxAREquipped": str(_world.ar_equipped).to_lower(),
+		"sandboxARHint": str(_ar_context.visible).to_lower(),
+		"sandboxAROverlay": str(_ar_panel.visible).to_lower(),
+		"sandboxARHintText": _ar_text.text if _ar_panel.visible else "",
+		"sandboxARHintCertainty": str(_ar_note.get("certainty", "")),
+		"sandboxARHintSource": str(_ar_note.get("source", "")),
+		"sandboxRumorAvailable": str(_ask_rumor.visible).to_lower()
+	}), true)
+
+
 func _on_ask_common() -> void:
 	if _conversation == null or not _conversation.request_common(_world, get_tree()):
 		_notice_text = "Cannot request Common from this speaker right now."
@@ -492,6 +566,11 @@ func _render() -> void:
 	_notice.text = _notice_text
 	_render_route_picker(chosen)
 	_gear_panel.visible = true
+	_ar_buy.disabled = _world.ar_owned or _world.player_district != "market" \
+			or not SandboxKnowledge.market_open(_world.minute) or _world.credits < SandboxWorld.AR_PRICE \
+			or not _world.active_offer_id.is_empty() or _world.meeting_in_progress()
+	_ar_wear.disabled = not _world.ar_owned
+	_ar_wear.text = "Remove AR" if _world.ar_equipped else "Wear AR"
 	var gear_selected: bool = not _world.starter_device.is_empty()
 	_gps.disabled = gear_selected
 	_translator.disabled = gear_selected
@@ -546,6 +625,20 @@ func _render() -> void:
 		_request_common.visible = not _conversation.understood() \
 				and not _world.common_requests.has(_conversation.offer_id) \
 				and frame.get("tags", []).has("intent:request_trip")
+		_ask_rumor.visible = _conversation.understood() \
+				and not _world.rumor_candidate(_conversation.offer_id).is_empty()
+		_ask_rumor.text = "اسأل عن أخبار الحي" if _ui_locale == "ar" else "Ask about local gossip"
+		if _ui_locale == "ar":
+			_ask_rumor.add_theme_font_override("font", load(ARABIC_FONT))
+		else:
+			_ask_rumor.remove_theme_font_override("font")
+		_ar_note = SandboxARHints.contextual(_world, frame, speaker_offer, _conversation.understood())
+		_ar_context.visible = not _ar_note.is_empty()
+		_ar_context.text = "AR: %s" % str(_ar_note.get("term", ""))
+		_ar_context.tooltip_text = "%s\n%s" % [
+			str(_ar_note.get("text", "")), str(_ar_note.get("source", ""))]
+		if not _ar_context.visible:
+			_ar_panel.visible = false
 		_update_dialogue_presentation(frame, speaker_offer, speaker, language)
 		var choices: Array = frame.get("choices", [])
 		for i in range(choices.size()):
@@ -558,6 +651,10 @@ func _render() -> void:
 			button.pressed.connect(_on_dialogue_choice.bind(i))
 			_dialogue_choices.add_child(button)
 	if _conversation == null:
+		_ar_note = {}
+		_ar_panel.visible = false
+		_ar_context.visible = false
+		_ask_rumor.visible = false
 		_speech_identity = ""
 		_reveal_pending = false
 		_request_common.visible = false
@@ -638,6 +735,7 @@ func _render() -> void:
 			str(_conversation.recognizes_driver()).to_lower() if _conversation != null else "false"
 		]
 		JavaScriptBridge.eval(web_state, true)
+		_publish_ar_web()
 		JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 			"sandboxUILocale": _ui_locale,
 			"sandboxRevealPending": str(_reveal_pending).to_lower(),
@@ -720,6 +818,11 @@ func _publish_language_web() -> void:
 		"sandboxDistrictPoint": _districts.get_global_rect().get_center(),
 		"sandboxRepositionPoint": _reposition.get_global_rect().get_center(),
 		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center(),
+		"sandboxARBuyPoint": _ar_buy.get_global_rect().get_center(),
+		"sandboxARWearPoint": _ar_wear.get_global_rect().get_center(),
+		"sandboxARContextPoint": _ar_context.get_global_rect().get_center(),
+		"sandboxARClosePoint": _ar_close.get_global_rect().get_center(),
+		"sandboxAskRumorPoint": _ask_rumor.get_global_rect().get_center(),
 		"sandboxLocaleEnglishPoint": _locale_en.get_global_rect().get_center(),
 		"sandboxLocaleArabicPoint": _locale_ar.get_global_rect().get_center(),
 		"sandboxReducedMotionPoint": _reduce_motion.get_global_rect().get_center(),
