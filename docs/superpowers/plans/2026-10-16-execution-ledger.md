@@ -31,3 +31,11 @@
 - Final targeted review found no remaining important issue; minor invalid map preview fallback corrected (invalid waypoint now highlights no unrelated route and Drive stays disabled).
 - Travel speech refreshes the current region before a later choice, including after arrival; observed failing test then passed. Route preview graphics now use the same planned path as cost/time/command validation.
 - Final native/domain gates: 25 domain/adapters plus 11 rendered scripts. Browser controls wait for actual engine action acknowledgments, including return from Debug Mode, rather than assuming a fixed frame delay.
+
+## Final delivery
+
+- Code frozen at `52fd490cf009d052ea2c1c3e16f68a319a504dfd`; PR #55 reviewed and left unmerged for final user review.
+- Single final CI run 38919427433 PASS: all 36 scripts, four Ink/source pairs, both real Chromium suites, Linux/Windows/Web exports and Linux boot.
+- Artifacts: integrated builds 12054755010 (80,574,159 bytes), evidence 12054118689 (3,886,802 bytes); downloaded package contents and source SHA verified. All 36 CI script logs contain completion markers and no script/error lines; actual narrow Arabic and deck PNGs inspected.
+- Individual evidence comments posted to #49–52; #23 closed as completed engineering (all #32–34 already closed); #48/#15 updated and remain open. Original feedback remains unchanged and every FB status is ready for human check, not accepted.
+- Local generated untracked Godot sidecars removed after verification. Final docs-only delivery commit follows the tested code; no second Actions run is needed for those links/status notes.

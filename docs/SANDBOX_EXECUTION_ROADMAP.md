@@ -100,3 +100,14 @@ This is a **working execution board**, not a rigid time estimate. Adjust the ord
 ## Verified optional E / AR P0 closure — October 16, 2026
 
 [Equipment AR PR #47](https://github.com/MohamedXIV/outsider-driver-2d/pull/47) gameplay head `36bbfb77b0bb4664f63b41606a6a85d3e0c2e058` passed [Godot 4.7.2 CI #38876799731](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38876799731), **32/32 steps green**. Verified: legitimate physical Market purchase and equipment toggles, event-backed visited district and GPS hints, unknown/untranslated suppression, source-attested heard rumors marked explicitly unverified, forged-save rejection, native Linux focus/screenshot tests, actual exported Chromium hover/click/ESC, purchase and Web reload; all S0–S3 and Languages P0/P1 regressions passed. Windows **export only**, not runtime. Device hardware touch/screen reader, subjective UI fit and Arabic localization of the AR card remain unverified; this is still a schematic debug HUD. [Detailed contract](SANDBOX_AR_P0.md).
+
+## Integrated delivery checkpoint — October 16, 2026
+
+[PR #55](https://github.com/MohamedXIV/outsider-driver-2d/pull/55), code `52fd490`, [final build run PASS](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433). [Download/build/play instructions](CITY_PLAYTEST.md).
+
+- Engineering #49–52: implemented, ready for human check; PR intentionally remains unmerged pending final review. Closing those issues on merge is an engineering status, not human visual/pacing acceptance.
+- #23: bounded language/equipment engineering scope closed after confirming #32–34 are shipped and preserved.
+- #48: open for the next real user impression of this integrated build. Original old-dashboard 4/4 False baseline retained.
+- #15: remains open for broader sandbox/content/tuning and human/Windows-runtime verification. Nine residents and placeholder city art are a working foundation, not a complete metropolitan game.
+
+Next evaluation is one integrated human playtest, not four intermediate-build approvals. No new gameplay verdict has been supplied by the user.

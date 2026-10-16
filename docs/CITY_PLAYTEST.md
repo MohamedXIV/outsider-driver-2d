@@ -1,6 +1,14 @@
 # Integrated city playtest — October 16, 2026
 
 This is one integrated build for human evaluation. Player Mode is the default.
+
+**Delivered code:** `52fd490cf009d052ea2c1c3e16f68a319a504dfd`, [PR #55](https://github.com/MohamedXIV/outsider-driver-2d/pull/55), intentionally unmerged for final review.
+
+- [Download Linux / Windows-export / Web builds](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433/artifacts/12054755010)
+- [Download actual screenshots, position records and logs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433/artifacts/12054118689)
+- [Final single CI/build run — PASS](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433)
+
+Artifacts were downloaded and checked for the expected executable/PCK/Web files and matching `SOURCE_COMMIT.txt`. The final run passed all 36 script checks (25 domain/adapters, 11 native rendered), all four Ink/source comparisons, both Chromium suites, all exports and Linux exported boot. Retention is 21 days.
 Human pacing, comfort and visual appeal are **not accepted** by automated checks.
 Windows is exported, not runtime tested.
 

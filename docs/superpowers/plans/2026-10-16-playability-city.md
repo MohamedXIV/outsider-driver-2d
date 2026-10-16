@@ -50,7 +50,10 @@ Interfaces: existing open/choose/snapshot/restore now supports travel context; w
 - [x] Commit checkpoint.
 
 ### Task 5: Review and delivery
-- [ ] Review complete diff, fix important findings with regression tests, run final VM gate.
-- [ ] Package Linux/Windows/Web builds and screenshots, update feedback/roadmap/issues with exact evidence.
-- [ ] Commit, push integration branch, open PR. Merge only with authorization and safe verification.
-- [ ] Leave precise continuation instructions if externally blocked; distinguish human playtest from technical completion.
+- [x] Review complete diff, fix important findings with regression tests, run final VM gate.
+- [x] Package Linux/Windows/Web builds and screenshots, update feedback/roadmap/issues with exact evidence.
+- [x] Commit, push integration branch, open PR. Merge only with authorization and safe verification.
+- [x] Leave precise continuation instructions if externally blocked; distinguish human playtest from technical completion.
+
+
+Delivery: code `52fd490`, PR #55 open/unmerged, final run 38919427433 green. Build/evidence bundles downloaded and checked. #23 closed; #49–52 awaiting merge, #48/#15 awaiting human/broader acceptance. No external blocker or unfinished implementation handoff remains.

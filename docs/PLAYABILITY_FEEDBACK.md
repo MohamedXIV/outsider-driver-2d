@@ -95,3 +95,13 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - Checkpoints: `1bf7687` design recovery, `e5ac4b9` physical city/domain, `1d0f708` Player/Debug and travel Ink, followed by review/verification fixes in this integration branch.
 - [Technical evidence and play instructions](CITY_PLAYTEST.md); source attribution and design boundaries in [world recovery](world/README.md).
 - **Human verdict: Pending for every FB item.** Ready for human check is an engineering handoff, not a new True/False answer or visual/pacing acceptance.
+
+## Delivered integrated build and evidence
+
+- Code `52fd490`, [PR #55](https://github.com/MohamedXIV/outsider-driver-2d/pull/55), [single final run — PASS](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433).
+- [Linux / Windows-export / Web build bundle](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433/artifacts/12054755010) and [actual screenshots/logs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38919427433/artifacts/12054118689). Artifacts checked after download; 21-day retention.
+- FB-001 proof: `test_city_journeys`, `test_travel_dialogue`, `04-long-city-ride`, `05-arrival-readable`, `web-long-route`, `web-short-route`; actual 72-minute and 35-minute fares, not a claim of human comfort.
+- FB-002 proof: `test_player_mode`, `01-player-outer-margin`, `03-debug-same-world`, `web-default-player`, `web-debug`; one unchanged world on mode switch.
+- FB-003 proof: `test_city`, `test_city_waypoints`, `test_sandbox_reroute`, native `06-underpass` / `07-ramp` / `08-deck` / `09-connected-descent`, each with authoritative position JSON.
+- FB-004 proof: `test_player_layout`, `test_player_arabic`, `test_player_contacts`, `web-player-dialogue`, `web-gear`, `web-small-arabic`; actual pointer/scrolling and Arabic font/fallback rendering inspected.
+- #23's completed engineering umbrella is closed. #49–52 are implemented on the PR and remain open until merge. #48 and #15 remain open for human feedback and broader sandbox scope. **No FB item is Human accepted.**
