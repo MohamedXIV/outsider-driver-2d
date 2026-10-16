@@ -32,6 +32,9 @@ var route_segment: int = 0
 var route_edge_elapsed: int = 0
 var pending_route_nodes: Array[String] = []
 var rider_route_request: Dictionary = {}
+# One world-owned yield latch. World time continues while driving position
+# and fare settlement wait for the physical local crossing to clear.
+var route_hold_id: String = ""
 var meetings: Array[Dictionary] = []
 
 
@@ -236,7 +239,7 @@ func advance(minutes: int) -> bool:
 		for id in expired:
 			_record("offer_expired", id)
 		_record_changes(SandboxAutonomy.begin_expired_trips(residents, offers, expired, minute, seed))
-		if is_travelling():
+		if is_travelling() and route_hold_id.is_empty():
 			_step_player_route()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 	return true
@@ -289,6 +292,8 @@ func is_travelling() -> bool:
 
 func player_position(fraction: float = 0.0) -> Vector3:
 	if not is_travelling(): return SandboxRoads.map_position(player_district)
+	# Visual interpolation must not drive the taxi through a held zebra.
+	if not route_hold_id.is_empty(): fraction = 0.0
 	return SandboxRoads.sample_edge(route_nodes[route_segment], route_nodes[route_segment+1],
 		(float(route_edge_elapsed)+clampf(fraction,0,1))/float(SandboxRoads.edge_minutes(route_nodes[route_segment],route_nodes[route_segment+1])))
 
@@ -427,6 +432,27 @@ func _route_time_left() -> int:
 			- route_edge_elapsed + SandboxRoads.path_minutes(pending_route_nodes)
 
 
+# Right of way is a gameplay event, not a pause of the entire simulation.
+# Only a grounded authored crossing on the CURRENT world road can latch.
+func begin_crossing_yield() -> bool:
+	if not route_hold_id.is_empty() or not SandboxStreetRouteBinding.approaching(self):
+		return false
+	route_hold_id=SandboxStreetRouteBinding.CROSSING_ID
+	_record("taxi_yield_started","player",{
+		"crossing":route_hold_id,
+		"edge":SandboxRoads.edge_key(SandboxStreetRouteBinding.FROM,
+				SandboxStreetRouteBinding.TO),
+		"elapsed":route_edge_elapsed})
+	return true
+
+func release_crossing_yield() -> bool:
+	if route_hold_id!=SandboxStreetRouteBinding.CROSSING_ID:
+		return false
+	_record("taxi_yield_ended","player",{"crossing":route_hold_id})
+	route_hold_id=""
+	return true
+
+
 func _step_player_route() -> void:
 	# Advance the same authoritative physical route used by the presenter.
 	if route_nodes.size() < 2 or route_segment >= route_nodes.size() - 1:
@@ -514,6 +540,7 @@ func snapshot() -> Dictionary:
 		"travel_destination": travel_destination, "engaged_offer_id": engaged_offer_id,
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
+		"route_hold_id": route_hold_id,
 		"pending_route_nodes": pending_route_nodes.duplicate(),
 		"rider_route_request": rider_route_request.duplicate(true),
 		"meetings": meetings.duplicate(true)
@@ -760,6 +787,38 @@ func restore_snapshot(value: Dictionary) -> bool:
 			return false
 	var segment: int = int(value.get("route_segment", -1))
 	var elapsed: int = int(value.get("route_edge_elapsed", -1))
+	var held: Variant=value.get("route_hold_id","")
+	if not (held is String) or not ["",SandboxStreetRouteBinding.CROSSING_ID].has(held):
+		return false
+	# The signed event ledger tracks a matched start/end pair. A save cannot
+	# invent an active crossing latch without its arrival in the event log.
+	var ledger_hold: String=""
+	for evt in value["events"]:
+		if evt.get("kind","")=="taxi_yield_started":
+			var detail: Dictionary=evt.get("detail",{})
+			if ledger_hold!="" or evt.get("subject","")!="player" \
+					or detail.get("crossing","")!=SandboxStreetRouteBinding.CROSSING_ID \
+					or detail.get("edge","")!=SandboxRoads.edge_key(
+							SandboxStreetRouteBinding.FROM,SandboxStreetRouteBinding.TO):
+				return false
+			ledger_hold=SandboxStreetRouteBinding.CROSSING_ID
+		elif evt.get("kind","")=="taxi_yield_ended":
+			if ledger_hold!=SandboxStreetRouteBinding.CROSSING_ID \
+					or evt.get("subject","")!="player" \
+					or evt.get("detail",{}).get("crossing","")!=ledger_hold:
+				return false
+			ledger_hold=""
+	if held!=ledger_hold:
+		return false
+	if held!="":
+		if segment<0 or segment>=route.size()-1 or route[segment]!=SandboxStreetRouteBinding.FROM \
+				or route[segment+1]!=SandboxStreetRouteBinding.TO:
+			return false
+		var edge_minutes: int=SandboxRoads.edge_minutes(SandboxStreetRouteBinding.FROM,
+				SandboxStreetRouteBinding.TO)
+		if float(elapsed)/float(edge_minutes)>=SandboxStreetRouteBinding.CROSS_FRACTION \
+				or float(elapsed+1)/float(edge_minutes)<SandboxStreetRouteBinding.CROSS_FRACTION:
+			return false
 	if active.is_empty() and relocation.is_empty():
 		if not route.is_empty() or not pending.is_empty() or not request.is_empty() \
 				or segment != 0 or elapsed != 0 or remaining != 0:
@@ -825,6 +884,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	route_edge_elapsed = elapsed
 	pending_route_nodes = pending.duplicate()
 	rider_route_request = request.duplicate(true)
+	route_hold_id=held
 	meetings.clear()
 	for meeting in value["meetings"]:
 		meetings.append((meeting as Dictionary).duplicate(true))
