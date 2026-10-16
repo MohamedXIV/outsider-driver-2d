@@ -225,7 +225,7 @@ theme_override_constants/separation = 3
 offset_left = 510.0
 offset_top = 16.0
 offset_right = 1006.0
-offset_bottom = 258.0
+offset_bottom = 285.0
 
 [node name="Content" type="VBoxContainer" parent="HUD/GearPanel"]
 layout_mode = 2
@@ -254,9 +254,17 @@ layout_mode = 2
 custom_minimum_size = Vector2(142, 36)
 text = "Radio"
 
-[node name="MarketHeading" type="Label" parent="HUD/GearPanel/Content"]
+[node name="MarketHeading" type="HBoxContainer" parent="HUD/GearPanel/Content"]
 layout_mode = 2
-text = "PHYSICAL LANGUAGE STALL / MARKET 06:00–20:00"
+
+[node name="Label" type="Label" parent="HUD/GearPanel/Content/MarketHeading"]
+layout_mode = 2
+text = "LANGUAGE STALL / 06:00–20:00"
+
+[node name="DriveMarket" type="Button" parent="HUD/GearPanel/Content/MarketHeading"]
+layout_mode = 2
+custom_minimum_size = Vector2(175, 31)
+text = "Drive to Market"
 
 [node name="MarketBuy" type="HBoxContainer" parent="HUD/GearPanel/Content"]
 layout_mode = 2
@@ -292,9 +300,9 @@ text = "Common language is already translated; choose a bonus."
 
 [node name="RoutePanel" type="PanelContainer" parent="HUD"]
 offset_left = 510.0
-offset_top = 268.0
+offset_top = 291.0
 offset_right = 1006.0
-offset_bottom = 452.0
+offset_bottom = 475.0
 
 [node name="Content" type="VBoxContainer" parent="HUD/RoutePanel"]
 layout_mode = 2

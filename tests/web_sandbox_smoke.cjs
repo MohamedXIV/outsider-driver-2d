@@ -47,11 +47,8 @@ const { chromium } = require('playwright');
       throw new Error('Refused Common request lost across Web persistent reload.');
     await page.screenshot({path:'/tmp/od2d-ink-evidence/sandbox-common-reloaded.png'});
 
-    // Real OptionButton selection and physical taxi reposition (not a direct world mutation).
-    await click('sandboxDistrictPoint');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Enter');
-    await click('sandboxRepositionPoint');
+    // Physical travel button routes through the same charged, timed SandboxWorld.reposition.
+    await click('sandboxMarketTravelPoint');
     await wait(() => document.documentElement.dataset.sandboxDistrict === 'market');
     d = await data();
     if (d.sandboxCredits !== '11') throw new Error('Market travel was free or charged incorrectly.');

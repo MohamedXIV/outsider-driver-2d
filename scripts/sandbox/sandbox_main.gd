@@ -28,6 +28,7 @@ extends Node2D
 @onready var _gps: Button = $HUD/GearPanel/Content/Devices/GPS
 @onready var _translator: Button = $HUD/GearPanel/Content/Devices/Translator
 @onready var _radio: Button = $HUD/GearPanel/Content/Devices/Radio
+@onready var _drive_market: Button = $HUD/GearPanel/Content/MarketHeading/DriveMarket
 @onready var _buy_local: Button = $HUD/GearPanel/Content/MarketBuy/BuyLocal
 @onready var _buy_cant: Button = $HUD/GearPanel/Content/MarketBuy/BuyCant
 @onready var _install_local: Button = $HUD/GearPanel/Content/MarketInstall/InstallLocal
@@ -72,6 +73,7 @@ func _ready() -> void:
 	_city.waypoint_clicked.connect(_on_map_waypoint)
 	_gps.pressed.connect(_on_starter_device.bind("gps"))
 	_translator.pressed.connect(_on_starter_device.bind("module:local"))
+	_drive_market.pressed.connect(_on_drive_market)
 	_buy_local.pressed.connect(_on_buy_module.bind("local"))
 	_buy_cant.pressed.connect(_on_buy_module.bind("cant"))
 	_install_local.pressed.connect(_on_install_module.bind("local"))
@@ -201,6 +203,15 @@ func _on_starter_device(device: String) -> void:
 		_conversation = null # Re-read live context on the next conversation.
 	else:
 		_notice_text = "Only one starter device per world; equipment already selected."
+	_render()
+
+
+func _on_drive_market() -> void:
+	if _world.reposition("market"):
+		_conversation = null
+		_notice_text = "Drove along the city roads to the physical language stall."
+	else:
+		_notice_text = "Cannot travel to Market while busy, already there or without road funds."
 	_render()
 
 
@@ -419,6 +430,9 @@ func _render() -> void:
 	_radio.disabled = gear_selected
 	var stall: bool = _world.player_district == "market" and SandboxKnowledge.market_open(_world.minute) \
 			and _world.active_offer_id.is_empty() and not _world.meeting_in_progress()
+	_drive_market.disabled = _world.player_district == "market" or \
+			not _world.active_offer_id.is_empty() or _world.meeting_in_progress() \
+			or _world.credits < SandboxRoads.hops(_world.player_district, "market")
 	_buy_local.disabled = not stall or _world.modules_owned.has("local") \
 			or int(_world.market_stock["local"]) == 0 or _world.credits < 8
 	_buy_cant.disabled = not stall or _world.modules_owned.has("cant") \
@@ -559,6 +573,7 @@ func _publish_language_web() -> void:
 		"sandboxInstallLocalPoint": _install_local.get_global_rect().get_center(),
 		"sandboxInstallCantPoint": _install_cant.get_global_rect().get_center(),
 		"sandboxCommonPoint": _request_common.get_global_rect().get_center(),
+		"sandboxMarketTravelPoint": _drive_market.get_global_rect().get_center(),
 		"sandboxDistrictPoint": _districts.get_global_rect().get_center(),
 		"sandboxRepositionPoint": _reposition.get_global_rect().get_center(),
 		"sandboxOfferTalkPoint": _talk.get_global_rect().get_center()
