@@ -93,6 +93,15 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Interpretation/next priorities:** first fix #57 interpolation independent of player taxi motion and #56 bounded camera zoom; iterate #58 road/block visual grammar separately with before/after pictures. **Do not globally remodel the city, remove curves everywhere or invalidate prior technical proof** on the basis of a first impression.
 - **Human check status:** Overall visual/game impression substantially improved. Specific camera distance, road/bridge treatment and NPC smoothness unresolved. More user notes may follow after later play, without imposing another formal checklist.
 
+### R04 — October 16, 2026 — native navigation & organized crossing
+
+- **User's direction:** Use Godot's navigation/physics for the visible character's actual walking, instead of ticking a position along the vehicle graph by hand. Let SandboxWorld determine the character's goals and receive a verified arrival.
+- **User's observation:** NPCs may cross roads at arbitrary points and visually overlap the player's taxi. They want a credible foundation for pedestrian and vehicle lanes, crossings and basic right-of-way, not an entirely new bespoke pathfinder.
+- **FB-008 — [#59](https://github.com/MohamedXIV/outsider-driver-2d/issues/59):** Draft stacked [PR #61](https://github.com/MohamedXIV/outsider-driver-2d/pull/61) implements a **bounded Patchworks local world-resident actor**, `NavigationAgent2D`, physical movement, arrival provenance and location-sensitive instantiation in the default main scene. Full native city-wide NPC handoff is **not** yet implemented or human accepted.
+- **FB-009 — [#60](https://github.com/MohamedXIV/outsider-driver-2d/issues/60):** Same PR prototypes modular sidewalks, one authorized `NavigationLink2D` crossing and a locally yielding traffic car; **it does not yet prevent all taxi/walker overlaps** or implement traffic across six districts.
+- **Validation:** [Native Godot targeted run #38955939278](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38955939278) passed four tests including main-scene actor, a mid-walk save/reload and legacy city render. Post-run provenance validation and additional screenshot capture require a subsequent gate; no Web/Windows runtime proof yet.
+- **Human acceptance:** Pending; previous user praise for the integrated Player Mode refers to PR #55, **not** to this new physical-navigation prototype.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.

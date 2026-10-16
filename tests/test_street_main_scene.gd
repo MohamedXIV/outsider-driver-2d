@@ -32,6 +32,7 @@ func _run() -> void:
 		if scene._street_pilot.pedestrian.position.x > 158.0:
 			moving = true
 	assert(moving, "Embedded actor was not navigated by the Godot physics server")
+	await capture("patchworks-walking-in-main-game")
 	var visual_saved: Vector2 = scene._street_pilot.pedestrian.position
 	scene._on_save()
 	scene._on_load()
@@ -41,6 +42,7 @@ func _run() -> void:
 	assert(scene._street_pilot.walking_npc_id == initial_actor)
 	assert(scene._street_pilot.pedestrian.position.distance_to(visual_saved) < 1.0)
 	assert(scene._world.resident(initial_actor)["local_pedestrian_trip"]["status"] == "walking")
+	await capture("patchworks-walking-restored")
 	for i in range(1600):
 		await physics_frame
 		if scene._street_pilot.world_reported_arrival:
@@ -51,6 +53,7 @@ func _run() -> void:
 		if e["kind"] == "local_pedestrian_arrived":
 			arrivals += 1
 	assert(arrivals == 1)
+	await capture("patchworks-arrived-once")
 	assert(not SandboxLocalPedestrianTrip.arrive(scene._world,initial_actor,scene._street_pilot.SITE))
 	var forged: Dictionary = scene._world.snapshot()
 	forged["residents"][0]["local_pedestrian_trip"] = {"site":"patchworks:parts_counter","status":"arrived","started":480,"arrived":480}
@@ -60,3 +63,10 @@ func _run() -> void:
 	assert(scene._street_pilot.walking_npc_id == initial_actor)
 	print("STREET_MAIN_PASS single world-owned NPC in playable city, native actor and restored midwalk position")
 	quit()
+
+func capture(label: String) -> void:
+	var path: String = "/tmp/od2d-street-evidence"
+	DirAccess.make_dir_recursive_absolute(path)
+	await process_frame
+	await RenderingServer.frame_post_draw
+	assert(root.get_texture().get_image().save_png(path.path_join(label+".png")) == OK)
