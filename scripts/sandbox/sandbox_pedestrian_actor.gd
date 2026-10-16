@@ -54,7 +54,7 @@ func _physics_process(_delta: float) -> void:
 	# Local right-of-way is separate from NavigationAgent's pathfinding.
 	if not crossing_completed and position.x >= CROSS_X - 19.0:
 		crossing_reserved = true
-		if traffic != null and traffic.position.x > CROSS_X - 33.0 and traffic.position.x < CROSS_X + 40.0:
+		if traffic != null and not SandboxStreetPriority.pedestrian_may_enter(traffic.position.x):
 			velocity = Vector2.ZERO
 			_agent.set_velocity(Vector2.ZERO)
 			return

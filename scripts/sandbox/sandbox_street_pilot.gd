@@ -105,15 +105,13 @@ func _physics_process(delta: float) -> void:
 	# Crossing priority is traffic policy, not an automatic NavMesh feature.
 	if car == null or pedestrian == null:
 		return
-	var crossing_occupied: bool = pedestrian.crossing_reserved and not pedestrian.crossing_completed
-	var must_yield: bool = crossing_occupied and car.position.x < CROSS_X - 23.0
-	if must_yield:
+	var occupied: bool = pedestrian.crossing_reserved and not pedestrian.crossing_completed
+	var traffic_speed: float = SandboxStreetPriority.vehicle_velocity(
+			car.position.x,pedestrian.crossing_reserved,
+			pedestrian.crossing_completed,delta)
+	if occupied and car.position.x <= SandboxStreetPriority.stop_line()+0.1:
 		car_yielded = true
-		car.velocity = Vector2.ZERO
-	elif crossing_occupied and car.position.x < CROSS_X + 37.0:
-		car.velocity = Vector2.ZERO
-	else:
-		car.velocity = Vector2(36.0,0.0) if car.position.x < 550.0 else Vector2.ZERO
+	car.velocity = Vector2(traffic_speed,0.0)
 	car.move_and_slide()
 	queue_redraw()
 
