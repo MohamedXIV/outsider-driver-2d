@@ -72,6 +72,7 @@ func choose(index: int, world: SandboxWorld, waypoint: String = "") -> bool:
 	var choices: Array = _frame.get("choices", [])
 	if index < 0 or index >= choices.size():
 		return false
+	if phase=="travel" and not _ink.update_globals({"district_name":SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["name"]}): return false
 	var result: Dictionary = _ink.choose(index)
 	_frame = result
 	_present_untranslated_frame(world)

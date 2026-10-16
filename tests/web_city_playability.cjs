@@ -37,6 +37,7 @@ const { openCity } = require('./city_browser.cjs');
     await page.waitForFunction(() => document.documentElement.dataset.playerMode === 'false');
     await shot('web-debug');
     await page.keyboard.press('F3');
+    await page.waitForFunction(() => document.documentElement.dataset.playerMode === 'true');
     await click('settings');
     await click('arabic');
     await shot('web-player-arabic');

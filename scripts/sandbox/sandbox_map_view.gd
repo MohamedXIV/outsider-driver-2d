@@ -3,6 +3,8 @@ extends Control
 signal stop_selected(stop: String)
 var world: SandboxWorld
 var selected: String = ""
+var preview_nodes: Array[String] = []
+var preview_active: bool = false
 var locale: String = "en"
 var _elapsed: float = 0
 func _ready() -> void:
@@ -19,7 +21,7 @@ func _draw() -> void:
 	for key in SandboxCityData.EDGES:
 		var pair: PackedStringArray = str(key).split("|")
 		draw_line(point(pair[0]),point(pair[1]),Color("607e7b"),2,true)
-	var route: Array[String] = world.route_nodes if world.is_travelling() else SandboxRoads.path(world.player_district,selected) if not selected.is_empty() else []
+	var route: Array[String] = world.route_nodes if world.is_travelling() else preview_nodes if preview_active else SandboxRoads.path(world.player_district,selected) if not selected.is_empty() else []
 	for i in range(route.size()-1): draw_line(point(route[i]),point(route[i+1]),Color("efc17b"),4,true)
 	for stop in SandboxRoads.DISTRICTS:
 		draw_circle(point(stop),5,Color("f3cc8e") if stop==selected else Color("99b6a5"))

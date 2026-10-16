@@ -32,6 +32,17 @@ func open_compiled(json_text: String, scene_tree: SceneTree, globals: Dictionary
 	return true
 
 
+# Refresh read-only contextual copies before a later speech act. The caller
+# still validates every emitted effect; Ink never receives world ownership.
+func update_globals(globals: Dictionary) -> bool:
+	if _story==null: return false
+	for key in globals:
+		var value: Variant=globals[key]
+		if not _story.variables_state.global_variable_exists_with_name(str(key)) or not (value is String or value is bool or value is int): return false
+	for key in globals: _story.variables_state.set_variable(str(key),globals[key])
+	return true
+
+
 func advance() -> Dictionary:
 	assert(_story != null, "Call open_compiled() before advancing Ink.")
 	var lines: Array[String] = []

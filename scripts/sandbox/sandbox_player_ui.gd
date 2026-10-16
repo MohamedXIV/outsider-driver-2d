@@ -213,6 +213,8 @@ func sync() -> void:
 		_button("add_waypoint",trp("Add selected waypoint","أضف النقطة المحددة"),_add_waypoint,_planned_via.is_empty() or _planned_stops.has(_planned_via))
 		_button("clear_waypoints",trp("Clear waypoints","امسح النقاط"),_clear_waypoints,_planned_stops.is_empty())
 		var path: Array[String]=SandboxRoads.path(world.player_district,_map_selected,_planned_via) if _planned_stops.is_empty() else SandboxRoads.path_via(world.player_district,_map_selected,_planned_stops)
+		map.preview_nodes=path;map.preview_active=true;map.queue_redraw()
+		if SandboxRoads.valid_path(path): _label(trp("Road tolls: %d cr · Empty-trip fuel: %d cr","رسوم الطريق: %d · وقود الرحلة الفارغة: %d")%[SandboxRoads.path_expense(path),maxi(1,ceili(SandboxRoads.path_metres(path)/5000))])
 		_label("%s · %.1f km · %d min"%[place(_map_selected),SandboxRoads.path_metres(path)/1000,SandboxRoads.path_minutes(path)])
 		_button("drive",trp("Drive to this stop","قد إلى الموقف"),_drive.bind(_map_selected),world.is_travelling() or world.player_district==_map_selected or not SandboxRoads.valid_path(path))
 		if not world.is_travelling():
@@ -227,7 +229,11 @@ func sync() -> void:
 		if world.starter_device.is_empty():
 			_label(trp("Basic Common translator included. Choose one free starter bonus.","مترجم اللغة المشتركة متاح. اختر إضافة مجانية واحدة."))
 			for device in ["gps","module:local","radio"]: _button(device,trp({"gps":"GPS · route display","module:local":"Local language module","radio":"Radio · underground dispatch"}[device],{"gps":"نظام الملاحة","module:local":"وحدة اللغة المحلية","radio":"راديو الطلبات السرية"}[device]),controller._on_starter_device.bind(device),world.is_travelling())
-		else: _label(controller._gear_info.text)
+		else:
+			_label(trp("Starter kit: ","عدة البداية: ")+trp({"gps":"GPS","module:local":"Local module","radio":"Radio"}[world.starter_device],{"gps":"الملاحة","module:local":"وحدة اللغة المحلية","radio":"الراديو"}[world.starter_device]))
+			var installed: PackedStringArray=[]
+			for language in world.modules_installed: installed.append(trp({"trade":"Common","local":"Local","cant":"Cant"}[language],{"trade":"المشتركة","local":"المحلية","cant":"الكانت"}[language]))
+			_label(trp("Installed languages: ","اللغات المثبتة: ")+" / ".join(installed))
 		_label(trp("Concourse Market · Linguist · 06:00–20:00","سوق الملتقى · اللغوي · ٠٦:٠٠–٢٠:٠٠"))
 		_button("market",trp("Drive to the market","قد إلى السوق"),_drive.bind("market"),world.is_travelling() or world.player_district=="market")
 		for language in ["local","cant"]:
@@ -253,7 +259,7 @@ func sync() -> void:
 		_label(trp("Make yourself at home","خياراتك"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))
 		_button("arabic","العربية",controller._on_language_locale.bind("ar"))
-		_button("motion",trp("Reduced motion: ","تقليل الحركة: ")+str(controller._reduced_motion),controller._on_reduced_motion.bind(not controller._reduced_motion))
+		_button("motion",trp("Reduced motion: ","تقليل الحركة: ")+(trp("On","مفعّل") if controller._reduced_motion else trp("Off","متوقف")),controller._on_reduced_motion.bind(not controller._reduced_motion))
 		_button("save",trp("Save city and conversation","احفظ المدينة والحوار"),_call.bind("_on_save"))
 		_button("load",trp("Load saved city","حمّل المدينة المحفوظة"),_call.bind("_on_load"))
 		_label(controller._notice_text)

@@ -62,6 +62,7 @@ jobs:
           build/linux/outsider-driver.x86_64 --headless --quit-after 90 > /tmp/linux-boot.log 2>&1
           if rg 'SCRIPT ERROR|ERROR:|Parse Error' /tmp/*-export.log /tmp/linux-boot.log; then exit 1; fi
           cp docs/CITY_PLAYTEST.md build/PLAYTEST.md
+          git rev-parse HEAD > build/SOURCE_COMMIT.txt
       - name: Exercise exported Web with real Chromium pointer input
         env:
           NODE_PATH: /tmp/city-tools/node_modules

@@ -27,3 +27,7 @@
 - Actual exported Chromium two-fare evidence: garage→market via depot, 28,155.83 m / 72 minutes; later genuine market→depot request, 13,966.37 m / 35 minutes. Both had travel Ink and settled once. NPCs did not generate a local fare while at work; the test used the real Wait command until a genuine available request emerged, rather than manufacturing demand.
 - Visual review caught Player theme inheritance and Latin fallback defects despite the existing dialogue font tests. Added actual-control Arabic/Latin font regression and visually inspected a corrected 720×900 native frame.
 - Native static scenery now uses retained CanvasItem layers with separate physical actor layers; draw ordering and world immutability regression passed. Reviewer found no important layer-init/depth issue. Contacts availability cache omission fixed after observed RED regression.
+
+- Final targeted review found no remaining important issue; minor invalid map preview fallback corrected (invalid waypoint now highlights no unrelated route and Drive stays disabled).
+- Travel speech refreshes the current region before a later choice, including after arrival; observed failing test then passed. Route preview graphics now use the same planned path as cost/time/command validation.
+- Final native/domain gates: 25 domain/adapters plus 11 rendered scripts. Browser controls wait for actual engine action acknowledgments, including return from Debug Mode, rather than assuming a fixed frame delay.
