@@ -46,8 +46,21 @@ func _run() -> void:
 	assert(scene._world.remaining_minutes==remaining)
 	assert(scene._world.player_position().is_equal_approx(point))
 	assert(scene._world.route_hold_id==SandboxStreetRouteBinding.CROSSING_ID)
-	# Finish the pedestrian's physical crossing, then the REAL taxi resumes.
-	scene._street_pilot.pedestrian.crossing_completed=true
+	# A flag alone cannot move the player car through a still-occupied lane.
+	# Reproduce a stale/corrupt presentation flag after the mid-hold load.
+	var restored_walker: SandboxPedestrianActor=scene._street_pilot.pedestrian
+	restored_walker.crossing_completed=true
+	restored_walker.position=Vector2(SandboxStreetModule.CROSS_X,
+			SandboxStreetModule.crossing_clear_y()-0.25)
+	assert(not SandboxStreetModule.crossing_clear(restored_walker.position))
+	scene._process(1.0)
+	assert(scene._world.route_hold_id==SandboxStreetRouteBinding.CROSSING_ID,
+			"Taxi released on a flag with the walker still inside the road")
+	assert(scene._world.remaining_minutes==remaining)
+	# Finish the pedestrian's physical crossing; only then the taxi resumes.
+	restored_walker.position=Vector2(SandboxStreetModule.CROSS_X,
+			SandboxStreetModule.crossing_clear_y())
+	assert(SandboxStreetModule.crossing_clear(restored_walker.position))
 	scene._process(1.0)
 	assert(scene._world.route_hold_id.is_empty())
 	assert(scene._world.remaining_minutes<remaining)
@@ -58,5 +71,5 @@ func _run() -> void:
 		if evt["kind"]=="taxi_yield_started": starts+=1
 		if evt["kind"]=="taxi_yield_ended": ends+=1
 	assert(starts==1 and ends==1)
-	print("TAXI_CROSSING_SCENE_PASS actual player ride yields to native pedestrian at a world-aligned crossing and persists")
+	print("TAXI_CROSSING_SCENE_PASS grounded taxi yield, lane-body clearance, stale-flag guard and restore")
 	quit()
