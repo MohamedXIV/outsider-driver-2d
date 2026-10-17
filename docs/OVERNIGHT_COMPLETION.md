@@ -12,3 +12,7 @@ Reduced motion applies scale immediately and retains the existing no-lookahead b
 Verification so far: observed failing closer-default regression, then passing focused Godot 4.7.2 headless and actual Mesa/X11 rendered regression; full native city presentation test passed. Broader tests and exported Chromium interaction evidence follow below. A pre-existing gate misclassified `test_world_shuttle_visual` as headless despite waiting on `frame_post_draw`; it now runs in the native set. The initial broad run timed out on that test after 32 other tests passed; that timeout is not a gameplay pass.
 
 Human camera comfort, final art and actual Windows gameplay remain pending. Camera follow smoothing beyond the existing follow behavior is not claimed.
+
+## NPC interpolation #57 follow-up
+
+The parked-taxi correction already exists in #61. A remaining discontinuity was reproduced while the real taxi and a naturally generated resident shuttle concurrently yield: the controller forced the shared render fraction to zero, stepping unrelated NPCs once per tick. The shared clock now advances normally; `SandboxWorld.player_position` and `npc_position` already independently clamp held actors. The expanded real-scene concurrency regression failed before the correction and passes on native Godot 4.7.2 afterward, including stationary held vehicles, save/restore, body clearance and matched yield ledgers. No world simulation behavior changes.

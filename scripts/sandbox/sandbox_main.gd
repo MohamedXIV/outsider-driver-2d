@@ -165,8 +165,7 @@ func _process(delta: float) -> void:
 		_render()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
 	# fraction belongs to presentation time, NOT the player's travel state.
-	_city.visual_fraction = 0.0 if not _world.route_hold_id.is_empty() else \
-			clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
+	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
 	_sync_local_pedestrian()
 
