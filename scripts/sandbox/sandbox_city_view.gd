@@ -22,6 +22,47 @@ func set_manual_zoom(value: float) -> void:
 		zoom_preference = clampf(value, MIN_ZOOM, MAX_ZOOM)
 
 var _heading: float = 0.0
+var _heading_initialized: bool = false
+var _last_parked_stop: String = ""
+
+# Road tangents belong to the same projected geometry as the taxi's location.
+# A settled trip's last completed road edge gives the parked vehicle a physical
+# arrival direction even after the active route has been cleared.
+static func edge_heading(from: String, to: String, fraction: float) -> float:
+	var t: float = clampf(fraction, 0.0, 1.0)
+	var p: Vector2 = project(SandboxRoads.sample_edge(from, to, maxf(0.0, t - .002)))
+	var q: Vector2 = project(SandboxRoads.sample_edge(from, to, minf(1.0, t + .002)))
+	return (q - p).angle() if p.distance_squared_to(q) > .000001 else 0.0
+
+static func world_road_heading(state: SandboxWorld, fraction: float = 0.0) -> float:
+	if state.is_travelling():
+		var a: String = state.route_nodes[state.route_segment]
+		var b: String = state.route_nodes[state.route_segment + 1]
+		var progress: float = (float(state.route_edge_elapsed) + fraction) / float(SandboxRoads.edge_minutes(a, b))
+		return edge_heading(a, b, progress)
+	for i in range(state.events.size() - 1, -1, -1):
+		var event: Dictionary = state.events[i]
+		if event.get("kind", "") != "route_segment_completed": continue
+		var detail: Dictionary = event.get("detail", {})
+		var a: String = str(detail.get("from", ""))
+		var b: String = str(detail.get("to", ""))
+		if b == state.player_district and SandboxRoads.connected(a, b):
+			return edge_heading(a, b, 1.0)
+	# Before the first trip, park aligned with an authored road adjoining home.
+	var links: Array = SandboxRoads.LINKS.get(state.player_district, [])
+	if not links.is_empty():
+		return edge_heading(str(links[0]), state.player_district, 1.0)
+	return 0.0
+
+func restore_taxi_heading(saved: Variant = null) -> void:
+	_heading = wrapf(float(saved), -PI, PI) if (saved is float or saved is int) and is_finite(float(saved)) else \
+			world_road_heading(world, visual_fraction)
+	_heading_initialized = true
+	_last_parked_stop = world.player_district if not world.is_travelling() else ""
+
+func saved_taxi_heading() -> float:
+	if not _heading_initialized: restore_taxi_heading()
+	return wrapf(_heading, -PI, PI)
 var _blocks: Array[Dictionary] = []
 var _layers: Dictionary = {}
 
@@ -70,9 +111,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if world == null: return
+	if not _heading_initialized: restore_taxi_heading()
 	var taxi: Vector2 = project(world.player_position(visual_fraction))
 	var ahead: Vector2 = taxi
 	if world.is_travelling():
+		_last_parked_stop = ""
 		var a: String = world.route_nodes[world.route_segment]
 		var b: String = world.route_nodes[world.route_segment+1]
 		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
@@ -80,6 +123,10 @@ func _process(delta: float) -> void:
 		if tangent.length() > .001:
 			_heading = lerp_angle(_heading,tangent.angle(), minf(1,delta*7))
 			ahead += tangent.normalized()*65
+	elif _last_parked_stop != world.player_district:
+		# A just-finished route has no active nodes. Face its last legal edge,
+		# not the arbitrary global zero angle used by a newly created renderer.
+		restore_taxi_heading()
 	var camera: Camera2D = get_parent().get_node("Camera2D")
 	var framing: Vector2=Vector2(70 if ui_rtl else -70,-45)
 	var target: Vector2=taxi + framing if reduced_motion else taxi + framing + (ahead-taxi)*.5
