@@ -125,6 +125,14 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Native evidence:** [Godot 4.7.2 run #38991344179](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991344179), source `e3ef10c`, **11/11 targeted tests PASS**, including `TAXI_CROSSING_RETURN_SCENE_PASS`. [Logs/artifacts](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991344179/artifacts/12085546161). This tests the actual game scene, not only a pure-world simulation.
 - **Remaining:** Human gamefeel, Web/Windows gameplay, safe unloading and grade rules beyond the bounded zebra, and generalized multi-car city traffic. Keep #60 open and PR #61 Draft.
 
+### R10–R11 — unloaded walker guard and grade-safe elevated taxi route (October 17, 2026)
+- **R10 finding (FB-009 / #60):** Missing native `_street_pilot` used to release the real taxi's crossing yield unconditionally. A world-owned pedestrian may still occupy the zebra despite the scene actor being absent.
+- **Fix:** The world trip is consulted: a still-`walking` resident cannot prove clearance; an `offscreen` resident must pass the shared road-edge + collider threshold through deterministic progress. Reloading the physical walker preserves the same NPC and hold.
+- **Native proof:** `test_taxi_crossing_unload_scene.gd` deliberately removes the actor during an already-held actual Player Mode ride, checks held time/position, saved event provenance, offscreen partial movement, re-created native actor, and proper release. This is a *fault injection*, not a claim the normal game always unloads while stopped.
+- **R11 proof:** The existing taxi route can travel the raised `bridge_east → bridge_west` viaduct without firing the unrelated grade-zero Patchworks crossing gate. Extended `test_taxi_crossing_world.gd` checks no invalid hold, neighborhood or occupancy.
+- **Native verification:** [run #38995029085](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38995029085) **12/12 PASS** at `f593615b` for the unload fix, then [run #38995122278](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38995122278) **12/12 PASS** at `671ab184` for elevated-route isolation. [Latest logs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38995122278/artifacts/12086808015).
+- **Not yet covered:** Simultaneous multiple pedestrian crossings, native physical taxi body, larger city navigation, exported Web/Windows visual/play tests and human approval. PR #61 remains stacked DRAFT; #58/#59/#60 remain open.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.
