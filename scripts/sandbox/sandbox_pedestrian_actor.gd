@@ -76,8 +76,10 @@ func _physics_process(_delta: float) -> void:
 	if crossing_reserved and SandboxStreetModule.crossing_clear(position):
 		crossing_completed = true
 	# The crossing is the ONLY link between the two walkable sidewalk meshes.
-	# Local right-of-way is separate from NavigationAgent's pathfinding.
-	if not crossing_completed and position.x >= CROSS_X - 19.0:
+	# A walker already IN the asphalt must finish rather than yield to a
+	# trailing car that is itself waiting behind their collision body.
+	var physically_committed: bool = crossing_reserved and SandboxStreetModule.ROAD.has_point(position)
+	if not physically_committed and not crossing_completed and position.x >= CROSS_X - 19.0:
 		crossing_reserved = true
 		if block_for_player or (traffic != null and \
 				not SandboxStreetPriority.pedestrian_may_enter(traffic.position.x)) \
