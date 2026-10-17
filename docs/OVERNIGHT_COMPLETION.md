@@ -32,3 +32,7 @@ This is a local ground-level kit extension, not citywide geometry replacement, i
 ## Camera follow #56 follow-up
 
 A focused route-start test reproduced the existing instantaneous look-ahead jump. Camera target now eases with a frame-rate-independent exponential factor; first frame, explicit world load/reseed and reduced motion snap to the current target. Zoom continues to respect the manual preference. The route-start regression failed before the correction and passes afterward. This replaces only presentation motion, preserving authoritative taxi position and time.
+
+## Exported interaction helper clipping
+
+An extended two-fare Chromium run completed its long fare, then timed out acknowledging a Wait click. Investigation found that the helper treated window bounds as the visible action area, although the actual scroll panel clips earlier. The Web observation payload now includes the real panel clip bounds; the helper scrolls against those bounds. Gameplay and console-error assertions are unchanged. A focused 40-command real Wait probe passed, as did the camera/phone Chromium regression after the helper correction. The extended two-fare rerun and refreshed native gate are recorded in final evidence rather than treating the initial timeout as a pass.
