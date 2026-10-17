@@ -133,6 +133,13 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Native verification:** [run #38995029085](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38995029085) **12/12 PASS** at `f593615b` for the unload fix, then [run #38995122278](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38995122278) **12/12 PASS** at `671ab184` for elevated-route isolation. [Latest logs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38995122278/artifacts/12086808015).
 - **Not yet covered:** Simultaneous multiple pedestrian crossings, native physical taxi body, larger city navigation, exported Web/Windows visual/play tests and human approval. PR #61 remains stacked DRAFT; #58/#59/#60 remain open.
 
+### R12 — two physical ambient lane cars obey one world-owned pedestrian crossing (October 17, 2026)
+- **Issue #60 / Draft PR #61:** The local Patchworks pilot now instantiates two native `CharacterBody2D` traffic cars. They are local ambient physics, **not** extra `SandboxWorld` resident identities or a replacement for the real route-graph player taxi.
+- **Traffic contract:** Move leader first; clamp follower speed by its leader's updated position and a 42 px center gap, giving 17 px body-to-body clearance for the current 25 px wide collision shapes. Pedestrian entry checks both vehicles, preserving late-reservation clearance precedence.
+- **Evidence:** [Godot 4.7.2 run #38996674793](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38996674793), SHA `3d073f69cfd1386b26c244af67eb9a152558d470` — **13/13 targeted Native PASS**, including new `STREET_MULTI_VEHICLE_PASS`, real-world resident arrival, existing Player Mode taxi/restore and grade separation. [Logs/artifact](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38996674793/artifacts/12086599331).
+- **Test iteration:** Three prior runs failed due newly added assertions, not project parse: one assumed the rear car would always reach a full stop during natural crossing, and two staged runs counted initial zero velocity as a stop. Final native regression stages sustained reservation and checks *observed physical stop* before release.
+- **Remaining:** Two bounded demo cars are not a city traffic scheduler or world-owned car itineraries. Multi-pedestrian collision, intersection occupancy, native player-car body, Web/Windows and human playtest stay open.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.
