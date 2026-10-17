@@ -10,6 +10,8 @@ const STOP_DISTANCE: float = 38.0
 const CLEAR_AHEAD: float = 40.0
 const APPROACH_SPEED: float = 36.0
 const LANE_END_X: float = 550.0
+# Center-to-center space between 25px-wide cars leaves 17px clear.
+const FOLLOW_SPACING: float = 42.0
 
 static func stop_line() -> float:
 	return CROSS_X - STOP_DISTANCE
@@ -31,3 +33,11 @@ static func vehicle_velocity(vehicle_x: float, reserved: bool,
 	# waiting until the vehicle has passed CROSS_X + CLEAR_AHEAD.
 	# Stopping this vehicle inside the zebra would deadlock both actors.
 	return APPROACH_SPEED
+
+# The leader is moved first in the local street's single physics step. Its
+# UPDATED position bounds the follower, without pretending the demo vehicles
+# are independently simulated residents of SandboxWorld.
+static func follower_velocity(follower_x: float, updated_leader_x: float,
+		reserved: bool, completed: bool, delta: float) -> float:
+	var gap_velocity: float=maxf(0.0,updated_leader_x-FOLLOW_SPACING-follower_x)/maxf(delta,0.0001)
+	return minf(vehicle_velocity(follower_x,reserved,completed,delta),gap_velocity)

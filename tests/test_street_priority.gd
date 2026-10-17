@@ -32,5 +32,19 @@ func _initialize() -> void:
 	assert(clearing_x>=SandboxStreetPriority.CROSS_X+SandboxStreetPriority.CLEAR_AHEAD,
 			"Vehicle never cleared the crossing; pedestrian would deadlock")
 	assert(SandboxStreetPriority.pedestrian_may_enter(clearing_x))
-	print("STREET_PRIORITY_PASS bounded stop line and late-reservation clearance without deadlock")
+	# Followers cannot occupy a stopped leader's collision footprint,
+	# including variable physics deltas and a late pedestrian reservation.
+	for dt in [0.016,0.1,0.3,0.6]:
+		for lead_x in [limit,limit+0.01,320.0,550.0]:
+			for back_x in [110.0,lead_x-42.0,lead_x-65.0]:
+				var speed: float=SandboxStreetPriority.follower_velocity(
+						back_x,lead_x,true,false,dt)
+				assert(speed>=0.0 and speed<=SandboxStreetPriority.APPROACH_SPEED)
+				assert(back_x+speed*dt<=lead_x-SandboxStreetPriority.FOLLOW_SPACING+0.001,
+						"Follower must never pass its leader's collision-safe spacing")
+	# A second lane vehicle past the stop line must finish clearing before
+	# the same walker may enter. The policy applies to each car separately.
+	assert(not SandboxStreetPriority.pedestrian_may_enter(limit+0.01))
+	assert(SandboxStreetPriority.pedestrian_may_enter(limit))
+	print("STREET_PRIORITY_PASS bounded stop line, two-car following gap and late-reservation clearance")
 	quit()
