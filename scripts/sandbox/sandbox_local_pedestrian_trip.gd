@@ -276,12 +276,12 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 static func valid_presentation(world: SandboxWorld,state: Variant) -> bool:
 	if state is Dictionary and not SandboxJunctionTraffic.valid_snapshot(state.get("junction",{})): return false
 	if not state is Dictionary: return false
-	if state.is_empty(): return true
 	var actors: Variant=state.get("actors",{})
+	if not state.has("actors") and not str(state.get("npc_id","")).is_empty():
+		actors={str(state["npc_id"]):state}
 	if not actors is Dictionary or actors.size()>2: return false
-	if state.has("actors"):
-		for npc in world.residents:
-			if npc.get("local_pedestrian_trip",{}).get("status","")=="walking" and not actors.has(str(npc["id"])): return false
+	for npc in world.residents:
+		if npc.get("local_pedestrian_trip",{}).get("status","")=="walking" and not actors.has(str(npc["id"])): return false
 	for id in actors:
 		var saved: Variant=actors[id]
 		var trip: Dictionary=world.resident(str(id)).get("local_pedestrian_trip",{})

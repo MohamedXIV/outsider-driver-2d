@@ -3,6 +3,7 @@ func _initialize() -> void:
 	var world: SandboxWorld=SandboxWorld.new(29)
 	var id: String=SandboxLocalPedestrianTrip.candidates(world)[0]
 	assert(SandboxLocalPedestrianTrip.begin(world,id,SandboxLocalPedestrianTrip.PATCHWORKS_PARTS))
+	assert(not SandboxLocalPedestrianTrip.valid_presentation(world,{}),"An absent whole presenter cannot rewind an active native trip")
 	assert(SandboxLocalPedestrianTrip.handoff(world,id,.2))
 	var forged: Dictionary=world.snapshot()
 	for npc in forged["residents"]:

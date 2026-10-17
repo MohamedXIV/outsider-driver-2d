@@ -13,6 +13,10 @@ func _run() -> void:
 	lost.position=Vector2(312,350);lost.crossing_reserved=true;pilot.reconcile_reservations()
 	scene._on_save()
 	var safe_save: String=FileAccess.get_file_as_string(SandboxSave.PATH)
+	scene._street_pilot=null
+	scene._on_save()
+	assert(FileAccess.get_file_as_string(SandboxSave.PATH)==safe_save,"A wholly absent presenter cannot overwrite the last native state")
+	scene._street_pilot=pilot
 	lost.free() # Registry still references a freed body, unlike ordinary unload.
 	assert(not pilot.loaded_ids().has("npc:04"),"A freed actor cannot count as a loaded body")
 	assert(pilot.crossing_occupied() and not pilot.crossing_cleared())
