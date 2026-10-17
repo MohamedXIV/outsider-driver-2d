@@ -39,6 +39,9 @@ func _run() -> void:
 	assert(world.events.filter(func(e: Dictionary) -> bool:
 		return e.get("kind", "") == "rider_alight_arrived" and e.get("subject", "") == id).size() == 1)
 	assert(SandboxWorld.new().restore_snapshot(world.snapshot()), "Finished sourced arrival must restore")
+	assert(world.advance(90))
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()),
+			"Later independent NPC routine/demand must not invalidate an old completed alight")
 	var forged: Dictionary = world.snapshot()
 	for fake in forged["residents"]:
 		if fake["id"] == id: fake["passenger_alight"]["arrived"] = world.minute - 1

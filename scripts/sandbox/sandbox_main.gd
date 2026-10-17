@@ -604,7 +604,7 @@ func _sync_passenger_alight() -> void:
 	if _alight_view != null:
 		var id: String = _alight_view.npc_id
 		var status: String = str(_world.resident(id).get("passenger_alight", {}).get("status", ""))
-		if not nearby or status != "walking":
+		if not nearby or status not in ["walking", "arrived"]:
 			if status == "walking" and _alight_view.walker != null:
 				_alight_view.handoff()
 			_alight_view.queue_free()
@@ -612,7 +612,7 @@ func _sync_passenger_alight() -> void:
 	if not nearby or _alight_view != null: return
 	for npc in _world.residents:
 		var trip: Dictionary = npc.get("passenger_alight", {})
-		if trip.get("site", "") != SandboxPassengerAlight.SITE or trip.get("status", "") not in ["walking", "offscreen"]:
+		if trip.get("site", "") != SandboxPassengerAlight.SITE or trip.get("status", "") not in ["walking", "offscreen", "arrived"]:
 			continue
 		var local: SandboxAlightView = SandboxAlightView.new()
 		local.world = _world
@@ -621,7 +621,7 @@ func _sync_passenger_alight() -> void:
 		local.z_index = 6
 		local.name = "NightClinicResidentAlight"
 		add_child(local)
-		if local.walker != null:
+		if local.walker != null or trip.get("status", "") == "arrived":
 			_alight_view = local
 		else:
 			local.queue_free()

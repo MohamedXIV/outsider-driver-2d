@@ -35,9 +35,19 @@ jobs:
           grep -q PASSENGER_ALIGHT_PASS work/r05-alight/domain.log
           timeout 60s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_passenger_alight_scene.gd 2>&1 | tee work/r05-alight/scene.log
           grep -q PASSENGER_ALIGHT_SCENE_PASS work/r05-alight/scene.log
+      - name: Full Godot 4.7.2 domain and native regression gates
+        env:
+          GODOT_BIN: /tmp/godot
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          OD2D_LOGS=work/r05-alight/full-domain python3 tests/run_city_gate.py | tee work/r05-alight/full-domain-summary.log
+          OD2D_LOGS=work/r05-alight/full-native xvfb-run -a -s '-screen 0 1280x1400x24' python3 tests/run_city_gate.py --native | tee work/r05-alight/full-native-summary.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: r05-alight-evidence
-          path: work/r05-alight/
+          path: |
+            work/r05-alight/
+            /tmp/od2d-alight-evidence/*.png
           retention-days: 7

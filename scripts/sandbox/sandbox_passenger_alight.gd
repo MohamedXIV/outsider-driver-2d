@@ -132,8 +132,11 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 	if trip.is_empty(): return state == ""
 	if state != str(trip.get("status", "")) or trip.get("site", "") != SITE \
 			or trip.get("offer_id", "") != offer_id or trip.get("from", "") != from \
-			or int(trip.get("started", -1)) != started or npc.get("location", "") != "clinic" \
-			or not str(npc.get("taxi_offer", "")).is_empty(): return false
+			or int(trip.get("started", -1)) != started: return false
+	# Once the real entrance is reached, that resident is allowed to take
+	# another job or trip later without invalidating a historical arrival.
+	if state in ["walking", "offscreen"] and (npc.get("location", "") != "clinic" \
+			or not str(npc.get("taxi_offer", "")).is_empty()): return false
 	if handoff_minute >= 0:
 		if int(trip.get("handoff_minute", -1)) != handoff_minute \
 				or not is_equal_approx(float(trip.get("handoff_progress", -1.0)), handoff_fraction): return false

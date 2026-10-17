@@ -4,6 +4,7 @@ func _initialize() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	DirAccess.make_dir_recursive_absolute("/tmp/od2d-alight-evidence")
 	var scene: Node = load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
@@ -31,6 +32,8 @@ func _run() -> void:
 	for frame in range(14): await physics_frame
 	var before_save: Vector2 = scene._alight_view.walker.position
 	assert(before_save.distance_to(start) > 1.0, "Native Godot walker must physically move toward clinic intake")
+	await RenderingServer.frame_post_draw
+	assert(root.get_texture().get_image().save_png("/tmp/od2d-alight-evidence/clinic-walking.png") == OK)
 	assert(not scene._alight_view.walker._agent.is_navigation_finished())
 	scene._on_save()
 	assert(scene._notice_text == "Sandbox saved.")
@@ -50,10 +53,13 @@ func _run() -> void:
 			arrived = true
 			break
 	assert(arrived, "True local navigation must physically arrive at the clinic entrance")
+	await RenderingServer.frame_post_draw
+	assert(root.get_texture().get_image().save_png("/tmp/od2d-alight-evidence/clinic-arrived.png") == OK)
 	assert(scene._world.events.filter(func(e: Dictionary) -> bool:
 		return e.get("kind", "") == "rider_alight_arrived" and e.get("subject", "") == id).size() == 1)
 	scene._sync_passenger_alight()
-	assert(scene._alight_view == null and scene._world.residents.size() == 9)
+	assert(scene._alight_view != null and scene._alight_view.walker == null and scene._world.residents.size() == 9,
+			"Clinic frontage remains visible after the actual resident enters the building")
 	scene._on_save()
 	scene._on_load()
 	assert(scene._world.resident(id)["passenger_alight"]["status"] == "arrived")
