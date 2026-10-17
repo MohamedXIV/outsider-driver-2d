@@ -6,6 +6,9 @@ const VERSION: int = 12
 
 
 static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: Dictionary = {}, presentation: Dictionary = {}) -> bool:
+	# Do not overwrite a recoverable save with a native view missing an active
+	# resident's physical state. Loading it would otherwise rewind that body.
+	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})): return false
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return false

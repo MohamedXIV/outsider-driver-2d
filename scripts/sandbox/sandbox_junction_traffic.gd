@@ -47,6 +47,9 @@ func _ready() -> void:
 		if _in_conflict(id): priority.owner=id
 	for id in resume_state.get("queue",[]):
 		if IDS.has(str(id)) and _waiting(str(id)): priority.request(str(id))
+	# Admission may be saved before the body's first movement. Physical
+	# reconstruction alone loses that request's FIFO ownership.
+	if not str(resume_state.get("owner","")).is_empty(): priority.owner=str(resume_state["owner"])
 
 func _point(id: String, distance: float) -> Vector2:
 	var path: Curve2D=routes[id]
@@ -75,12 +78,14 @@ func _exit_clear() -> bool:
 	return true
 
 func snapshot() -> Dictionary:
-	return {"distances":distances.duplicate(),"queue":priority.queue.duplicate()}
+	return {"distances":distances.duplicate(),"queue":priority.queue.duplicate(),"owner":priority.owner}
 
 static func valid_snapshot(state: Variant) -> bool:
 	if not state is Dictionary: return false
 	if state.is_empty(): return true
 	if not state.get("distances") is Dictionary or not state.get("queue") is Array: return false
+	var owner: Variant=state.get("owner","")
+	if not owner is String or (not owner.is_empty() and not IDS.has(owner)): return false
 	var seen: Array[String]=[]
 	for id in state["queue"]:
 		if not id is String or not IDS.has(id) or seen.has(id): return false
@@ -95,6 +100,10 @@ static func valid_snapshot(state: Variant) -> bool:
 		if float(value)>STOP_DISTANCE+.01 and points[id].x<EXIT_X: occupants+=1
 		if seen.has(id) and not (float(value)>=STOP_DISTANCE-24.0 and float(value)<=STOP_DISTANCE+.01): return false
 	if occupants>1: return false
+	if not owner.is_empty():
+		if seen.has(owner) or float(state["distances"][owner])<STOP_DISTANCE-24.0 or points[owner].x>=EXIT_X: return false
+		for id in IDS:
+			if id!=owner and float(state["distances"][id])>STOP_DISTANCE+.01 and points[id].x<EXIT_X: return false
 	for id in IDS:
 		for other in IDS:
 			if id==other: continue

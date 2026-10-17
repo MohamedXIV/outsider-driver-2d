@@ -485,21 +485,31 @@ func _on_reposition() -> void:
 
 
 func _on_wait() -> void:
-	_world.advance(20)
+	_advance_manual_time(20)
 	_notice_text = "20 minutes passed. NPC needs and dispatch changed."
 	_render()
 
 
 func _on_observe() -> void:
-	_world.advance(360)
+	_advance_manual_time(360)
 	_notice_text = "Six simulated hours passed; independent residents continued their lives."
 	_render()
+
+func _advance_manual_time(minutes: int) -> void:
+	# Manual time controls must obey the same per-tick physical crossing
+	# boundary as ordinary time. The native bodies do not move in this loop.
+	for tick in range(minutes):
+		_sync_local_pedestrian()
+		_update_player_crossing_yield()
+		_update_shuttle_crossing_yields()
+		_world.advance(1)
+	_sync_local_pedestrian()
 
 
 # Local native Godot navigation runs only for a genuine resident in the garage
 # vicinity. It is one shared world, not an alternate passenger simulator.
 func _update_player_crossing_yield() -> void:
-	var occupied: bool=_street_pilot!=null and _street_pilot.crossing_occupied()
+	var occupied: bool=_street_pilot.crossing_occupied() if _street_pilot!=null else not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world)
 	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
 	if not _world.route_hold_id.is_empty():
 		if cleared: _world.release_crossing_yield()
@@ -507,7 +517,7 @@ func _update_player_crossing_yield() -> void:
 		_world.begin_crossing_yield()
 
 func _update_shuttle_crossing_yields() -> void:
-	var occupied: bool=_street_pilot!=null and _street_pilot.crossing_occupied()
+	var occupied: bool=_street_pilot.crossing_occupied() if _street_pilot!=null else not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world)
 	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
 	for npc in _world.residents:
 		if npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
@@ -528,7 +538,7 @@ func _sync_local_pedestrian() -> void:
 		_city.local_active_npc_id=_street_pilot.walking_npc_id
 		return
 	var ids: Array[String]=SandboxLocalPedestrianTrip.candidates(_world)
-	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty(): return
+	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty() and not _street_restore_state.has("junction"): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
 	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
 	local.walking_npc_id=ids[0] if not ids.is_empty() else "";local.resume_state=_street_restore_state.duplicate(true)

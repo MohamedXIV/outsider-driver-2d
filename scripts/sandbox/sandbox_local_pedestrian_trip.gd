@@ -165,6 +165,7 @@ static func arrive(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	var trip: Dictionary = npc.get("local_pedestrian_trip", {})
 	if trip.get("site", "") != site or not ["walking", "offscreen"].has(trip.get("status", "")):
 		return false
+	if trip.get("status","")=="offscreen" and offscreen_progress(world,npc_id)<1.0: return false
 	# This counter is a local site inside the garage's coarse world location.
 	# It does not teleport an NPC between dispatch/region graph nodes.
 	trip["status"] = "arrived"
@@ -218,8 +219,9 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 				if not anchor.is_finite() or anchor.distance_to(SandboxStreetModule.position_at(last_progress,slot))>24.0: return false
 			"local_pedestrian_resumed":
 				var resumed: Variant=evt.get("detail",{}).get("progress",null)
+				var expected: float=snappedf(clampf(last_progress+float(when-handed_off)/SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0),.000001)
 				if state!="offscreen" or not (resumed is float or resumed is int) \
-						or not is_finite(float(resumed)) or float(resumed)<last_progress or float(resumed)>=1.0:
+						or not is_finite(float(resumed)) or not is_equal_approx(float(resumed),expected) or float(resumed)>=1.0:
 					return false
 				state="walking"
 			"local_pedestrian_crossing_reserved", "local_pedestrian_crossing_entered", "local_pedestrian_crossing_cleared":
@@ -244,6 +246,7 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 			"local_pedestrian_arrived":
 				if not ["walking","offscreen"].has(state) or arrival_at>=0:
 					return false
+				if state=="offscreen" and last_progress+float(when-handed_off)/SandboxStreetModule.OFFSCREEN_MINUTES<1.0: return false
 				state="arrived"
 				arrival_at=when
 			_:
@@ -276,6 +279,9 @@ static func valid_presentation(world: SandboxWorld,state: Variant) -> bool:
 	if state.is_empty(): return true
 	var actors: Variant=state.get("actors",{})
 	if not actors is Dictionary or actors.size()>2: return false
+	if state.has("actors"):
+		for npc in world.residents:
+			if npc.get("local_pedestrian_trip",{}).get("status","")=="walking" and not actors.has(str(npc["id"])): return false
 	for id in actors:
 		var saved: Variant=actors[id]
 		var trip: Dictionary=world.resident(str(id)).get("local_pedestrian_trip",{})
@@ -292,4 +298,7 @@ static func valid_presentation(world: SandboxWorld,state: Variant) -> bool:
 		if point.distance_to(SandboxStreetModule.position_at(phase,slot))>24.0: return false
 		if bool(saved["did_arrive"])!=(trip.get("status","")=="arrived"): return false
 		if trip.get("status","")=="arrived" and point.distance_to(SandboxStreetModule.destination(slot))>9.0: return false
+		if trip.get("status","")=="arrived" and (world.resident(str(id)).get("location","")!="garage" \
+				or int(world.resident(str(id)).get("transit_until",0))>0 \
+				or not str(world.resident(str(id)).get("taxi_offer","")).is_empty()): return false
 	return true

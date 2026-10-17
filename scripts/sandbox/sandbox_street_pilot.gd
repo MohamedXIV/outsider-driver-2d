@@ -25,8 +25,9 @@ func _actor_snapshot(actor: SandboxPedestrianActor) -> Dictionary:
 		"did_arrive":actor.did_arrive}
 
 func visual_snapshot() -> Dictionary:
-	if pedestrian==null or car==null or follower==null: return {}
-	var state: Dictionary=_actor_snapshot(pedestrian)
+	_refresh_registry()
+	if car==null or follower==null: return {}
+	var state: Dictionary=_actor_snapshot(pedestrian) if pedestrian!=null else {}
 	state.merge({"car_x":car.position.x,"car_y":car.position.y,
 		"follower_x":follower.position.x,"follower_y":follower.position.y,"actors":{},
 		"junction":junction.snapshot() if junction!=null else {}})
@@ -50,9 +51,6 @@ func _ready() -> void:
 	for id in SandboxLocalPedestrianTrip.candidates(world):
 		if ids.size()<2 and not ids.has(id): ids.append(id)
 	for id in ids: _spawn_resident(id)
-	if pedestrian==null:
-		push_error("No eligible Patchworks resident for native street presenter")
-		return
 	car.position=Vector2(clampf(float(resume_state.get("car_x",180.0)),100.0,570.0),350.0)
 	follower.position=Vector2(minf(float(resume_state.get("follower_x",110.0)),car.position.x-SandboxStreetPriority.FOLLOW_SPACING),350.0)
 	reconcile_reservations()
@@ -98,11 +96,29 @@ func _spawn_resident(id: String) -> void:
 	world_reported_arrival=world.resident(walking_npc_id).get("local_pedestrian_trip",{}).get("status","")=="arrived"
 
 func loaded_ids() -> Array[String]:
+	_refresh_registry()
 	var ids: Array[String]=[]
 	for id in pedestrians: ids.append(str(id))
 	return ids
 
+func _refresh_registry() -> void:
+	# A missing body is not proof of clearance. Remove invalid view references
+	# while leaving the resident's authoritative trip/reservation intact.
+	for id in pedestrians.keys():
+		if not is_instance_valid(pedestrians[id]) or not pedestrians[id].is_inside_tree():
+			pedestrians.erase(id);continue
+		var npc: Dictionary=world.resident(str(id))
+		if npc.get("local_pedestrian_trip",{}).get("status","")=="arrived" \
+				and (npc.get("location","")!="garage" or int(npc.get("transit_until",0))>0 or not str(npc.get("taxi_offer","")).is_empty()):
+			pedestrians[id].queue_free();pedestrians.erase(id)
+	if not is_instance_valid(pedestrian) or not pedestrians.has(walking_npc_id):
+		pedestrian=null;walking_npc_id="";world_reported_arrival=false
+		if not pedestrians.is_empty():
+			walking_npc_id=str(pedestrians.keys()[0]);pedestrian=pedestrians[walking_npc_id]
+			world_reported_arrival=world.resident(walking_npc_id).get("local_pedestrian_trip",{}).get("status","")=="arrived"
+
 func reconcile_reservations() -> void:
+	_refresh_registry()
 	for id in pedestrians:
 		var actor: SandboxPedestrianActor=pedestrians[id]
 		var trip: Dictionary=world.resident(str(id)).get("local_pedestrian_trip",{})
@@ -121,12 +137,13 @@ func crossing_occupied() -> bool:
 		var actor: SandboxPedestrianActor=pedestrians[id]
 		if SandboxStreetModule.ROAD.grow(SandboxStreetModule.PEDESTRIAN_RADIUS).has_point(actor.position): return true
 		if actor.crossing_reserved and not SandboxStreetModule.crossing_clear(actor.position): return true
-	return false
+	return not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(world,loaded_ids())
 
 func crossing_cleared() -> bool:
-	return not crossing_occupied() and SandboxLocalPedestrianTrip.crossing_cleared_without_actor(world,loaded_ids())
+	return not crossing_occupied()
 
 func cancel_resident(id: String) -> bool:
+	_refresh_registry()
 	if not pedestrians.has(id): return false
 	var actor: SandboxPedestrianActor=pedestrians[id]
 	if not SandboxLocalPedestrianTrip.cancel(world,id,actor.position): return false
@@ -167,6 +184,7 @@ func _physics_process(delta: float) -> void:
 	follower.move_and_slide();queue_redraw()
 
 func _on_resident_arrived(id: String) -> void:
+	_refresh_registry()
 	if not pedestrians.has(id): return
 	var actor: SandboxPedestrianActor=pedestrians[id]
 	var slot: int=int(world.resident(id).get("local_pedestrian_trip",{}).get("slot",0))
