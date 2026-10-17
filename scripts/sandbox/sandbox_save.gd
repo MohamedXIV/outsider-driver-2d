@@ -8,7 +8,8 @@ const VERSION: int = 12
 static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: Dictionary = {}, presentation: Dictionary = {}) -> bool:
 	# Do not overwrite a recoverable save with a native view missing an active
 	# resident's physical state. Loading it would otherwise rewind that body.
-	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})): return false
+	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})) \
+\t\t\tor not _valid_taxi_heading(presentation): return false
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return false
@@ -37,10 +38,19 @@ static func load_bundle(file_path: String = PATH) -> Dictionary:
 	if not ["en","ar"].has(presentation.get("locale","en")) or not (presentation.get("reduced_motion",false) is bool): return {}
 	var zoom: Variant=presentation.get("camera_zoom",2.6)
 	if not (zoom is float or zoom is int) or not is_finite(float(zoom)) or float(zoom)<1.25 or float(zoom)>4.0: return {}
-	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})): return {}
+	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})) \
+\t\t\tor not _valid_taxi_heading(presentation): return {}
 	var fraction: Variant=presentation.get("clock_fraction",0.0)
 	if not (fraction is float or fraction is int) or not is_finite(float(fraction)) or float(fraction)<0 or float(fraction)>=1: return {}
 	return {"world": world, "dialogue": value["dialogue"], "presentation":presentation}
+
+
+static func _valid_taxi_heading(presentation: Dictionary) -> bool:
+	# Optional for previous experimental saves; never trust forged NaN/rotation.
+	if not presentation.has("taxi_heading"): return true
+	var value: Variant = presentation["taxi_heading"]
+	return (value is float or value is int) and is_finite(float(value)) \
+			and float(value) >= -PI and float(value) <= PI
 
 
 static func load_world(file_path: String = PATH) -> SandboxWorld:

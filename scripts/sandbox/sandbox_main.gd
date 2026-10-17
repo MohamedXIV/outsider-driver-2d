@@ -609,6 +609,8 @@ func _on_new_seed() -> void:
 	_meeting_dialogue = null
 	_elapsed = 0.0
 	_city._camera_initialized=false
+	_city.visual_fraction=0.0
+	_city.restore_taxi_heading()
 	_notice_text = "Fresh independent simulated city seed."
 	_render()
 
@@ -616,7 +618,7 @@ func _on_new_seed() -> void:
 func _on_save() -> void:
 	if _street_pilot!=null: _street_pilot.reconcile_reservations()
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	var successful: bool=SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
+	var successful: bool=SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,"taxi_heading":_city.saved_taxi_heading(),
 			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state})
 	_notice_text="Sandbox saved." if successful else "Save failed."
 	if successful: _publish_street_boundary("streetSavedActors")
@@ -654,6 +656,7 @@ func _on_load() -> void:
 	_ui_locale=str(bundle.get("presentation",{}).get("locale",_ui_locale))
 	_reduced_motion=bool(bundle.get("presentation",{}).get("reduced_motion",_reduced_motion))
 	_city.set_manual_zoom(float(bundle.get("presentation",{}).get("camera_zoom",SandboxCityView.DEFAULT_ZOOM)))
+	_city.restore_taxi_heading(bundle.get("presentation",{}).get("taxi_heading",null))
 	_last_intent = "restored" if restored != null else ""
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
