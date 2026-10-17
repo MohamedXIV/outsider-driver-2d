@@ -19,7 +19,6 @@ const ROAD: Rect2 = Rect2(95, 328, 475, 48)
 const PEDESTRIAN_RADIUS: float = 7.0
 # Clearance is the WHOLE pedestrian collision body beyond the road edge,
 # plus a small margin, not merely their center reaching the zebra paint.
-const CROSS_CLEAR_Y: float = ROAD.end.y + PEDESTRIAN_RADIUS + 1.0
 const FRONTAGES: Array[Rect2] = [
 	Rect2(160,235,90,62), Rect2(270,235,80,62),
 	Rect2(390,235,110,62), Rect2(450,405,110,66)
@@ -64,11 +63,14 @@ static func progress_of(where: Vector2) -> float:
 static func crossing_started(progress: float) -> bool:
 	return progress >= progress_of(Vector2(CROSS_X,NORTH_Y)) - 0.015
 
+static func crossing_clear_y() -> float:
+	return ROAD.end.y + PEDESTRIAN_RADIUS + 1.0
+
 static func crossing_clear(where: Vector2) -> bool:
-	return where.y >= CROSS_CLEAR_Y
+	return where.y >= crossing_clear_y()
 
 static func crossing_finished(progress: float) -> bool:
-	return progress >= progress_of(Vector2(CROSS_X,CROSS_CLEAR_Y))
+	return progress >= progress_of(Vector2(CROSS_X,crossing_clear_y()))
 
 static func install_navigation(parent: Node2D) -> void:
 	_add_sidewalk(parent,NORTH_SIDEWALK,"NorthSidewalk")
