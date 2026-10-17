@@ -144,6 +144,9 @@ func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int
 	if not elevated and (a == "clinic" or b == "clinic"):
 		SandboxIsoPresentation.draw_clinic_road(canvas, a, b, pass_index)
 		return
+	if not elevated and SandboxRoads.edge_key(a,b) == "freight_cross|quay_gate":
+		SandboxIsoPresentation.draw_arterial_road(canvas,a,b,pass_index)
+		return
 	var points: PackedVector2Array = []
 	for i in range(49): points.append(project(SandboxRoads.sample_edge(a,b,float(i)/48)))
 	if elevated and pass_index in [-1,0]:
@@ -284,11 +287,8 @@ func _draw_world_shuttle(canvas: Node2D, point: Vector2, heading: float) -> void
 
 
 func _taxi(canvas: Node2D) -> void:
-	var taxi: Vector2 = project(world.player_position(visual_fraction))
-	# Lane placement for the clinic pilot is presentation-only: it makes the
-	# two directed lanes readable without lying about authoritative routing.
-	if world.player_district == "clinic" or (world.is_travelling() and
-			(world.route_nodes[world.route_segment] == "clinic" or
-			world.route_nodes[world.route_segment+1] == "clinic")):
-		taxi += SandboxIsoPresentation.lane_offset(_heading)
+	# Render the world-owned taxi on its authored directed lane trajectory,
+	# instead of displacing a flat sprite by an arbitrary screen offset.
+	# Economic route minutes and collision authority remain with SandboxWorld.
+	var taxi: Vector2 = SandboxDirectedLanes.taxi_screen(world,visual_fraction)
 	SandboxIsoPresentation.draw_vehicle(canvas, taxi, _heading, true)

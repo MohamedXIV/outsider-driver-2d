@@ -52,6 +52,36 @@ static func draw_clinic_road(canvas: Node2D, a: String, b: String, pass_index: i
 			for i in range(3,45,5):
 				canvas.draw_line(centre[i],centre[i+2],Color("cfbd80"),1.25,true)
 
+static func draw_arterial_road(canvas: Node2D, a: String, b: String, pass_index: int) -> void:
+	var centre: PackedVector2Array=road_points(a,b)
+	match pass_index:
+		0:
+			canvas.draw_polyline(centre,Color("162f35"),61.0,true)
+		1:
+			canvas.draw_polyline(centre,Color("82958f"),57.0,true)
+		2:
+			canvas.draw_polyline(centre,Color("35494e"),52.0,true)
+		3:
+			# Four authored directional lanes: two per direction. The
+			# divider stays on the real road centre; opposite flows are
+			# allocated to distinct lane trajectories, not fake NPCs.
+			canvas.draw_polyline(centre,Color("bfb292"),1.8,true)
+			for from_node in [a,b]:
+				var to_node: String=b if from_node==a else a
+				for lane in range(2):
+					var markers: PackedVector2Array=[]
+					for i in range(49):
+						var world_point: Vector3=SandboxDirectedLanes.lane_point(
+								from_node,to_node,float(i)/48.0,lane)
+						markers.append(project(world_point))
+					if lane==0:
+						# Directional lane guides are derived from the same
+						# metric geometry used by taxi pose calculation.
+						for k in range(2,44,7):
+							canvas.draw_line(markers[k],markers[k+3],Color("d3bd8c"),1.0,true)
+					else:
+						canvas.draw_polyline(markers,Color("819b96"),0.65,true)
+
 static func vehicle_quad(anchor: Vector2, heading: float, height: float = 0.0) -> PackedVector2Array:
 	var facing: Vector2=Vector2.RIGHT.rotated(heading)
 	var side: Vector2=facing.orthogonal()
