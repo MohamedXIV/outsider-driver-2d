@@ -35,6 +35,8 @@ jobs:
           grep -q PASSENGER_ALIGHT_PASS work/r05-isometric/domain.log
           timeout 60s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_isometric_street_scene.gd 2>&1 | tee work/r05-isometric/scene.log
           grep -q ISOMETRIC_STREET_SLICE_PASS work/r05-isometric/scene.log
+          timeout 105s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_street_main_scene.gd 2>&1 | tee work/r05-isometric/patchworks.log
+          grep -q STREET_MAIN_PASS work/r05-isometric/patchworks.log
       - name: Full Godot 4.7.2 domain and native regression gates
         env:
           GODOT_BIN: /tmp/godot

@@ -48,6 +48,13 @@ func _run() -> void:
 	await capture("patchworks-walking-restored")
 	for i in range(1600):
 		await physics_frame
+		if i % 220 == 0:
+			var actor: SandboxPedestrianActor = scene._street_pilot.pedestrian
+			print("R05_PATCHWORKS_TRACE frame=",i," at=",actor.position,
+				" target=",actor.destination," reachable=",actor._agent.is_target_reachable(),
+				" path_blocked=",actor.path_blocked," reserved=",actor.crossing_reserved,
+				" cleared=",actor.crossing_completed," native_car=",scene._street_pilot.car.position,
+				" follower=",scene._street_pilot.follower.position)
 		if scene._street_pilot.world_reported_arrival:
 			break
 	assert(scene._street_pilot.world_reported_arrival, "No arrival after restoring a physical pedestrian")
