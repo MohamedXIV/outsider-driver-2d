@@ -382,6 +382,8 @@ func _change_zoom(amount: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# GUI consumes wheel events first, so scrolling a panel never zooms the city.
 	if event is InputEventMouseButton and event.pressed:
+		if get_viewport().gui_get_hovered_control() != null:
+			return
 		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			_change_zoom(0.2 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -0.2)
 			get_viewport().set_input_as_handled()

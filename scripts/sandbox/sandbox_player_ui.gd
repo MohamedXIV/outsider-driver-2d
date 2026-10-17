@@ -13,7 +13,7 @@ var _panel: PanelContainer
 var _scroll: ScrollContainer
 var _portrait: SandboxPassengerView
 var _portrait_title: Label
-var _tabs: HBoxContainer
+var _tabs: GridContainer
 var _mode: Button
 var _actions: Dictionary = {}
 var _planned_stops: Array[String] = []
@@ -52,7 +52,7 @@ func bind(host: Node) -> void:
 	_header=Label.new();root.add_child(_header);_header.position=Vector2(24,16);_header.add_theme_font_size_override("font_size",23)
 	_hint=Label.new();root.add_child(_hint);_hint.position=Vector2(24,50);_hint.add_theme_color_override("font_color",Color("a9c2b4"))
 	_mode=Button.new();_mode.name="Mode";_mode.text="Debug · F3";_mode.custom_minimum_size=Vector2(130,44);root.add_child(_mode);_mode.pressed.connect(toggle_debug)
-	_tabs=HBoxContainer.new();root.add_child(_tabs);_tabs.position=Vector2(24,86);_tabs.add_theme_constant_override("separation",6)
+	_tabs=GridContainer.new();_tabs.columns=5;root.add_child(_tabs);_tabs.position=Vector2(24,86);_tabs.add_theme_constant_override("h_separation",6);_tabs.add_theme_constant_override("v_separation",6)
 	for key in ["requests","map","gear","contacts","settings"]:
 		var button: Button=Button.new();button.name=key;button.custom_minimum_size=Vector2(0,44);_tabs.add_child(button);button.pressed.connect(_tab.bind(key))
 	_panel=PanelContainer.new();root.add_child(_panel);_panel.position=Vector2(24,140)
@@ -69,8 +69,15 @@ func trp(en: String, ar: String) -> String:
 
 func _layout() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
+	_tabs.columns=3 if area.x<600 else 5
+	_tabs.size=Vector2.ZERO
+	var panel_top: float=194.0 if area.x<600 else 140.0
 	_mode.position=Vector2(area.x-154,18)
-	_panel.size=Vector2(minf(380,area.x-48),maxf(160,area.y-166))
+	_body.custom_minimum_size.x=minf(380,area.x-48)-40
+	for child in _body.get_children():
+		if child is Label: child.custom_minimum_size.x=_body.custom_minimum_size.x
+	_panel.position.y=panel_top
+	_panel.size=Vector2(minf(380,area.x-48),maxf(80,area.y-panel_top-24))
 	_body.custom_minimum_size.x=_panel.size.x-40
 	_portrait.position=Vector2(area.x-230,120);_portrait.size=Vector2(200,190)
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
@@ -98,6 +105,7 @@ func _label(text: String, heading: bool=false) -> Label:
 
 func _button(id: String, text: String, action: Callable, disabled: bool=false) -> Button:
 	var button: Button=Button.new();button.name=id;button.text=text;button.custom_minimum_size=Vector2(0,44)
+	button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.disabled=disabled;button.pressed.connect(func(): action.call();_ack())
 	_body.add_child(button);_actions[id]=button;return button
 
@@ -137,7 +145,7 @@ func sync() -> void:
 	if conversation!=null: speaker=world.resident(str(world.offer_by_id(conversation.offer_id).get("npc_id","")))
 	elif not world.active_offer_id.is_empty(): speaker=world.resident(str(world.offer_by_id(world.active_offer_id).get("npc_id","")))
 	_portrait.npc=speaker;_portrait.reduced_motion=controller._reduced_motion
-	_portrait.visible=not debug_mode and not speaker.is_empty()
+	_portrait.visible=not debug_mode and not speaker.is_empty() and get_viewport().get_visible_rect().size.x>=600
 	_portrait_title.visible=_portrait.visible
 	_portrait_title.text=trp("Passenger · ","الراكب · ")+str(speaker.get("language","")).capitalize()
 	var context: Array=[]
@@ -292,9 +300,10 @@ func _publish() -> void:
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
-	var height: float=minf(area.y-166,maxf(180,_body.get_combined_minimum_size().y+32))
+	var panel_top: float=194.0 if area.x<600 else 140.0
+	var height: float=minf(area.y-panel_top-24,maxf(180,_body.get_combined_minimum_size().y+32))
 	_panel.size.y=height
-	_panel.position.y=maxf(140,area.y-height-24) if controller._conversation!=null and tab=="requests" else 140
+	_panel.position.y=maxf(panel_top,area.y-height-24) if controller._conversation!=null and tab=="requests" else panel_top
 
 func place(stop: String) -> String:
 	if controller._ui_locale=="ar": return str(SandboxLanguagePresentation.AR_DISTRICTS.get(stop,SandboxRoads.location_name(stop)))
