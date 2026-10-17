@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
   try {
-    const response = await page.goto('http://127.0.0.1:8765/index.html',
+    const response = await page.goto((process.env.OD2D_WEB_URL||'http://127.0.0.1:8765/index.html'),
       { waitUntil: 'domcontentloaded', timeout: 30000 });
     if (!response || !response.ok()) throw new Error('Web page did not respond successfully.');
     await page.locator('canvas').first().waitFor({ timeout: 30000 });

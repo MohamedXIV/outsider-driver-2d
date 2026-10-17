@@ -709,6 +709,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if value["residents"].size() != 9:
 		return false
 	var resident_ids: Dictionary = {}
+	var walking_slots: Dictionary = {}
 	for npc in value["residents"]:
 		if not (npc is Dictionary) or not SandboxRoads.LINKS.has(npc.get("location", "")) \
 				or not SandboxRoads.DISTRICTS.has(npc.get("home", "")) \
@@ -723,6 +724,11 @@ func restore_snapshot(value: Dictionary) -> bool:
 		if not SandboxDriverMemory.valid_history(npc, value["offers"], value["events"],
 				int(value["minute"])):
 			return false
+		var local_trip: Dictionary=npc.get("local_pedestrian_trip",{}) if npc.get("local_pedestrian_trip",{}) is Dictionary else {}
+		if local_trip.get("status","") in ["walking","offscreen"]:
+			var slot: int=int(local_trip.get("slot",0))
+			if walking_slots.has(slot) or walking_slots.size()>=2: return false
+			walking_slots[slot]=true
 		if not SandboxLocalPedestrianTrip.valid_history(npc, value["events"], int(value["minute"])):
 			return false
 		if not ["kind:a", "kind:b", "kind:c", "kind:d"].has(npc.get("species")) \

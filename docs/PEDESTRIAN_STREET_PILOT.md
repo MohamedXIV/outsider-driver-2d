@@ -189,3 +189,7 @@ Changes in stacked PR #61:
 The amended priority and taxi scene regressions **passed on native Godot 4.7.2** in run #38986769410. Opposite traversal, forced actor-unload/restore boundaries and one elevated viaduct route have now passed targeted native tests. Next implement bounded interaction across multiple active walkers/vehicles and verify exported Web/Windows presentation plus actual human traffic-feel. Afterward broaden the street-module pilot to additional regular blocks while keeping the current one-world near/far handoff model.
 
 Feedback: [#59](https://github.com/MohamedXIV/outsider-driver-2d/issues/59), [#60](https://github.com/MohamedXIV/outsider-driver-2d/issues/60), [#58](https://github.com/MohamedXIV/outsider-driver-2d/issues/58), [#57](https://github.com/MohamedXIV/outsider-driver-2d/issues/57).
+
+## Sequential #62 successor — October 17, 2026
+
+The earlier single-resident limits are superseded on the same `codex/overnight-completion` branch by [the bounded two-resident crossing](MULTI_RESIDENT_CROSSING.md). The world-owned taxi/shuttle holds now aggregate all relevant bodies and reservations. [Local T-junction arbitration](LOCAL_JUNCTION_TRAFFIC.md) adds ambient native queueing without changing world population/economy. [Bridge presentation](BRIDGE_PRESENTATION.md) preserves legal grade connectivity. These are bounded technical slices; citywide mobility and human acceptance remain open. Existing PR #61 has not been changed or merged.

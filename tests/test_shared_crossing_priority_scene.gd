@@ -41,6 +41,12 @@ func _run() -> void:
 			both_held=true
 			break
 	assert(both_held,"Player and real shuttle did not independently yield at the same zebra")
+	# Unrelated NPC animation must keep fractional progress while these two
+	# real trips yield. Each held actor already clamps its own fraction.
+	scene._elapsed=0.0
+	scene._process(0.25)
+	assert(is_equal_approx(scene._city.visual_fraction,0.25),
+			"Taxi yield must not freeze the shared NPC render clock")
 	var player_point: Vector3=scene._world.player_position()
 	var npc_point: Vector3=scene._world.npc_position(scene._world.resident(shuttle_id))
 	var remaining: int=scene._world.remaining_minutes

@@ -1,3 +1,5 @@
+> **October 17 sequential follow-up:** [Draft PR #62](https://github.com/MohamedXIV/outsider-driver-2d/pull/62), stacked on #61, adds camera controls/follow, independent NPC interpolation during crossing holds, phone HUD fixes and a partial native four-way/corner street kit. [Current evidence and remaining technical work](OVERNIGHT_COMPLETION.md). No Epic or human acceptance gate is closed.
+
 # Outsider Driver — Active Sandbox Execution Roadmap
 
 > **October 16 integrated reboot:** #49–52 are implemented on `feat/playability-city-integration`, ready for human check. [Build, current city contracts and evidence](CITY_PLAYTEST.md). All prior next-slice/status entries below are historical where superseded; #48 remains the human feedback parent.

@@ -21,10 +21,12 @@ async function openCity() {
       const viewport = JSON.parse(d.playerViewport);
       const canvas = await page.locator('canvas').boundingBox();
       const isTab = ['requests', 'map', 'gear', 'contacts', 'settings'].includes(id);
-      if (!isTab && (point.y > viewport[1] - 30 || point.y < 145)) {
+      const clipTop = point.clipTop ?? 145;
+      const clipBottom = Math.min(point.clipBottom ?? viewport[1] - 30, viewport[1] - 30);
+      if (!isTab && (point.y > clipBottom - 2 || point.y < clipTop + 2)) {
         await page.mouse.move(canvas.x + 180 * canvas.width / viewport[0],
-          canvas.y + 300 * canvas.height / viewport[1]);
-        await page.mouse.wheel(0, point.y > viewport[1] - 30 ? 220 : -220);
+          canvas.y + (clipTop + clipBottom) / 2 * canvas.height / viewport[1]);
+        await page.mouse.wheel(0, point.y > clipBottom - 2 ? 220 : -220);
         await page.waitForTimeout(150);
         continue;
       }
@@ -39,7 +41,7 @@ async function openCity() {
     throw Error('Could not scroll to Player action: ' + id);
   };
   const shot = name => page.screenshot({ path: '/tmp/od2d-city-evidence/' + name + '.png' });
-  await page.goto('http://127.0.0.1:8765/index.html');
+  await page.goto((process.env.OD2D_WEB_URL||'http://127.0.0.1:8765/index.html'));
   await ready();
   return { browser, page, errors, data, ready, click, shot };
 }
