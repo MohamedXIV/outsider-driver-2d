@@ -32,7 +32,7 @@ assert GODOT, 'Set GODOT_BIN to the pinned Godot 4.7.2 editor'
 HEAD = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
 assert not subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no']), 'Commit tracked changes before the exact-head gate'
 SCOPES = {
-    'current': ['web_camera_zoom', 'web_city_playability', 'web_city_routes', 'web_junction_traffic', 'web_two_residents'],
+    'current': ['web_camera_zoom', 'web_city_playability', 'web_city_routes', 'web_junction_traffic', 'web_two_residents', 'web_passenger_alight'],
     'debug': ['web_sandbox_smoke', 'web_sandbox_routes', 'web_sandbox_reroute', 'web_sandbox_autonomy', 'web_sandbox_peer', 'web_sandbox_driver', 'web_sandbox_meeting', 'web_sandbox_ar'],
     'fixture': ['web_smoke', 'web_ink_smoke', 'web_ride_smoke'],
 }

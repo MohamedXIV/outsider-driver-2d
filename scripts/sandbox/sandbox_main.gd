@@ -1304,8 +1304,20 @@ func _publish_street_web() -> void:
 	for npc in _world.residents:
 		if not npc.get("local_pedestrian_trip",{}).is_empty(): trips[npc["id"]]=npc["local_pedestrian_trip"].duplicate(true)
 	var local_events: Array=[]
+	var alight_events: Array=[]
+	var alight_trip: Dictionary={}
+	var alight_actor: Dictionary={}
 	for evt in _world.events:
 		if str(evt["kind"]).begins_with("local_pedestrian_"): local_events.append(evt)
+		if str(evt["kind"]).begins_with("rider_alight_"): alight_events.append(evt)
+	for person in _world.residents:
+		var onward: Dictionary=person.get("passenger_alight",{})
+		if onward.is_empty(): continue
+		alight_trip={"npc_id":person["id"],"trip":onward.duplicate(true)}
+		if _alight_view!=null and _alight_view.npc_id==person["id"] and _alight_view.walker!=null:
+			alight_actor={"npc_id":person["id"],"native":true,"x":_alight_view.walker.position.x,
+				"y":_alight_view.walker.position.y}
+
 	var seed_point: Vector2=($HUD/DockPanel/Content/TimeActions/NewSeed as Button).get_global_rect().get_center()
 	var debug_controls: Dictionary={}
 	var debug_offers: Array=[]
@@ -1327,6 +1339,8 @@ func _publish_street_web() -> void:
 		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
+		"alightTrip":JSON.stringify(alight_trip),"alightActor":JSON.stringify(alight_actor),
+		"alightEvents":JSON.stringify(alight_events),
 		"streetSeed":str(_world.seed),"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
 		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y]),
 		"debugActionSerial":str(_debug_action_serial),"debugNotice":_notice_text,"debugControls":JSON.stringify(debug_controls),"debugOffers":JSON.stringify(debug_offers),"debugViaOptions":JSON.stringify(via_options),"debugViaPopup":JSON.stringify(via_popup)}),true)
