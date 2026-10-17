@@ -271,6 +271,7 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 			and arrival_at==int(trip.get("arrived",-1)) and arrival_at>=began)
 
 static func valid_presentation(world: SandboxWorld,state: Variant) -> bool:
+	if state is Dictionary and not SandboxJunctionTraffic.valid_snapshot(state.get("junction",{})): return false
 	if not state is Dictionary: return false
 	if state.is_empty(): return true
 	var actors: Variant=state.get("actors",{})

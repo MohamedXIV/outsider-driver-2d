@@ -32,5 +32,10 @@ func _run() -> void:
 			if evt["subject"]==id and evt["kind"]=="local_pedestrian_arrived": arrivals+=1
 		assert(arrivals==1)
 	assert(SandboxWorld.new().restore_snapshot(scene._world.snapshot()))
+	# Completed errands must not erase saved native bodies / local traffic.
+	scene._on_save();scene._on_load()
+	assert(scene._street_pilot!=null and scene._street_pilot.pedestrians.size()==2)
+	for id in scene._street_pilot.pedestrians:
+		assert(scene._street_pilot.pedestrians[id].did_arrive)
 	print("TWO_RESIDENT_SCENE_PASS genuine seed 29 residents, blocked path, native avoidance, independent once-only arrivals")
 	quit()

@@ -17,6 +17,7 @@ var follower: CharacterBody2D
 var car_yielded: bool=false
 var embedded: bool=false
 var resume_state: Dictionary={}
+var junction: SandboxJunctionTraffic
 
 func _actor_snapshot(actor: SandboxPedestrianActor) -> Dictionary:
 	return {"npc_id":actor.npc_id,"pedestrian_x":actor.position.x,"pedestrian_y":actor.position.y,
@@ -27,7 +28,8 @@ func visual_snapshot() -> Dictionary:
 	if pedestrian==null or car==null or follower==null: return {}
 	var state: Dictionary=_actor_snapshot(pedestrian)
 	state.merge({"car_x":car.position.x,"car_y":car.position.y,
-		"follower_x":follower.position.x,"follower_y":follower.position.y,"actors":{}})
+		"follower_x":follower.position.x,"follower_y":follower.position.y,"actors":{},
+		"junction":junction.snapshot() if junction!=null else {}})
 	for id in pedestrians: state["actors"][id]=_actor_snapshot(pedestrians[id])
 	return state
 
@@ -37,6 +39,8 @@ func _ready() -> void:
 	SandboxStreetModule.install_east_junction(self)
 	SandboxStreetModule.install_extension(self)
 	SandboxStreetModule.install_curbs(self)
+	junction=SandboxJunctionTraffic.new();junction.name="NativeTJunctionTraffic"
+	junction.resume_state=resume_state.get("junction",{});add_child(junction)
 	car=_make_lane_car("LocalTrafficCar",SandboxStreetModule.VEHICLE_START+Vector2(70,0))
 	follower=_make_lane_car("LocalFollowingCar",SandboxStreetModule.VEHICLE_START)
 	var ids: Array[String]=[]

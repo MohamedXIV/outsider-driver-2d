@@ -528,10 +528,10 @@ func _sync_local_pedestrian() -> void:
 		_city.local_active_npc_id=_street_pilot.walking_npc_id
 		return
 	var ids: Array[String]=SandboxLocalPedestrianTrip.candidates(_world)
-	if ids.is_empty(): return
+	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty(): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
 	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
-	local.walking_npc_id=ids[0];local.resume_state=_street_restore_state.duplicate(true)
+	local.walking_npc_id=ids[0] if not ids.is_empty() else "";local.resume_state=_street_restore_state.duplicate(true)
 	local.transform=SandboxStreetRouteBinding.street_transform();local.z_index=5
 	_street_pilot=local;add_child(local)
 	_city.local_active_npc_id=local.walking_npc_id
@@ -1163,6 +1163,13 @@ func _publish_street_web() -> void:
 				"native":actor._agent!=null,"blocked":actor.path_blocked,
 				"trip":_world.resident(str(id)).get("local_pedestrian_trip",{}).duplicate(true)})
 	var trips: Dictionary={}
+	var junction: Dictionary={}
+	if _street_pilot!=null and _street_pilot.junction!=null:
+		var local: SandboxJunctionTraffic=_street_pilot.junction
+		junction={"owner":local.priority.owner,"queue":local.priority.queue.duplicate(),"admitted":local.admitted.duplicate(),"bodies":{}}
+		for id in local.actors:
+			var body: CharacterBody2D=local.actors[id]
+			junction["bodies"][id]={"x":body.position.x,"y":body.position.y}
 	for npc in _world.residents:
 		if not npc.get("local_pedestrian_trip",{}).is_empty(): trips[npc["id"]]=npc["local_pedestrian_trip"].duplicate(true)
 	var local_events: Array=[]
@@ -1170,6 +1177,6 @@ func _publish_street_web() -> void:
 		if str(evt["kind"]).begins_with("local_pedestrian_"): local_events.append(evt)
 	var seed_point: Vector2=($HUD/DockPanel/Content/TimeActions/NewSeed as Button).get_global_rect().get_center()
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
-		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),
+		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
 		"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
 		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y])}),true)
