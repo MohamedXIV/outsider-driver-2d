@@ -9,6 +9,7 @@ static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: 
 	# Do not overwrite a recoverable save with a native view missing an active
 	# resident's physical state. Loading it would otherwise rewind that body.
 	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})) \
+			or not SandboxPassengerAlight.valid_presentation(world,presentation.get("alight_state",{})) \
 			or not _valid_taxi_heading(presentation): return false
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
@@ -39,6 +40,7 @@ static func load_bundle(file_path: String = PATH) -> Dictionary:
 	var zoom: Variant=presentation.get("camera_zoom",2.6)
 	if not (zoom is float or zoom is int) or not is_finite(float(zoom)) or float(zoom)<1.25 or float(zoom)>4.0: return {}
 	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})) \
+			or not SandboxPassengerAlight.valid_presentation(world,presentation.get("alight_state",{})) \
 			or not _valid_taxi_heading(presentation): return {}
 	var fraction: Variant=presentation.get("clock_fraction",0.0)
 	if not (fraction is float or fraction is int) or not is_finite(float(fraction)) or float(fraction)<0 or float(fraction)>=1: return {}
