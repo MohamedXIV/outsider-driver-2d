@@ -21,6 +21,20 @@ The bounded `res://scenes/street_pilot.tscn` remains a standalone validation sce
 - The initial failed CI attempt [#38954310347](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38954310347) had successfully printed `STREET_PILOT_PASS` but CI incorrectly flagged an unavailable ALSA audio device. The second run corrected test environment by selecting Dummy audio, without changing game code.
 - After the successful targeted run, the new gate was returned to **manual-only** triggering to preserve GitHub Actions minutes.
 
+## Bidirectional taxi yield on the one grounded zebra — October 17, 2026
+
+The original player-taxi right-of-way gate recognized `garage → margin_gate` but not a genuine **return trip** from `margin_gate → garage` over the exact same road. The physical crossing is still the one authored Patchworks zebra, not a new crossing or a second simulated city.
+
+- `SandboxStreetRouteBinding.crossing_fraction(from, to)` returns **0.35** on the outbound route and **0.65** on the reverse route, accounting for the same `SandboxRoads.sample_edge` world geometry in opposite directions. Unrelated road edges remain ineligible.
+- `on_edge`, `approaching`, `in_neighborhood` and `taxi_occupies_crosswalk` now use the direction-aware fraction. The actual native walker remains loaded while the returning driver approaches and waits.
+- `SandboxWorld.restore_snapshot` validates a held route against either direction and the corresponding integer world-minute approach window, preserving the one-pair taxi yield event ledger and rejecting a forged release on the return trip.
+- `test_taxi_crossing_world.gd` drives **garage → market → garage** through `margin_gate`, exercises the reverse held world clock, save/recovery, falsified release rejection and final arrival.
+- New `test_taxi_crossing_return_scene.gd` runs an **actual Player Mode scene on a genuine seeded return drive** with a world-owned native walker. It verifies reverse native actor loading, holding while the walker occupies asphalt, mid-hold save/restore, the stale-completion guard, physically clear release and arrival at garage. There is no fabricated resident identity or hand-edited route segment.
+
+**Evidence:** [Godot 4.7.2 native run #38991344179](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991344179) is **11/11 PASS** at tested code `e3ef10c75b9fa0a6569732fd4b2678e816bcd321`, including new `TAXI_CROSSING_RETURN_SCENE_PASS`, outbound scene, world route, geometry, priority, pedestrian navigation/handoff and city presentation. [Real test logs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991344179/artifacts/12085546161). The preceding [run #38991209578](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991209578) also passed 10/10 on the initial bidirectional world-route implementation at `df0df295`.
+
+**Still bounded:** This is one grade-zero zebra, not general street generation, multiple simultaneously yielding NPCs, traffic lights, or a fully physics-driven taxi. Automated Web/Windows gameplay and subjective feel review are still pending. The scoped feature-branch Actions workflow runs on code pushes and ignores documentation-only updates. PR #61 remains stacked DRAFT, and issues #58/#59/#60 remain open.
+
 ## Next incremental integration — main city, not just the pilot
 
 - The default `sandbox.tscn` now can instantiate a **spatially embedded** Patchworks street module when the player is parked at the garage and a genuinely idle eligible resident has a local work/supplies errand. It uses the **same** `SandboxWorld` and `SandboxLocalPedestrianTrip.candidate(world)`, not a second seed or a fixed first passenger.
@@ -118,6 +132,6 @@ Changes in stacked PR #61:
 **Remaining risk:** This is a bounded crossing. Player taxi movement is still discrete authoritative road-graph progress rather than a physics-body braking/collision model; reverse-direction crossing, missing/despawned walkers, prolonged obstructions, network-wide traffic and grade-separated cases need further acceptance.
 
 ## Next increment
-The amended priority and taxi scene regressions **passed on native Godot 4.7.2** in run #38986769410. Next test player approach/release when a pedestrian leaves the local actor range, opposite traversal direction, and safe grade separation. Afterward broaden the street-module pilot to additional regular blocks while keeping the current one-world near/far handoff model.
+The amended priority and taxi scene regressions **passed on native Godot 4.7.2** in run #38986769410. Opposite traversal has now passed both world and native Player Mode scene tests; next test actor-unload/restore boundaries, safe grade separation, and generalized multi-vehicle crossings. Afterward broaden the street-module pilot to additional regular blocks while keeping the current one-world near/far handoff model.
 
 Feedback: [#59](https://github.com/MohamedXIV/outsider-driver-2d/issues/59), [#60](https://github.com/MohamedXIV/outsider-driver-2d/issues/60), [#58](https://github.com/MohamedXIV/outsider-driver-2d/issues/58), [#57](https://github.com/MohamedXIV/outsider-driver-2d/issues/57).

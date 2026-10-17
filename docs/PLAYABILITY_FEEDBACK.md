@@ -118,6 +118,13 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Validation:** 14/14 preliminary static checks plus a **real Godot 4.7.2 10/10 PASS** at `ed3c7708` ([run #38986769410](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38986769410)); the updated `TAXI_CROSSING_SCENE_PASS` confirms physical lane-body clearance and stale-flag guard. No Web/Windows or human traffic acceptance.
 - **Status:** Implemented and native test-verified. #60 and #59 remain open for broader traffic and playtest coverage, PR #61 remains stacked DRAFT; feature-branch native CI enabled, with documentation-only changes ignored.
 
+### R09 — bidirectional real taxi crossing on the same Patchworks zebra (October 17, 2026)
+- **Issue:** FB-009 / #60. The route-level crossing gate previously worked only for an outbound `garage → margin_gate` taxi. The same real road is traversable in reverse.
+- **Implemented in stacked Draft PR #61:** The world-aligned crossing uses 35% outbound and 65% inbound route progress. Both `SandboxStreetRouteBinding` and held-world save validation recognize the reverse segment, while neighborhood proximity keeps the native walker available.
+- **Coverage:** Extended `test_taxi_crossing_world.gd` with real Market round-trip, reverse hold, continuing clock, forged-release rejection and arrival. Added `test_taxi_crossing_return_scene.gd` to exercise a true seeded Market → garage return in the **actual Player Mode scene**, with native pedestrian, save/load, occupied-lane wait and clearance-based release.
+- **Native evidence:** [Godot 4.7.2 run #38991344179](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991344179), source `e3ef10c`, **11/11 targeted tests PASS**, including `TAXI_CROSSING_RETURN_SCENE_PASS`. [Logs/artifacts](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38991344179/artifacts/12085546161). This tests the actual game scene, not only a pure-world simulation.
+- **Remaining:** Human gamefeel, Web/Windows gameplay, safe unloading and grade rules beyond the bounded zebra, and generalized multi-car city traffic. Keep #60 open and PR #61 Draft.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.
