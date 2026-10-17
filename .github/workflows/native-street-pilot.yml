@@ -1,6 +1,9 @@
 name: Native street navigation pilot (temporary single-branch gate)
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/native-pedestrian-crossing-pilot
 permissions:
   contents: read
 jobs:
