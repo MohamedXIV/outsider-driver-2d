@@ -1,0 +1,25 @@
+{
+  "domain": 35,
+  "native": 27,
+  "code_sha": "28960f90a6ecaa357ed4c25646e1d1db8e345121",
+  "sandbox_source_tree": "2de24fdf3583933de3a55cee7bae5ddbed9deefe",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "late_render_checks": [
+    "bridge-presentation-final.log",
+    "committed-render-checks.log"
+  ],
+  "chromium": {
+    "two_residents": "final-web-two-residents.log",
+    "junction_clearance": "web_junction-clearance-final.log",
+    "camera_phone": "web_camera_zoom-final.log",
+    "player_fare_ink": "web_city_playability-final.log",
+    "two_fares": "web_city_routes-standalone-final.log"
+  },
+  "final_focused_checks": [
+    "bridge-presentation-final.log",
+    "committed-render-checks.log",
+    "junction-final-clearance-verified.log",
+    "junction-final-domain.log"
+  ],
+  "note": "Full 35/27 gates followed by focused final renderer and terminal-queue checks. Combined Web wrapper hit its six-minute outer limit; standalone two-fare rerun passed unchanged per-fare deadlines."
+}

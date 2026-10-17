@@ -1,5 +1,7 @@
 # Sequential completion — October 17, 2026
 
+[Final continuation: exact code SHA, 62 Godot checks, five Chromium suites and remaining work](OVERNIGHT_CONTINUATION.md).
+
 [Draft PR #62](https://github.com/MohamedXIV/outsider-driver-2d/pull/62) uses the single `codex/overnight-completion` branch, based on `feat/native-pedestrian-crossing-pilot`. Existing PRs #55 and #61 remain untouched and unmerged. No issues or Epics are closed.
 
 Live baseline inspected before implementation: main `05ea3fdd3c5a0484f2b2db7657a639ad919bff30`; #55 `e18aa0cd1444865f0ce7f669590df201ad8de36b`; #61 `983ed8724baf936828bb620f270a387fcbd45b7a`. Initial execution tested gameplay commit: `8ecf70e10834466fa20f159f52fd57c80365029b`. Later evidence/documentation commits do not change gameplay.
