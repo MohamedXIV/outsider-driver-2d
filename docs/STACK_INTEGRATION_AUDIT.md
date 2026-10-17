@@ -41,6 +41,10 @@ Rebase/merge changes the code identity and requires fresh validation.
   remained until the next tick and a legitimate save was rejected. Clearance
   now settles at the end of the same physical step. Every ordinary frame in
   the native merge/blocked-exit/restore test must pass save validation.
+* A valid physical snapshot loaded outside the active neighborhood could
+  strand walking residents without actors and discard the local queue. Saved
+  poses now produce sourced far handoffs; suspended traffic survives far
+  save/load and resumes at the same positions/owner/queue on return.
 * Restore accepted forged resumed progress and premature offscreen arrivals.
   It now checks progress against elapsed canonical ticks and independent
   arrival provenance, without converting a blocked native body into arrival.
@@ -82,6 +86,8 @@ clearance. Shuttle waiting extends that resident's existing trip, including
 its source-offer and signed wait history; it creates no replacement resident
 or fare. The three local junction cars are explicitly **ambient** physical
 kit actors, not additional citizens or a second economic simulation.
+Their presentation state pauses while unloaded; its queue resumes on return.
+Real resident-owned shuttles continue in the canonical world.
 Their FIFO admission, physical exit clearance and headway are bounded to the
 existing east T module; they do not claim city-wide fleet arbitration.
 
@@ -105,7 +111,7 @@ run**, never human acceptance. Issues remain open.
 |---|---|---|
 | #49 | Default Player Mode, reversible Debug Mode, same world; native presentation and `web_city_playability`, language/save/Ink regressions. | Human first-minute discoverability and legibility. |
 | #50 | Compact contextual HUD, fare through arrival without Debug, market/modules/AR, narrow Arabic and reduced motion; native screenshots and `web_city_playability`. | Human hierarchy/taste, touch-device comfort and interaction pacing. |
-| #51 | Connected legal graph, genuine varied edge length/cost, short and long fares with speech and reload; `test_city_journeys`, `test_sandbox_routes_scene`, `web_city_routes`. Web log quantifies minutes/metres/nodes. | Human breathing room, stress and passenger visibility; no optimal duration invented. |
+| #51 | Connected legal graph, genuine varied edge length/cost, short and long fares with speech and reload; `test_city_journeys_scene`, `test_sandbox_routes_scene`, `web_city_routes`. Web log quantifies minutes/metres/nodes. | Human breathing room, stress and passenger visibility; no optimal duration invented. |
 | #52 | Sampled road geometry/tangent, lawful ramps and disconnected apparent crossings; road/grade tests and native/Web road evidence. | Visual treatment superseded by #58; human road realism remains open. |
 | #56 | Bounded smooth manual zoom, touch/keyboard/wheel, closer default, persistence and narrow UI; camera native and `web_camera_zoom`. | Human preferred framing and comfort. |
 | #57 | Parked and moving NPC visual interpolation independent of taxi clock; `test_npc_interpolation_scene`, related handoff/movement regressions. | Human perceived smoothness; city-wide walkers remain coarse outside the native slice. |
@@ -139,13 +145,17 @@ OD2D_LOGS=work/final/native xvfb-run -a -s '-screen 0 1280x1400x24' python tests
 OD2D_LOGS=work/final/web python tests/run_exported_gate.py
 ```
 
-The full inventory is **36 domain/adapters, 30 native scene, 16 exported
+The full inventory is **36 domain/adapters, 31 native scene, 16 exported
 Chromium suites** (5 current Player/camera/street, 8 migrated diagnostic city,
 3 canvas/frozen prototype). The Web runner rejects a dirty tracked checkout,
 unclassified suites, wrong Godot version, export errors, leaked docs/tests,
 nonzero browser exit and a changed head. Each browser process has a bounded
 timeout with process-group cleanup; tests retain their own journey deadlines.
 It exports and serves its own files; no stale external server is trusted.
+`test_city_journeys_scene` completes genuinely generated long and short fares
+through visible Player controls, speech acts and mid-ride saves in one native
+scene. It accelerates controller time for QA while retaining real physics;
+logged route minutes/metres are nominal graph metrics, not human pacing data.
 Manifest hashes identify the actual exported PCKs. Screenshot filenames are
 preserved in the artifacts alongside individual command logs.
 

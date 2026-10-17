@@ -537,13 +537,39 @@ func _update_shuttle_crossing_yields() -> void:
 		elif occupied and SandboxWorldTraffic.approaching_zebra(_world,npc):
 			_world.begin_shuttle_crossing_yield(str(npc["id"]))
 
+func _traffic_only_state(state: Dictionary) -> Dictionary:
+	if state.is_empty(): return {}
+	var retained: Dictionary={"actors":{}}
+	for key in ["car_x","car_y","follower_x","follower_y","junction"]:
+		if state.has(key): retained[key]=state[key].duplicate(true) if state[key] is Dictionary else state[key]
+	return retained
+
+
+func _handoff_restored_pedestrians() -> void:
+	# A far load has saved physical poses but must not instantiate nearby
+	# bodies. Transfer those validated poses into the same world's far policy.
+	var actors: Dictionary=_street_restore_state.get("actors",{})
+	if actors.is_empty() and _street_restore_state.has("npc_id"):
+		actors={str(_street_restore_state["npc_id"]):_street_restore_state}
+	for id in actors:
+		var trip: Dictionary=_world.resident(str(id)).get("local_pedestrian_trip",{})
+		if trip.get("status","")!="walking": continue
+		var saved: Dictionary=actors[id]
+		var at: Vector2=Vector2(float(saved["pedestrian_x"]),float(saved["pedestrian_y"]))
+		var phase: float=minf(.999999,SandboxStreetModule.progress_of(at,int(trip.get("slot",0))))
+		SandboxLocalPedestrianTrip.handoff(_world,str(id),phase,at)
+
+
 func _sync_local_pedestrian() -> void:
 	if not SandboxStreetRouteBinding.in_neighborhood(_world):
 		if _street_pilot!=null:
 			_street_pilot.handoff_all()
+			_street_restore_state=_traffic_only_state(_street_pilot.visual_snapshot())
 			_street_pilot.queue_free();_street_pilot=null
-			_street_restore_state.clear()
-			_city.local_active_npc_id="";_city.local_active_npc_ids.clear()
+		elif not _street_restore_state.get("actors",{}).is_empty() or _street_restore_state.has("npc_id"):
+			_handoff_restored_pedestrians()
+			_street_restore_state=_traffic_only_state(_street_restore_state)
+		_city.local_active_npc_id="";_city.local_active_npc_ids.clear()
 		return
 	if _street_pilot!=null:
 		_city.local_active_npc_ids=_street_pilot.loaded_ids()
@@ -591,7 +617,7 @@ func _on_save() -> void:
 	if _street_pilot!=null: _street_pilot.reconcile_reservations()
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
 	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
-			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else {}}) else "Save failed."
+			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state}) else "Save failed."
 	_render()
 
 
