@@ -479,9 +479,14 @@ func _update_player_crossing_yield() -> void:
 		# A presentation flag is not proof that the crossing is empty. Keep
 		# the actual player taxi held until the walker's collision body is
 		# entirely beyond the roadway, including after a mid-hold restore.
-		if _street_pilot==null or _street_pilot.world_reported_arrival \
-				or (_street_pilot.pedestrian.crossing_completed \
-				and SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)):
+		if _street_pilot==null:
+			# The native actor may have been unloaded or re-created. Never
+			# release solely because a presentation node is absent.
+			if SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world):
+				_world.release_crossing_yield()
+		elif _street_pilot.world_reported_arrival or \
+				(_street_pilot.pedestrian.crossing_completed and \
+				SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)):
 			_world.release_crossing_yield()
 		return
 	if _street_pilot!=null and _street_pilot.pedestrian.crossing_reserved \

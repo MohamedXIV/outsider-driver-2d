@@ -78,6 +78,25 @@ static func offscreen_progress(world: SandboxWorld, npc_id: String) -> float:
 	return clampf(float(trip["handoff_progress"]) + seconds_as_minutes / \
 			SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
 
+# Used only when no native pedestrian actor is available. A missing scene
+# object is NOT evidence that the zebra is empty: live walkers fail closed,
+# and offscreen travelers clear it only after world-owned distance passes
+# the same collision-body boundary used by their native counterpart.
+static func crossing_cleared_without_actor(world: SandboxWorld) -> bool:
+	for npc in world.residents:
+		var trip: Dictionary=npc.get("local_pedestrian_trip",{})
+		if trip.get("site","")!=PATCHWORKS_PARTS:
+			continue
+		match str(trip.get("status","")):
+			"walking":
+				return false
+			"offscreen":
+				if not SandboxStreetModule.crossing_finished(
+						offscreen_progress(world,str(npc["id"]))):
+					return false
+	return true
+
+
 static func resume(world: SandboxWorld, npc_id: String) -> float:
 	var npc: Dictionary=world.resident(npc_id)
 	var trip: Dictionary=npc.get("local_pedestrian_trip",{})
