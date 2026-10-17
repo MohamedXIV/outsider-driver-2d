@@ -21,7 +21,7 @@ func _ready() -> void:
 	collision_mask = 4
 	var shape: CollisionShape2D = CollisionShape2D.new()
 	var circle: CircleShape2D = CircleShape2D.new()
-	circle.radius = 7.0
+	circle.radius = SandboxStreetModule.PEDESTRIAN_RADIUS
 	shape.shape = circle
 	add_child(shape)
 	_agent = NavigationAgent2D.new()
@@ -56,6 +56,11 @@ func _physics_process(_delta: float) -> void:
 		_agent.set_velocity(Vector2.ZERO)
 		reached_site.emit(npc_id)
 		return
+	# A crossing is completed only after the physical body clears the road.
+	# This must be checked before the next right-of-way wait, otherwise a
+	# resident already on the south pavement could remain blocked forever.
+	if crossing_reserved and SandboxStreetModule.crossing_clear(position):
+		crossing_completed = true
 	# The crossing is the ONLY link between the two walkable sidewalk meshes.
 	# Local right-of-way is separate from NavigationAgent's pathfinding.
 	if not crossing_completed and position.x >= CROSS_X - 19.0:
@@ -65,8 +70,6 @@ func _physics_process(_delta: float) -> void:
 			velocity = Vector2.ZERO
 			_agent.set_velocity(Vector2.ZERO)
 			return
-	if crossing_reserved and position.y > 370.0:
-		crossing_completed = true
 	var next: Vector2 = _agent.get_next_path_position()
 	var wanted: Vector2 = global_position.direction_to(next) * SPEED
 	_agent.set_velocity(wanted)
