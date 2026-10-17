@@ -13,28 +13,38 @@ const {openCity}=require('./city_browser.cjs');
       await page.mouse.click(box.x+point[0]*box.width/viewport[0],box.y+point[1]*box.height/viewport[1]);
       await page.waitForFunction(expected=>document.documentElement.dataset.sandboxSeed===String(expected),seed);
     }
-    await page.waitForFunction(()=>JSON.parse(document.documentElement.dataset.streetActors||'[]').length===2);
+    await page.waitForFunction(()=>document.documentElement.dataset.streetSeed==='29'&&JSON.parse(document.documentElement.dataset.streetActors||'[]').length===2);
     const initial=await actors();
     assert.deepEqual(initial.map(a=>a.id).sort(),['npc:04','npc:08']);
     assert.equal((await data()).streetPopulation,'9');
     assert.ok(initial.every(a=>a.native));
+    await page.waitForFunction(initial=>JSON.parse(document.documentElement.dataset.streetActors||'[]').some(a=>{
+      const start=initial.find(p=>p.id===a.id);return start&&a.trip.status==='walking'&&Math.hypot(a.x-start.x,a.y-start.y)>5;
+    }),initial);
+    // Save immediately through the real visible Debug control. Screenshots
+    // and UI navigation must not consume the short live-walk save window.
+    const d=await data(),point=JSON.parse(d.debugControls).save;
+    const box=await page.locator('canvas').boundingBox(),viewport=JSON.parse(d.playerViewport);
+    await page.mouse.click(box.x+point.x*box.width/viewport[0],box.y+point.y*box.height/viewport[1]);
+    await page.waitForFunction(previous=>Number(document.documentElement.dataset.debugActionSerial)>previous,Number(d.debugActionSerial));
+    assert.equal((await data()).debugNotice,'Sandbox saved.');
+    const saved=JSON.parse((await data()).streetSavedActors);
+    assert.ok(saved.some(a=>a.trip.status==='walking'),'Save must exercise live native movement');
+    assert.ok(saved.some(a=>{const start=initial.find(p=>p.id===a.id);return Math.hypot(a.x-start.x,a.y-start.y)>5;}));
     await page.keyboard.press('F3');
     await page.waitForFunction(()=>document.documentElement.dataset.playerMode==='true');
     await shot('multi-two-residents-native');
-    await click('settings');await click('save');
-    const saved=await actors();
-    assert.ok(saved.some(a=>a.trip.status==='walking'),'Save must exercise live native movement');
     await page.waitForTimeout(3000);
     await page.reload();await ready();
     await click('settings');await click('load');
     await page.waitForFunction(()=>document.documentElement.dataset.sandboxSeed==='29'&&JSON.parse(document.documentElement.dataset.streetActors||'[]').length===2);
-    const restored=await actors();
+    const restored=JSON.parse((await data()).streetRestoredActors);
     assert.deepEqual(restored.map(a=>a.id).sort(),['npc:04','npc:08']);
     assert.equal((await data()).streetPopulation,'9');
     for(const a of restored) {
       const old=saved.find(b=>b.id===a.id);
       assert.equal(a.trip.started,old.trip.started);
-      assert.ok(Math.hypot(a.x-old.x,a.y-old.y)<65,'Restored actor must retain its own saved position');
+      assert.ok(Math.hypot(a.x-old.x,a.y-old.y)<.1,'Restored actor must retain its own saved position at the load boundary');
     }
     await page.setViewportSize({width:720,height:900});
     await page.waitForFunction(()=>JSON.parse(document.documentElement.dataset.playerViewport)[0]===720);

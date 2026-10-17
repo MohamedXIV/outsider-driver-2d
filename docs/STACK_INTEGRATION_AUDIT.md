@@ -60,7 +60,11 @@ diagnostic coordinates and instantaneous +20 minute journeys. They now use
 real visible controls/current graph and physical crossing completion. Shared
 browser plumbing reads bounds only; it cannot command the world. Request clicks
 are matched by persistent offer identity; freshly rebuilt/scrolled row bounds
-are checked against native Godot hit testing. The two
+are checked against native Godot hit testing. The two-resident Web check
+saves before taking screenshots, after observing actual movement, and compares
+read-only body poses captured at Save/Load rather than later live positions.
+It retains the walking-save requirement and tightens restore tolerance to
+0.1 pixel; it never pauses locomotion or commands world state through JS. The two
 frozen prototype journeys run against an archived source copy whose sole
 configuration difference is the prototype main scene. Export filters exclude
 repository reports/test resources, which have no runtime references.

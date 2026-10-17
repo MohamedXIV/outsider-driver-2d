@@ -616,8 +616,10 @@ func _on_new_seed() -> void:
 func _on_save() -> void:
 	if _street_pilot!=null: _street_pilot.reconcile_reservations()
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
-			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state}) else "Save failed."
+	var successful: bool=SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
+			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state})
+	_notice_text="Sandbox saved." if successful else "Save failed."
+	if successful: _publish_street_boundary("streetSavedActors")
 	_render()
 
 
@@ -657,6 +659,7 @@ func _on_load() -> void:
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
 	_sync_local_pedestrian()
+	_publish_street_boundary("streetRestoredActors")
 	_refresh_web_hitboxes_after_layout()
 
 
@@ -1215,15 +1218,29 @@ func _debug_offer_bounds() -> Array:
 	return rows
 
 
-func _publish_street_web() -> void:
-	if not OS.has_feature("web"): return
+func _observe_street_actors() -> Array:
 	var actors: Array=[]
 	if _street_pilot!=null:
-		for id in _street_pilot.pedestrians:
+		for id in _street_pilot.loaded_ids():
 			var actor: SandboxPedestrianActor=_street_pilot.pedestrians[id]
 			actors.append({"id":id,"x":actor.position.x,"y":actor.position.y,
 				"native":actor._agent!=null,"blocked":actor.path_blocked,
 				"trip":_world.resident(str(id)).get("local_pedestrian_trip",{}).duplicate(true)})
+	return actors
+
+
+func _publish_street_boundary(field: String) -> void:
+	if not OS.has_feature("web"): return
+	# Observe actual bodies at the Save/Load boundary before another physics
+	# frame. This read-only evidence cannot pause or command locomotion.
+	var observation: Dictionary={}
+	observation[field]=JSON.stringify(_observe_street_actors())
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify(observation),true)
+
+
+func _publish_street_web() -> void:
+	if not OS.has_feature("web"): return
+	var actors: Array=_observe_street_actors()
 	var trips: Dictionary={}
 	var junction: Dictionary={}
 	if _street_pilot!=null and _street_pilot.junction!=null:
@@ -1258,6 +1275,6 @@ func _publish_street_web() -> void:
 		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
-		"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
+		"streetSeed":str(_world.seed),"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
 		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y]),
 		"debugActionSerial":str(_debug_action_serial),"debugNotice":_notice_text,"debugControls":JSON.stringify(debug_controls),"debugOffers":JSON.stringify(debug_offers),"debugViaOptions":JSON.stringify(via_options),"debugViaPopup":JSON.stringify(via_popup)}),true)
