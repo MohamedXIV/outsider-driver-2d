@@ -19,7 +19,8 @@ const {openCity}=require('./city_browser.cjs');
      }
     }
     assert.ok(inside<=1,'Only one conflicting approach may occupy the box');
-    if(state.bodies.following.x>925.8&&state.bodies.branch.x>967.8&&!state.owner) {
+    if(state.bodies.following.x>985.8&&state.bodies.branch.x>1027.8&&!state.owner) {
+     for(const body of Object.values(state.bodies)) for(const x of [950,1100]) assert.ok(Math.abs(body.x-x)>=27,'Stopped queue must clear both marked zebras');
      assert.deepEqual(state.admitted,['main','branch','following']);drained=true;break;
     }
    }

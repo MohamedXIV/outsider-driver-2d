@@ -12,6 +12,9 @@ func _run() -> void:
 	for frame in range(180):
 		traffic.step(1.0/60.0);await physics_frame
 	assert(traffic.priority.owner.is_empty())
+	for body in traffic.actors.values():
+		for crossing_x in [SandboxStreetModule.EAST_CROSS_X,1100.0]:
+			assert(absf(body.position.x-crossing_x)>=27.0,"A stopped queue may not occupy a marked zebra")
 	assert(traffic.actors["main"].position.x<=780.01)
 	assert(traffic.actors["branch"].position.y<=290.01)
 	assert(traffic.actors["following"].position.x<=traffic.actors["main"].position.x-41.99)
@@ -54,6 +57,9 @@ func _run() -> void:
 	assert(traffic.actors["following"].position.x>900.0,"Finite downstream queue must drain without starvation/deadlock")
 	assert(traffic.actors["branch"].position.x>940.0)
 	assert(traffic.priority.owner.is_empty())
+	for body in traffic.actors.values():
+		for crossing_x in [SandboxStreetModule.EAST_CROSS_X,1100.0]:
+			assert(absf(body.position.x-crossing_x)>=27.0,"The final queue must clear both marked zebras")
 	assert(blocked_owner)
 	assert(SandboxJunctionTraffic.valid_snapshot(traffic.snapshot()))
 	print("JUNCTION_TRAFFIC_PASS blocked downstream, native FIFO merge, whole-body exclusion, headway, save/reconstruct and queue drain")

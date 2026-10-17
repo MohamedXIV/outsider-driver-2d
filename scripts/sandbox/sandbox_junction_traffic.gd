@@ -8,7 +8,9 @@ const IDS: Array[String]=["main","branch","following"]
 const SPEED: float=36.0
 const STOP_DISTANCE: float=50.0
 const EXIT_X: float=890.0
-const END_X: float=1010.0
+# Three stopped bodies must fit beyond the east zebra and before the next
+# marked crossing at x1100, not just clear the junction's conflict box.
+const END_X: float=1070.0
 var priority: SandboxJunctionPriority=SandboxJunctionPriority.new()
 var actors: Dictionary={}
 var routes: Dictionary={}

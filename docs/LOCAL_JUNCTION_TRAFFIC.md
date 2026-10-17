@@ -10,6 +10,8 @@ Godot CharacterBody2D collisions remain the final safety boundary. Route progres
 
 The western marked crossing continues to aggregate the two persistent residents for the real player taxi and world-owned shuttle. This T-junction batch does not claim those world vehicles have native physics at every city junction.
 
+The terminal queue occupies the existing straight module between the x950 and x1100 marked crossings: stopped centers x1070/x1028/x986 keep all three 28px bodies clear of both zebras. Native and exported regressions check these clearances as well as headway.
+
 ## Verification evidence
 
 Godot 4.7.2: 34 domain/adapter tests passed. The rendered junction test passed including an actual obstruction and restore. Exported Chromium passed admission order `[main, branch, following]`, spacing, queue drain and exact final saved body positions after reload. [Logs](evidence/junction-2026-10-17/verification-logs.zip).
