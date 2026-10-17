@@ -32,6 +32,7 @@ func _run() -> void:
 	for frame in range(14): await physics_frame
 	var before_save: Vector2 = scene._alight_view.walker.position
 	assert(before_save.distance_to(start) > 1.0, "Native Godot walker must physically move toward clinic intake")
+	scene._render()
 	await RenderingServer.frame_post_draw
 	assert(root.get_texture().get_image().save_png("/tmp/od2d-alight-evidence/clinic-walking.png") == OK)
 	assert(not scene._alight_view.walker._agent.is_navigation_finished())

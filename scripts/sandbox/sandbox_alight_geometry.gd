@@ -13,12 +13,16 @@ static func tangent(trip: Dictionary) -> Vector2:
 	var d: Vector2 = SandboxCityView.project(q) - SandboxCityView.project(p)
 	return d.normalized() if d.length_squared() > 0.000001 else Vector2.RIGHT
 
+# The clinic intake is one authored doorway beside its pictured frontage,
+# not an arbitrary position chosen on the far side of the approaching road.
+static func goal(_trip: Dictionary) -> Vector2:
+	return SandboxCityView.project(SandboxRoads.map_position("clinic")) + Vector2(53.0,-55.0)
+
 static func start(trip: Dictionary) -> Vector2:
 	var centre: Vector2 = SandboxCityView.project(SandboxRoads.map_position("clinic"))
-	return centre + tangent(trip).orthogonal() * 30.0
-
-static func goal(trip: Dictionary) -> Vector2:
-	return start(trip) + tangent(trip).orthogonal() * 40.0 + tangent(trip) * 24.0
+	var normal: Vector2 = tangent(trip).orthogonal()
+	if normal.dot(goal(trip)-centre) < 0.0: normal = -normal
+	return centre + normal * 30.0
 
 static func at(trip: Dictionary, fraction: float) -> Vector2:
 	return start(trip).lerp(goal(trip), clampf(fraction, 0.0, 1.0))
