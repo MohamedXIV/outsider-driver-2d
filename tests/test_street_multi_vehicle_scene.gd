@@ -46,6 +46,9 @@ func _run() -> void:
 	walker.position=Vector2(SandboxStreetModule.CROSS_X,
 			SandboxStreetModule.crossing_clear_y())
 	walker.crossing_completed=true
+	# NavigationAgent velocity_computed is emitted only with avoidance on;
+	# restore it after the deterministic stop phase so native motion resumes.
+	walker._agent.avoidance_enabled=true
 	walker.set_physics_process(true)
 	var resumed_leader: bool=false
 	var resumed_follower: bool=false
