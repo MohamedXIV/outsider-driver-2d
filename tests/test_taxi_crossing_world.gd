@@ -100,5 +100,32 @@ func _initialize() -> void:
 		if event["kind"]=="taxi_yield_ended": reverse_ends+=1
 	assert(reverse_starts==2 and reverse_ends==2,
 			"Outbound and inbound visits must each have one matched yield pair")
-	print("TAXI_CROSSING_WORLD_PASS both grounded route directions, held clock, save provenance and resumed trips")
+	# Real grade-separation guard: the player can physically travel over the
+	# elevated western viaduct. That 160m deck is NOT the grounded Patchworks
+	# zebra, even if both shapes are visible in the same 2D projection.
+	var bridge_world: SandboxWorld=SandboxWorld.new(8)
+	assert(SandboxRoads.connected("bridge_east","bridge_west"))
+	assert(SandboxRoads.map_position("bridge_east").y>=100.0)
+	assert(SandboxRoads.map_position("bridge_west").y>=100.0)
+	assert(bridge_world.reposition("depot","bridge_west"))
+	var reached_deck: bool=false
+	for _tick in range(bridge_world.remaining_minutes):
+		if bridge_world.is_travelling() and \
+				bridge_world.route_nodes[bridge_world.route_segment]=="bridge_east" and \
+				bridge_world.route_nodes[bridge_world.route_segment+1]=="bridge_west":
+			reached_deck=true
+			break
+		assert(bridge_world.advance(1))
+	assert(reached_deck,"The authored viaduct should be reachable by an actual taxi route")
+	assert(bridge_world.player_position().y>=100.0)
+	assert(not SandboxStreetRouteBinding.on_edge(bridge_world))
+	assert(not SandboxStreetRouteBinding.in_neighborhood(bridge_world))
+	assert(not SandboxStreetRouteBinding.approaching(bridge_world))
+	assert(not SandboxStreetRouteBinding.taxi_occupies_crosswalk(bridge_world))
+	assert(not bridge_world.begin_crossing_yield(),
+			"Grounded zebra must not stop a taxi driving on an elevated bridge")
+	assert(bridge_world.route_hold_id.is_empty())
+	assert(bridge_world.advance(1))
+	assert(bridge_world.route_hold_id.is_empty())
+	print("TAXI_CROSSING_WORLD_PASS bidirectional grounded zebra, grade-separated deck, held clock, save provenance and resumed trips")
 	quit()
