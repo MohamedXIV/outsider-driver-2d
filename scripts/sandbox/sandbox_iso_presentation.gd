@@ -62,6 +62,23 @@ static func vehicle_quad(anchor: Vector2, heading: float, height: float = 0.0) -
 		anchor+facing*13.0+side*6.5+lift,
 		anchor+facing*-12.0+side*6.5+lift])
 
+# Screen-vertical extrusion cannot create a face when a projected wheelbase
+# edge is itself vertical (e.g. a taxi pointing exactly east/west). Such a
+# quadrilateral has zero area and Godot's Web triangulator rejects it.
+static func polygon_area(points: PackedVector2Array) -> float:
+	var doubled: float = 0.0
+	for i in range(points.size()):
+		var p: Vector2 = points[i]
+		var next: Vector2 = points[(i+1)%points.size()]
+		if not p.is_finite(): return 0.0
+		doubled += p.x*next.y-next.x*p.y
+	return absf(doubled)*.5
+
+static func vehicle_side_face(base: PackedVector2Array, roof: PackedVector2Array,
+		index: int) -> PackedVector2Array:
+	var next: int=(index+1)%4
+	return PackedVector2Array([base[index],base[next],roof[next],roof[index]])
+
 static func draw_vehicle(canvas: Node2D, at: Vector2, heading: float, taxi: bool) -> void:
 	var base: PackedVector2Array=vehicle_quad(at,heading)
 	var roof: PackedVector2Array=vehicle_quad(at,heading,CAR_ELEVATION)
@@ -74,10 +91,10 @@ static func draw_vehicle(canvas: Node2D, at: Vector2, heading: float, taxi: bool
 	# Four vertical side faces make the car visibly raised over the road.
 	# Far faces first; foreground edges are drawn after roof.
 	for side in [0,3,1,2]:
-		var next: int=(side+1)%4
-		canvas.draw_colored_polygon(PackedVector2Array([
-			base[side],base[next],roof[next],roof[side]]),
-			paint.darkened(.30 if side in [0,1] else .47))
+		var face: PackedVector2Array = vehicle_side_face(base,roof,side)
+		# Do not send degenerate vertical faces to the GPU/Web renderer.
+		if polygon_area(face) > 0.01:
+			canvas.draw_colored_polygon(face,paint.darkened(.30 if side in [0,1] else .47))
 	canvas.draw_colored_polygon(roof,paint.lightened(.14))
 	canvas.draw_polyline(PackedVector2Array([roof[0],roof[1],roof[2],roof[3],roof[0]]),trim,1.2,true)
 	var front: Vector2=(roof[1]+roof[2])*0.5

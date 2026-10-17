@@ -21,6 +21,19 @@ func _run() -> void:
 	for i in range(4):
 		assert(absf(roof[i].y-base[i].y+SandboxIsoPresentation.CAR_ELEVATION)<.0001)
 	assert(SandboxIsoPresentation.clinic_footprint().size()==4)
+	# Native and Chromium must never triangulate zero-area vehicle sides.
+	# Half the body sides collapse when the wheelbase aligns with screen Y.
+	var degenerate_faces: int=0
+	for angle in [0.0,PI*.5,PI,PI*1.5,PI*.25]:
+		var ground: PackedVector2Array=SandboxIsoPresentation.vehicle_quad(Vector2.ZERO,angle)
+		var raised: PackedVector2Array=SandboxIsoPresentation.vehicle_quad(
+				Vector2.ZERO,angle,SandboxIsoPresentation.CAR_ELEVATION)
+		for index in range(4):
+			var face: PackedVector2Array=SandboxIsoPresentation.vehicle_side_face(ground,raised,index)
+			var area: float=SandboxIsoPresentation.polygon_area(face)
+			assert(is_finite(area) and area>=0.0)
+			if area<=0.01: degenerate_faces+=1
+	assert(degenerate_faces>0,"The regression must cover genuinely degenerate side faces")
 	var sample: PackedVector2Array=SandboxIsoPresentation.road_points("clinic","docks")
 	assert(sample.size()==49 and sample[0].distance_to(
 			SandboxCityView.project(SandboxRoads.map_position("clinic")))<.001)
