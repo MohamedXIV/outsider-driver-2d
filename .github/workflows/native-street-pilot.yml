@@ -1,70 +1,77 @@
-name: Native street navigation pilot (temporary single-branch gate)
+name: Full stacked integration validation
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/native-pedestrian-crossing-pilot
-    paths-ignore:
-      - 'docs/**'
 permissions:
   contents: read
 jobs:
-  native-street:
+  integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [native, current, debug, fixture]
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 60
+    env:
+      GODOT_BIN: /tmp/godot
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+      OD2D_LOGS: work/validation/${{ matrix.scope }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install pinned Godot editor and Linux display
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Godot 4.7.2 editor, Web templates and Chromium
         shell: bash
         run: |
           set -euo pipefail
+          git rev-parse HEAD
+          mkdir -p work/validation
+          touch work/.gdignore
           curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
           unzip -q /tmp/godot.zip -d /tmp
           mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
           chmod +x /tmp/godot
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip -d /tmp/godot-templates
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          cp /tmp/godot-templates/templates/web* ~/.local/share/godot/export_templates/4.7.2.stable/
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+          npm install --prefix /tmp/od2d-node playwright@1.56.0
+          /tmp/od2d-node/node_modules/.bin/playwright install --with-deps chromium
+          echo 'NODE_PATH=/tmp/od2d-node/node_modules' >> "$GITHUB_ENV"
           /tmp/godot --version
-      - name: Import and parse the full project
+      - name: Complete domain and native gates
+        if: matrix.scope == 'native'
         shell: bash
         run: |
           set -euo pipefail
-          /tmp/godot --headless --path . --editor --import --quit > /tmp/import.log 2>&1 || { cat /tmp/import.log; exit 1; }
-          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/import.log; then exit 1; fi
-      - name: Native Godot pedestrian navigation and traffic proof
+          OD2D_LOGS=work/validation/native/domain python tests/run_city_gate.py | tee work/validation/domain-summary.log
+          OD2D_LOGS=work/validation/native/scenes xvfb-run -a -s '-screen 0 1280x1400x24' python tests/run_city_gate.py --native | tee work/validation/native-summary.log
+      - name: All exported Chromium contracts for this scope
+        if: matrix.scope != 'native'
+        run: python tests/run_exported_gate.py --scope ${{ matrix.scope }}
+      - name: Publish exact head and evidence
+        if: always()
         shell: bash
         run: |
-          set -euo pipefail
-          for spec in test_street_module test_street_priority test_street_pilot_scene test_street_multi_vehicle_scene test_street_junction_scene test_npc_interpolation_scene test_street_main_scene test_street_handoff test_taxi_crossing_world test_taxi_crossing_scene test_taxi_crossing_return_scene test_taxi_crossing_unload_scene test_world_shuttle_visual test_shuttle_crossing_world test_shuttle_crossing_scene test_shared_crossing_priority_scene test_city_presentation; do
-            LIBGL_ALWAYS_SOFTWARE=1 timeout 95s xvfb-run -a -s "-screen 0 1280x720x24" \
-              /tmp/godot --audio-driver Dummy --path . --script "res://tests/${spec}.gd" > "/tmp/${spec}.log" 2>&1 || { cat "/tmp/${spec}.log"; exit 1; }
-            cat "/tmp/${spec}.log"
-            if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' "/tmp/${spec}.log"; then exit 1; fi
-            if ! grep -E 'STREET_MODULE_PASS|STREET_PRIORITY_PASS|STREET_PILOT_PASS|STREET_MULTI_VEHICLE_PASS|STREET_JUNCTION_PASS|NPC_INTERPOLATION_PASS|STREET_MAIN_PASS|STREET_HANDOFF_PASS|TAXI_CROSSING_WORLD_PASS|TAXI_CROSSING_SCENE_PASS|TAXI_CROSSING_RETURN_SCENE_PASS|TAXI_CROSSING_UNLOAD_SCENE_PASS|WORLD_SHUTTLE_VISUAL_PASS|SHUTTLE_CROSSING_WORLD_PASS|SHUTTLE_CROSSING_SCENE_PASS|SHARED_CROSSING_PRIORITY_SCENE_PASS|CITY_PRESENTATION_PASS' "/tmp/${spec}.log"; then exit 1; fi
-          done
-      - name: Upload targeted native proof logs
-        uses: actions/upload-artifact@v4
+          echo '### Integration validation — ${{ matrix.scope }}' >> "$GITHUB_STEP_SUMMARY"
+          git rev-parse HEAD >> "$GITHUB_STEP_SUMMARY"
+          echo 'Godot 4.7.2; logs, manifests and screenshots are attached to this run.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Passing checks establish technical evidence only; human playtest and Windows acceptance remain open.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: street-navigation-test-logs
+          name: exact-head-${{ matrix.scope }}
           path: |
-            /tmp/import.log
-            /tmp/test_street_module.log
-            /tmp/test_street_priority.log
-            /tmp/test_street_pilot_scene.log
-            /tmp/test_street_multi_vehicle_scene.log
-            /tmp/test_street_junction_scene.log
-            /tmp/test_npc_interpolation_scene.log
-            /tmp/test_street_main_scene.log
-            /tmp/test_street_handoff.log
-            /tmp/test_taxi_crossing_world.log
-            /tmp/test_taxi_crossing_scene.log
-            /tmp/test_taxi_crossing_return_scene.log
-            /tmp/test_taxi_crossing_unload_scene.log
-            /tmp/test_city_presentation.log
-            /tmp/test_world_shuttle_visual.log
-            /tmp/test_shuttle_crossing_world.log
-            /tmp/test_shuttle_crossing_scene.log
-            /tmp/test_shared_crossing_priority_scene.log
+            work/validation/**/*.log
+            work/validation/**/head.txt
+            work/validation/**/manifest.json
+            work/validation/**/screenshots/**/*.png
             /tmp/od2d-street-evidence/*.png
-          if-no-files-found: ignore
+            /tmp/od2d-city-evidence/*.png
+            /tmp/od2d-city-evidence/*.json
+            /tmp/od2d-ink-evidence/**/*.png
+            /tmp/p0-evidence/*.png
+          if-no-files-found: warn

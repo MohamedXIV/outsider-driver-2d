@@ -41,7 +41,7 @@ async function openCity() {
     throw Error('Could not scroll to Player action: ' + id);
   };
   const shot = name => page.screenshot({ path: '/tmp/od2d-city-evidence/' + name + '.png' });
-  await page.goto('http://127.0.0.1:8765/index.html');
+  await page.goto((process.env.OD2D_WEB_URL||'http://127.0.0.1:8765/index.html'));
   await ready();
   return { browser, page, errors, data, ready, click, shot };
 }

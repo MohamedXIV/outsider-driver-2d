@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+require('node:fs').mkdirSync('/tmp/od2d-ink-evidence',{recursive:true});
 
 (async () => {
   const browser = await chromium.launch({
@@ -11,7 +12,18 @@ const { chromium } = require('playwright');
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   try {
-    await page.goto('http://127.0.0.1:8765/index.html', { waitUntil: 'domcontentloaded' });
+    await page.goto((process.env.OD2D_WEB_URL||'http://127.0.0.1:8765/index.html'), { waitUntil: 'domcontentloaded' });
+    // The frozen prototype starts on foot: prepare and board through real input.
+    await page.waitForFunction(() => document.documentElement.dataset.ridePhase === 'waiting', null, {timeout:60000});
+    for(let i=0;i<5;i++) await page.keyboard.press('w');
+    for(let i=0;i<3;i++) await page.keyboard.press('a');
+    await page.waitForFunction(()=>document.documentElement.dataset.garageStation==='workbench');
+    await page.mouse.click(65,181);
+    await page.waitForFunction(()=>document.documentElement.dataset.starterDevice==='gps');
+    for(let i=0;i<8;i++) await page.keyboard.press('d');
+    for(let i=0;i<5;i++) await page.keyboard.press('s');
+    await page.waitForFunction(()=>document.documentElement.dataset.garageStation==='taxi');
+    await page.mouse.click(615,614);
     await page.waitForFunction(() => document.documentElement.dataset.inkReady === 'true',
       null, { timeout: 60000 });
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/ink-web-opening.png' });

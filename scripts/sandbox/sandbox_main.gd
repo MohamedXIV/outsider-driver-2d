@@ -86,6 +86,8 @@ const REVEAL_SECONDS: float = 0.7
 const ARABIC_FONT: String = "res://assets/fonts/NotoNaskhArabicUI[wght].ttf"
 
 
+var _debug_action_serial: int=0
+
 func _ready() -> void:
 	_city.world = _world
 	for district in SandboxRoads.DISTRICTS:
@@ -137,8 +139,18 @@ func _ready() -> void:
 	_player_ui=SandboxPlayerUI.new()
 	add_child(_player_ui)
 	_player_ui.bind(self)
+	if OS.has_feature("web"):
+		# Acknowledgement of real diagnostic button signals, never a command API.
+		for control in [$HUD/DockPanel/Content/TimeActions/Wait,_observe,_accept,_talk,
+				$HUD/DockPanel/Content/Persistence/Save,$HUD/DockPanel/Content/Persistence/Load,
+				_via,_honor,_meeting_accept,_meeting_attend]:
+			control.pressed.connect(_acknowledge_debug_action)
 	_render()
 
+
+func _acknowledge_debug_action() -> void:
+	_debug_action_serial+=1
+	_publish_street_web.call_deferred()
 
 func _process(delta: float) -> void:
 	if _reveal_pending and _conversation != null:
@@ -1186,7 +1198,31 @@ func _publish_street_web() -> void:
 	for evt in _world.events:
 		if str(evt["kind"]).begins_with("local_pedestrian_"): local_events.append(evt)
 	var seed_point: Vector2=($HUD/DockPanel/Content/TimeActions/NewSeed as Button).get_global_rect().get_center()
+	var debug_controls: Dictionary={}
+	var debug_offers: Array=[]
+	var via_options: Array=[]
+	var via_popup: Array=[]
+	if _player_ui.debug_mode:
+		# Read-only bounds for real diagnostic controls, like Player Mode's
+		# existing action bounds. Browser checks never invoke world commands.
+		var controls: Dictionary={"wait":$HUD/DockPanel/Content/TimeActions/Wait,"observe":_observe,
+			"accept":_accept,"talk":_talk,"save":$HUD/DockPanel/Content/Persistence/Save,
+			"load":$HUD/DockPanel/Content/Persistence/Load,"via":_via,"honor":_honor,
+			"meeting_accept":_meeting_accept,"meeting_attend":_meeting_attend}
+		for key in controls:
+			var rect: Rect2=controls[key].get_global_rect()
+			debug_controls[key]={"x":rect.get_center().x,"y":rect.get_center().y,"disabled":controls[key].disabled}
+		_offers.force_update_list()
+		for i in range(_offers.item_count):
+			var rect: Rect2=_offers.get_item_rect(i)
+			var at: Vector2=_offers.global_position+rect.get_center()-Vector2(0,_offers.get_v_scroll_bar().value)
+			debug_offers.append({"index":i,"x":at.x,"y":at.y,"top":_offers.global_position.y,
+				"bottom":_offers.get_global_rect().end.y,"text":_offers.get_item_text(i)})
+		for i in range(_via.item_count): via_options.append(str(_via.get_item_metadata(i)))
+		var popup: PopupMenu=_via.get_popup()
+		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
 		"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
-		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y])}),true)
+		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y]),
+		"debugActionSerial":str(_debug_action_serial),"debugNotice":_notice_text,"debugControls":JSON.stringify(debug_controls),"debugOffers":JSON.stringify(debug_offers),"debugViaOptions":JSON.stringify(via_options),"debugViaPopup":JSON.stringify(via_popup)}),true)

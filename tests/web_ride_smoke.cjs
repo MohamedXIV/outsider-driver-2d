@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
   const phase = async value => page.waitForFunction(v => document.documentElement.dataset.ridePhase === v,
     value, { timeout: 60000 });
   try {
-    await page.goto('http://127.0.0.1:8765/index.html', { waitUntil: 'domcontentloaded' });
+    await page.goto((process.env.OD2D_WEB_URL||'http://127.0.0.1:8765/index.html'), { waitUntil: 'domcontentloaded' });
     await phase('waiting');
     await page.screenshot({ path: '/tmp/od2d-ink-evidence/ride-before-pickup.png' });
     // Real keyboard input drives the visible character to each station.
