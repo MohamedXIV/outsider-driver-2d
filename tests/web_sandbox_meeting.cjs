@@ -1,90 +1,50 @@
-const { chromium } = require('playwright');
-(async () => {
- const browser = await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
- const page = await browser.newPage({viewport:{width:1280,height:720}});
- const failures=[];
- page.on('pageerror',e=>failures.push(e.message));
- page.on('console',m=>{if(m.type()==='error')failures.push(m.text())});
- const value=key=>page.evaluate(k=>document.documentElement.dataset[k],key);
- const clickNative=async key=>{
-  const point=JSON.parse(await value(key));
-  if(!Array.isArray(point)||point.length!==2||point.some(n=>!Number.isFinite(n)))
-    throw Error('Invalid Godot control rectangle '+key+': '+JSON.stringify(point));
-  await page.mouse.click(point[0],point[1]);
- };
- try{
-  await page.goto('http://127.0.0.1:8765/index.html',{waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',{},{timeout:45000});
-  if((await value('sandboxMeetingCount'))!=='0')throw Error('Meeting before any relationship');
-  await page.mouse.click(90,455);
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxPhase==='enroute',null,{timeout:15000});
-  for(let i=0;i<12;i++){
-    if((await value('sandboxPhase'))==='seeking')break;
-    await page.mouse.click(90,557);
-  }
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxSettlements==='1',null,{timeout:15000});
-  let index=-1;
-  for(let i=0;i<70;i++){
-   index=+(await value('sandboxReturningIndex'));
-   if(index>=0)break;
-   await page.mouse.click(90,557);
-  }
-  if(index<0)throw Error('No repeat real passenger');
-  await page.mouse.click(125,176+index*24);
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxSelectedRecognizes==='true',null,{timeout:15000});
-  await page.mouse.click(90,455);
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxPhase==='enroute',null,{timeout:15000});
-  for(let i=0;i<12;i++){
-    if((await value('sandboxPhase'))==='seeking')break;
-    await page.mouse.click(90,557);
-  }
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='invited',null,{timeout:15000});
-  await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-invited-web.png'});
-  await clickNative('sandboxMeetingAcceptPoint');
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='accepted',null,{timeout:15000});
-  await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-confirmed-web.png'});
-  const slot=+(await value('sandboxMeetingSlot'));
-  for(let i=0;i<90 && +(await value('sandboxMinute'))<slot;i++){
-   await page.mouse.click(90,557);
-  }
-  if((await value('sandboxMeetingAtVenue'))!=='true')throw Error('NPC missing or not physically at place and time');
-  await clickNative('sandboxMeetingAttendPoint');
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
-  if(+(await value('sandboxMeetingChoices'))!==3 || !(await value('sandboxMeetingText')).includes('kiosk'))
-    throw Error('Off-duty Ink scene did not present real choices');
-  await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-together-web.png'});
-  await clickNative('sandboxSavePoint'); // Real Save World button during the encounter
-  const beforeReload={file:await value('sandboxSaveExists'),bytes:await value('sandboxSaveBytes'),
-   notice:await value('sandboxNotice'),status:await value('sandboxMeetingStatus')};
-  if(beforeReload.file!=='true'||Number(beforeReload.bytes)<100)
-   throw Error('Web save file missing before reload: '+JSON.stringify(beforeReload));
-  // Match the existing proven Web save smoke: allow browser filesystem sync.
-  await page.waitForTimeout(2200);
-  await page.reload({waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxReady==='true',null,{timeout:45000});
-  const beforeLoad={file:await value('sandboxSaveExists'),bytes:await value('sandboxSaveBytes'),
-   notice:await value('sandboxNotice'), loadPoint:await value('sandboxLoadPoint')};
-  await page.mouse.click(250,610); // Existing Web driver smoke's proven Load position after initial layout
-  try {
-   await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='in_progress',null,{timeout:15000});
-  } catch (e) {
-   throw Error('Meeting Save/Load did not restore: '+JSON.stringify({
-    status:await value('sandboxMeetingStatus'),count:await value('sandboxMeetingCount'),
-    choices:await value('sandboxMeetingChoices'),minute:await value('sandboxMinute'),
-    notice:await value('sandboxNotice'),file:await value('sandboxSaveExists'),
-    bytes:await value('sandboxSaveBytes'),beforeReload,beforeLoad
-   })+'; '+e.message);
-  }
-  await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-restored-web.png'});
-  await page.waitForFunction(()=>{
-   const d=document.documentElement.dataset;
-   const p=JSON.parse(d.sandboxMeetingChoicePoint||'[0,0]');
-   return d.sandboxMeetingChoices==='3' && p[0]>=510 && p[0]<=1006 && p[1]>=590 && p[1]<=720;
-  },null,{timeout:7000});
-  await clickNative('sandboxMeetingChoicePoint'); // Authored 'listen' choice in visible meeting scene
-  await page.waitForFunction(()=>document.documentElement.dataset.sandboxMeetingStatus==='completed',null,{timeout:15000});
-  await page.screenshot({path:'/tmp/od2d-ink-evidence/meeting-completed-web.png'});
-  if(failures.length)throw Error(failures.join('\n'));
-  console.log('SANDBOX_MEETING_WEB_PASS: real repeat fares, personal invitation, scheduled location, Ink encounter and save/reload');
- }finally{await browser.close()}
-})().catch(e=>{console.error(e);process.exitCode=1});
+const assert = require("node:assert/strict");
+const { checkDebug } = require("./debug_browser.cjs");
+checkDebug(
+  async ({
+    page,
+    data,
+    dc,
+    native,
+    via,
+    finish,
+    reloadSave,
+    returning,
+    completeFirst,
+    shot,
+  }) => {
+    await completeFirst();
+    await returning();
+    await dc("accept");
+    await finish();
+    assert.equal((await data()).sandboxSettlements, "2");
+    assert.equal((await data()).sandboxMeetingStatus, "invited");
+    await dc("meeting_accept");
+    for (
+      let i = 0;
+      i < 80 && (await data()).sandboxMeetingAtVenue !== "true";
+      i++
+    )
+      await dc("wait");
+    assert.equal((await data()).sandboxMeetingAtVenue, "true");
+    await dc("meeting_attend");
+    assert.equal((await data()).sandboxMeetingStatus, "in_progress");
+    assert.equal((await data()).sandboxMeetingChoices, "3");
+    assert.match(
+      (await data()).sandboxMeetingText,
+      /familiar passenger|untranslated/,
+    );
+    await reloadSave();
+    assert.equal((await data()).sandboxMeetingStatus, "in_progress");
+    assert.equal((await data()).sandboxMeetingChoices, "3");
+    await shot("audit-meeting-restored");
+    await native("sandboxMeetingChoicePoint");
+    assert.equal((await data()).sandboxMeetingStatus, "completed");
+    console.log(
+      "SANDBOX_MEETING_WEB_PASS current graph, real controls and persisted canonical state",
+    );
+  },
+).catch((e) => {
+  console.error(e);
+  process.exitCode = 1;
+});

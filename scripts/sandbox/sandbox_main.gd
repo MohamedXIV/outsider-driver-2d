@@ -86,6 +86,8 @@ const REVEAL_SECONDS: float = 0.7
 const ARABIC_FONT: String = "res://assets/fonts/NotoNaskhArabicUI[wght].ttf"
 
 
+var _debug_action_serial: int=0
+
 func _ready() -> void:
 	_city.world = _world
 	for district in SandboxRoads.DISTRICTS:
@@ -137,8 +139,18 @@ func _ready() -> void:
 	_player_ui=SandboxPlayerUI.new()
 	add_child(_player_ui)
 	_player_ui.bind(self)
+	if OS.has_feature("web"):
+		# Acknowledgement of real diagnostic button signals, never a command API.
+		for control in [$HUD/DockPanel/Content/TimeActions/Wait,_observe,_accept,_talk,
+				$HUD/DockPanel/Content/Persistence/Save,$HUD/DockPanel/Content/Persistence/Load,
+				_via,_honor,_meeting_accept,_meeting_attend,_gps]:
+			control.pressed.connect(_acknowledge_debug_action)
 	_render()
 
+
+func _acknowledge_debug_action() -> void:
+	_debug_action_serial+=1
+	_publish_street_web.call_deferred()
 
 func _process(delta: float) -> void:
 	if _reveal_pending and _conversation != null:
@@ -165,10 +177,10 @@ func _process(delta: float) -> void:
 		_render()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
 	# fraction belongs to presentation time, NOT the player's travel state.
-	_city.visual_fraction = 0.0 if not _world.route_hold_id.is_empty() else \
-			clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
+	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
 	_sync_local_pedestrian()
+	_publish_street_web()
 
 
 func _on_meeting_selected(index: int) -> void:
@@ -373,7 +385,29 @@ func _close_ar_hint() -> void:
 	_publish_ar_web()
 
 
+func _change_zoom(amount: float) -> void:
+	_city.set_manual_zoom(_city.zoom_preference + amount)
+	if _player_ui != null:
+		_player_ui.sync()
+		_player_ui.call_deferred("_publish")
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# GUI consumes wheel events first, so scrolling a panel never zooms the city.
+	if event is InputEventMouseButton and event.pressed:
+		if get_viewport().gui_get_hovered_control() != null:
+			return
+		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			_change_zoom(0.2 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -0.2)
+			get_viewport().set_input_as_handled()
+
+
 func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed:
+		if event.keycode in [KEY_PLUS, KEY_EQUAL, KEY_KP_ADD, KEY_MINUS, KEY_KP_SUBTRACT]:
+			_change_zoom(-0.2 if event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT] else 0.2)
+			get_viewport().set_input_as_handled()
+			return
 	if _ar_panel.visible and event.is_action_pressed("ui_cancel"):
 		_close_ar_hint()
 		get_viewport().set_input_as_handled()
@@ -463,104 +497,93 @@ func _on_reposition() -> void:
 
 
 func _on_wait() -> void:
-	_world.advance(20)
+	_advance_manual_time(20)
 	_notice_text = "20 minutes passed. NPC needs and dispatch changed."
 	_render()
 
 
 func _on_observe() -> void:
-	_world.advance(360)
+	_advance_manual_time(360)
 	_notice_text = "Six simulated hours passed; independent residents continued their lives."
 	_render()
+
+func _advance_manual_time(minutes: int) -> void:
+	# Manual time controls must obey the same per-tick physical crossing
+	# boundary as ordinary time. The native bodies do not move in this loop.
+	for tick in range(minutes):
+		_sync_local_pedestrian()
+		_update_player_crossing_yield()
+		_update_shuttle_crossing_yields()
+		_world.advance(1)
+	_sync_local_pedestrian()
 
 
 # Local native Godot navigation runs only for a genuine resident in the garage
 # vicinity. It is one shared world, not an alternate passenger simulator.
 func _update_player_crossing_yield() -> void:
+	var occupied: bool=_street_pilot.crossing_occupied() if _street_pilot!=null else not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world)
+	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
 	if not _world.route_hold_id.is_empty():
-		# A presentation flag is not proof that the crossing is empty. Keep
-		# the actual player taxi held until the walker's collision body is
-		# entirely beyond the roadway, including after a mid-hold restore.
-		if _street_pilot==null:
-			# The native actor may have been unloaded or re-created. Never
-			# release solely because a presentation node is absent.
-			if SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world):
-				_world.release_crossing_yield()
-		elif _street_pilot.world_reported_arrival or \
-				(_street_pilot.pedestrian.crossing_completed and \
-				SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)):
-			_world.release_crossing_yield()
-		return
-	if _street_pilot!=null and _street_pilot.pedestrian.crossing_reserved \
-			and not _street_pilot.pedestrian.crossing_completed \
-			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position) \
-			and SandboxStreetRouteBinding.approaching(_world):
+		if cleared: _world.release_crossing_yield()
+	elif occupied and SandboxStreetRouteBinding.approaching(_world):
 		_world.begin_crossing_yield()
 
-
-# Shuttle route motion is owned by SandboxWorld. Physical pedestrian
-# state is consulted before the next simulated minute; held shuttles never
-# silently progress while their crossing is occupied.
 func _update_shuttle_crossing_yields() -> void:
-	var has_walker: bool=_street_pilot!=null and not _street_pilot.world_reported_arrival
-	var occupied: bool=has_walker and _street_pilot.pedestrian.crossing_reserved \
-			and not _street_pilot.pedestrian.crossing_completed \
-			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)
-	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) \
-			if _street_pilot==null else _street_pilot.world_reported_arrival or \
-			(_street_pilot.pedestrian.crossing_completed and \
-			SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position))
+	var occupied: bool=_street_pilot.crossing_occupied() if _street_pilot!=null else not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world)
+	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
 	for npc in _world.residents:
 		if npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
 			if cleared: _world.release_shuttle_crossing_yield(str(npc["id"]))
 		elif occupied and SandboxWorldTraffic.approaching_zebra(_world,npc):
 			_world.begin_shuttle_crossing_yield(str(npc["id"]))
 
+func _traffic_only_state(state: Dictionary) -> Dictionary:
+	if state.is_empty(): return {}
+	var retained: Dictionary={"actors":{}}
+	for key in ["car_x","car_y","follower_x","follower_y","junction"]:
+		if state.has(key): retained[key]=state[key].duplicate(true) if state[key] is Dictionary else state[key]
+	return retained
+
+
+func _handoff_restored_pedestrians() -> void:
+	# A far load has saved physical poses but must not instantiate nearby
+	# bodies. Transfer those validated poses into the same world's far policy.
+	var actors: Dictionary=_street_restore_state.get("actors",{})
+	if actors.is_empty() and _street_restore_state.has("npc_id"):
+		actors={str(_street_restore_state["npc_id"]):_street_restore_state}
+	for id in actors:
+		var trip: Dictionary=_world.resident(str(id)).get("local_pedestrian_trip",{})
+		if trip.get("status","")!="walking": continue
+		var saved: Dictionary=actors[id]
+		var at: Vector2=Vector2(float(saved["pedestrian_x"]),float(saved["pedestrian_y"]))
+		var phase: float=minf(.999999,SandboxStreetModule.progress_of(at,int(trip.get("slot",0))))
+		SandboxLocalPedestrianTrip.handoff(_world,str(id),phase,at)
+
 
 func _sync_local_pedestrian() -> void:
-	var visible_neighborhood: bool=SandboxStreetRouteBinding.in_neighborhood(_world)
-	if not visible_neighborhood:
-		if _street_pilot != null:
-			if not _street_pilot.world_reported_arrival:
-				var phase: float=SandboxStreetModule.progress_of(_street_pilot.pedestrian.position)
-				if SandboxLocalPedestrianTrip.handoff(_world,_street_pilot.walking_npc_id,phase):
-					_street_restore_state.clear()
-			_street_pilot.queue_free()
-			_street_pilot=null
-			_city.local_active_npc_id=""
+	if not SandboxStreetRouteBinding.in_neighborhood(_world):
+		if _street_pilot!=null:
+			_street_pilot.handoff_all()
+			_street_restore_state=_traffic_only_state(_street_pilot.visual_snapshot())
+			_street_pilot.queue_free();_street_pilot=null
+		elif not _street_restore_state.get("actors",{}).is_empty() or _street_restore_state.has("npc_id"):
+			_handoff_restored_pedestrians()
+			_street_restore_state=_traffic_only_state(_street_restore_state)
+		_city.local_active_npc_id="";_city.local_active_npc_ids.clear()
 		return
-	if _street_pilot != null:
+	if _street_pilot!=null:
+		_city.local_active_npc_ids=_street_pilot.loaded_ids()
+		_city.local_active_npc_id=_street_pilot.walking_npc_id
 		return
-	var npc_id: String=SandboxLocalPedestrianTrip.candidate(_world)
-	if npc_id.is_empty():
-		return
-	var trip: Dictionary=_world.resident(npc_id).get("local_pedestrian_trip",{})
-	if trip.get("status","")=="offscreen":
-		var phase: float=SandboxLocalPedestrianTrip.resume(_world,npc_id)
-		if phase<0.0:
-			return
-		_street_restore_state={
-			"npc_id":npc_id,
-			"pedestrian_x":SandboxStreetModule.position_at(phase).x,
-			"pedestrian_y":SandboxStreetModule.position_at(phase).y,
-			"car_x":SandboxStreetModule.VEHICLE_START.x,
-			"car_y":SandboxStreetModule.VEHICLE_START.y,
-			"crossing_reserved":SandboxStreetModule.crossing_started(phase),
-			"crossing_completed":SandboxStreetModule.crossing_finished(phase),
-			"did_arrive":false}
+	var ids: Array[String]=SandboxLocalPedestrianTrip.candidates(_world)
+	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty() and not _street_restore_state.has("junction"): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
-	local.name="PatchworksStreetTraffic"
-	local.embedded=true
-	local.world=_world
-	local.walking_npc_id=npc_id
-	local.resume_state=_street_restore_state.duplicate(true)
-	# Author the crossing on the actual route-graph edge and in the actual
-	# ground plane; no unrelated screen-space fake crossing.
-	local.transform=SandboxStreetRouteBinding.street_transform()
-	local.z_index=5
-	_street_pilot=local
-	_city.local_active_npc_id=npc_id
-	add_child(local)
+	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
+	local.walking_npc_id=ids[0] if not ids.is_empty() else "";local.resume_state=_street_restore_state.duplicate(true)
+	local.transform=SandboxStreetRouteBinding.street_transform();local.z_index=5
+	_street_pilot=local;add_child(local)
+	_city.local_active_npc_id=local.walking_npc_id
+	_city.local_active_npc_ids=local.loaded_ids()
 	_street_restore_state.clear()
 
 func _reset_local_pedestrian() -> void:
@@ -569,6 +592,7 @@ func _reset_local_pedestrian() -> void:
 		_street_pilot = null
 	_street_restore_state.clear()
 	_city.local_active_npc_id=""
+	_city.local_active_npc_ids.clear()
 
 
 func _on_new_seed() -> void:
@@ -584,14 +608,18 @@ func _on_new_seed() -> void:
 	_selected_meeting_id = ""
 	_meeting_dialogue = null
 	_elapsed = 0.0
+	_city._camera_initialized=false
 	_notice_text = "Fresh independent simulated city seed."
 	_render()
 
 
 func _on_save() -> void:
+	if _street_pilot!=null: _street_pilot.reconcile_reservations()
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,
-			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else {}}) else "Save failed."
+	var successful: bool=SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
+			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state})
+	_notice_text="Sandbox saved." if successful else "Save failed."
+	if successful: _publish_street_boundary("streetSavedActors")
 	_render()
 
 
@@ -612,6 +640,7 @@ func _on_load() -> void:
 			return
 	_reset_local_pedestrian()
 	_world = saved
+	_city._camera_initialized=false
 	_city.world = saved
 	_street_restore_state = bundle.get("presentation",{}).get("street_state",{}).duplicate(true)
 	_conversation = restored
@@ -624,11 +653,13 @@ func _on_load() -> void:
 	_city.visual_fraction=_elapsed
 	_ui_locale=str(bundle.get("presentation",{}).get("locale",_ui_locale))
 	_reduced_motion=bool(bundle.get("presentation",{}).get("reduced_motion",_reduced_motion))
+	_city.set_manual_zoom(float(bundle.get("presentation",{}).get("camera_zoom",SandboxCityView.DEFAULT_ZOOM)))
 	_last_intent = "restored" if restored != null else ""
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
 	_sync_local_pedestrian()
+	_publish_street_boundary("streetRestoredActors")
 	_refresh_web_hitboxes_after_layout()
 
 
@@ -1171,3 +1202,79 @@ func _render_route_picker(offer: Dictionary) -> void:
 		" > ".join(preview), SandboxRoads.path_minutes(preview),
 		SandboxRoads.path_expense(preview), exposure
 	]
+
+
+
+func _debug_offer_bounds() -> Array:
+	# ItemList caches row rectangles until its next layout. Force the public
+	# Godot layout API before publishing hitboxes for a recently rebuilt list.
+	_offers.force_update_list_size()
+	var rows: Array=[]
+	for i in range(_offers.item_count):
+		var rect: Rect2=_offers.get_item_rect(i)
+		var at: Vector2=_offers.global_position+rect.get_center()-Vector2(0,_offers.get_v_scroll_bar().value)
+		rows.append({"index":i,"id":str(_offers.get_item_metadata(i)),"x":at.x,"y":at.y,
+			"top":_offers.global_position.y,"bottom":_offers.get_global_rect().end.y,"text":_offers.get_item_text(i)})
+	return rows
+
+
+func _observe_street_actors() -> Array:
+	var actors: Array=[]
+	if _street_pilot!=null:
+		for id in _street_pilot.loaded_ids():
+			var actor: SandboxPedestrianActor=_street_pilot.pedestrians[id]
+			actors.append({"id":id,"x":actor.position.x,"y":actor.position.y,
+				"native":actor._agent!=null,"blocked":actor.path_blocked,
+				"trip":_world.resident(str(id)).get("local_pedestrian_trip",{}).duplicate(true)})
+	return actors
+
+
+func _publish_street_boundary(field: String) -> void:
+	if not OS.has_feature("web"): return
+	# Observe actual bodies at the Save/Load boundary before another physics
+	# frame. This read-only evidence cannot pause or command locomotion.
+	var observation: Dictionary={}
+	observation[field]=JSON.stringify(_observe_street_actors())
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify(observation),true)
+
+
+func _publish_street_web() -> void:
+	if not OS.has_feature("web"): return
+	var actors: Array=_observe_street_actors()
+	var trips: Dictionary={}
+	var junction: Dictionary={}
+	if _street_pilot!=null and _street_pilot.junction!=null:
+		var local: SandboxJunctionTraffic=_street_pilot.junction
+		junction={"owner":local.priority.owner,"queue":local.priority.queue.duplicate(),"admitted":local.admitted.duplicate(),"bodies":{}}
+		for id in local.actors:
+			var body: CharacterBody2D=local.actors[id]
+			junction["bodies"][id]={"x":body.position.x,"y":body.position.y}
+	for npc in _world.residents:
+		if not npc.get("local_pedestrian_trip",{}).is_empty(): trips[npc["id"]]=npc["local_pedestrian_trip"].duplicate(true)
+	var local_events: Array=[]
+	for evt in _world.events:
+		if str(evt["kind"]).begins_with("local_pedestrian_"): local_events.append(evt)
+	var seed_point: Vector2=($HUD/DockPanel/Content/TimeActions/NewSeed as Button).get_global_rect().get_center()
+	var debug_controls: Dictionary={}
+	var debug_offers: Array=[]
+	var via_options: Array=[]
+	var via_popup: Array=[]
+	if _player_ui.debug_mode:
+		# Read-only bounds for real diagnostic controls, like Player Mode's
+		# existing action bounds. Browser checks never invoke world commands.
+		var controls: Dictionary={"wait":$HUD/DockPanel/Content/TimeActions/Wait,"observe":_observe,
+			"accept":_accept,"talk":_talk,"save":$HUD/DockPanel/Content/Persistence/Save,
+			"load":$HUD/DockPanel/Content/Persistence/Load,"via":_via,"honor":_honor,
+			"meeting_accept":_meeting_accept,"meeting_attend":_meeting_attend,"gps":_gps}
+		for key in controls:
+			var rect: Rect2=controls[key].get_global_rect()
+			debug_controls[key]={"x":rect.get_center().x,"y":rect.get_center().y,"disabled":controls[key].disabled}
+		debug_offers=_debug_offer_bounds()
+		for i in range(_via.item_count): via_options.append(str(_via.get_item_metadata(i)))
+		var popup: PopupMenu=_via.get_popup()
+		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
+		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
+		"streetSeed":str(_world.seed),"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
+		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y]),
+		"debugActionSerial":str(_debug_action_serial),"debugNotice":_notice_text,"debugControls":JSON.stringify(debug_controls),"debugOffers":JSON.stringify(debug_offers),"debugViaOptions":JSON.stringify(via_options),"debugViaPopup":JSON.stringify(via_popup)}),true)

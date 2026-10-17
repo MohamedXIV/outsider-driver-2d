@@ -1,0 +1,52 @@
+const assert = require('node:assert/strict');
+const { openCity } = require('./city_browser.cjs');
+(async () => {
+  const { browser, page, errors, data, click, ready, shot } = await openCity();
+  try {
+    assert.equal(Number((await data()).playerZoom), 2.6);
+    await shot('camera-desktop-close');
+    await page.locator('canvas').click({position:{x:1100,y:650}});
+    await page.mouse.move(1100, 650);
+    await page.mouse.wheel(0, 200);
+    await page.waitForFunction(()=>Number(document.documentElement.dataset.playerZoom)===2.4);
+    assert.equal(Number((await data()).playerZoom), 2.4);
+    await page.keyboard.press('-');
+    await page.waitForFunction(()=>Number(document.documentElement.dataset.playerZoom)===2.2);
+    assert.equal(Number((await data()).playerZoom), 2.2);
+    await click('settings');
+    await click('zoom_out');
+    assert.equal(Number((await data()).playerZoom), 2);
+    await shot('camera-desktop-wide');
+    await click('save');
+    await page.waitForTimeout(3000);
+    await page.reload(); await ready();
+    await click('settings'); await click('load');
+    assert.equal(Number((await data()).playerZoom), 2);
+    await page.setViewportSize({width:720,height:900});
+    await page.waitForFunction(()=>JSON.parse(document.documentElement.dataset.playerViewport)[0]===720);
+    await click('zoom_in');
+    await page.waitForFunction(()=>Number(document.documentElement.dataset.playerZoom)===2.2);
+    assert.equal(Number((await data()).playerZoom), 2.2);
+    await shot('camera-narrow-wide');
+    await click('zoom_reset');
+    assert.equal(Number((await data()).playerZoom), 2.6);
+    await shot('camera-narrow-close');
+    await page.setViewportSize({width:390,height:844});
+    await page.waitForFunction(()=>JSON.parse(document.documentElement.dataset.playerViewport)[0]===390);
+    await click('arabic');
+    await shot('camera-phone-arabic');
+    const beforeMode=await data(),mode=JSON.parse(beforeMode.playerModeBounds);
+    const canvas=await page.locator('canvas').boundingBox(),viewport=JSON.parse(beforeMode.playerViewport);
+    // The edge lies underneath the compact grid's empty cell. Real input
+    // must still reach the mode button, not an invisible container.
+    await page.mouse.click(canvas.x+(mode[0]+4)*canvas.width/viewport[0],canvas.y+(mode[1]+mode[3]/2)*canvas.height/viewport[1]);
+    await page.waitForFunction(()=>document.documentElement.dataset.playerMode==='false');
+    await page.keyboard.press('F3');
+    await page.waitForFunction(()=>document.documentElement.dataset.playerMode==='true');
+    assert.equal((await data()).sandboxCredits,beforeMode.sandboxCredits);
+    assert.equal((await data()).playerLocale,'ar');
+    assert.equal(Number((await data()).playerZoom), 2.6, 'UI scrolling cannot zoom the world');
+    assert.deepEqual(errors, []);
+    console.log('WEB_CAMERA_PASS wheel keyboard touch save reload desktop narrow');
+  } finally { await browser.close(); }
+})().catch(e=>{console.error(e);process.exitCode=1;});

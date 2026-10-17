@@ -13,7 +13,7 @@ var _panel: PanelContainer
 var _scroll: ScrollContainer
 var _portrait: SandboxPassengerView
 var _portrait_title: Label
-var _tabs: HBoxContainer
+var _tabs: GridContainer
 var _mode: Button
 var _actions: Dictionary = {}
 var _planned_stops: Array[String] = []
@@ -51,8 +51,12 @@ func bind(host: Node) -> void:
 	root.theme=theme
 	_header=Label.new();root.add_child(_header);_header.position=Vector2(24,16);_header.add_theme_font_size_override("font_size",23)
 	_hint=Label.new();root.add_child(_hint);_hint.position=Vector2(24,50);_hint.add_theme_color_override("font_color",Color("a9c2b4"))
+	# World place labels must not compete with the status text behind the HUD.
+	var status_style: StyleBoxFlat=StyleBoxFlat.new();status_style.bg_color=panel_style.bg_color
+	status_style.set_corner_radius_all(4)
+	_header.add_theme_stylebox_override("normal",status_style);_hint.add_theme_stylebox_override("normal",status_style)
 	_mode=Button.new();_mode.name="Mode";_mode.text="Debug · F3";_mode.custom_minimum_size=Vector2(130,44);root.add_child(_mode);_mode.pressed.connect(toggle_debug)
-	_tabs=HBoxContainer.new();root.add_child(_tabs);_tabs.position=Vector2(24,86);_tabs.add_theme_constant_override("separation",6)
+	_tabs=GridContainer.new();_tabs.mouse_filter=Control.MOUSE_FILTER_IGNORE;_tabs.columns=5;root.add_child(_tabs);_tabs.position=Vector2(24,86);_tabs.add_theme_constant_override("h_separation",6);_tabs.add_theme_constant_override("v_separation",6)
 	for key in ["requests","map","gear","contacts","settings"]:
 		var button: Button=Button.new();button.name=key;button.custom_minimum_size=Vector2(0,44);_tabs.add_child(button);button.pressed.connect(_tab.bind(key))
 	_panel=PanelContainer.new();root.add_child(_panel);_panel.position=Vector2(24,140)
@@ -69,12 +73,23 @@ func trp(en: String, ar: String) -> String:
 
 func _layout() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
-	_mode.position=Vector2(area.x-154,18)
-	_panel.size=Vector2(minf(380,area.x-48),maxf(160,area.y-166))
+	_tabs.columns=3 if area.x<600 else 5
+	_tabs.size=Vector2.ZERO
+	var panel_top: float=194.0 if area.x<600 else 140.0
+	# The unused third cell of the second compact tab row keeps the mode
+	# toggle accessible without covering the status line in either locale.
+	_mode.position=Vector2(area.x-154,136 if area.x<600 else 18)
+	_body.custom_minimum_size.x=minf(380,area.x-48)-40
+	for child in _body.get_children():
+		if child is Label: child.custom_minimum_size.x=_body.custom_minimum_size.x
+	_panel.position.y=panel_top
+	_panel.size=Vector2(minf(380,area.x-48),maxf(80,area.y-panel_top-24))
 	_body.custom_minimum_size.x=_panel.size.x-40
 	_portrait.position=Vector2(area.x-230,120);_portrait.size=Vector2(200,190)
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
-	_header.size.x=area.x-200;_hint.size.x=area.x-60
+	_header.add_theme_font_size_override("font_size",20 if area.x<600 else 23)
+	_header.size.x=area.x-48 if area.x<600 else area.x-200
+	_hint.size.x=_header.size.x
 	_header.clip_text=true;_hint.clip_text=true
 	call_deferred("_fit_panel");call_deferred("_publish")
 
@@ -98,6 +113,7 @@ func _label(text: String, heading: bool=false) -> Label:
 
 func _button(id: String, text: String, action: Callable, disabled: bool=false) -> Button:
 	var button: Button=Button.new();button.name=id;button.text=text;button.custom_minimum_size=Vector2(0,44)
+	button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.disabled=disabled;button.pressed.connect(func(): action.call();_ack())
 	_body.add_child(button);_actions[id]=button;return button
 
@@ -137,7 +153,7 @@ func sync() -> void:
 	if conversation!=null: speaker=world.resident(str(world.offer_by_id(conversation.offer_id).get("npc_id","")))
 	elif not world.active_offer_id.is_empty(): speaker=world.resident(str(world.offer_by_id(world.active_offer_id).get("npc_id","")))
 	_portrait.npc=speaker;_portrait.reduced_motion=controller._reduced_motion
-	_portrait.visible=not debug_mode and not speaker.is_empty()
+	_portrait.visible=not debug_mode and not speaker.is_empty() and get_viewport().get_visible_rect().size.x>=600
 	_portrait_title.visible=_portrait.visible
 	_portrait_title.text=trp("Passenger · ","الراكب · ")+str(speaker.get("language","")).capitalize()
 	var context: Array=[]
@@ -150,7 +166,7 @@ func sync() -> void:
 		"map": context=[world.route_nodes,world.pending_route_nodes,world.rider_route_request,world.player_district,world.credits,_map_selected,_planned_via,_planned_stops]
 		"gear": context=[world.starter_device,world.modules_owned,world.modules_installed,world.market_stock,world.player_district,world.is_travelling(),SandboxKnowledge.market_open(world.minute),world.credits,world.ar_owned,world.ar_equipped,controller._ar_note]
 		"contacts": context=[world.meetings,controller._selected_meeting_id,controller._meeting_text.text,controller._meeting_info.text,controller._meeting_accept.disabled,controller._meeting_decline.disabled,controller._meeting_attend.disabled]
-		"settings": context=[controller._notice_text]
+		"settings": context=[controller._notice_text,controller._city.zoom_preference]
 	var signature: String=JSON.stringify([tab,debug_mode,locale,controller._reduced_motion,context])
 	if signature==_last_signature: return
 	_last_signature=signature
@@ -258,8 +274,12 @@ func sync() -> void:
 	elif tab=="settings":
 		_label(trp("Make yourself at home","خياراتك"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))
-		_button("arabic","العربية",controller._on_language_locale.bind("ar"))
+		_button("arabic","العربية",controller._on_language_locale.bind("ar")).add_theme_font_override("font",_arabic_font)
 		_button("motion",trp("Reduced motion: ","تقليل الحركة: ")+(trp("On","مفعّل") if controller._reduced_motion else trp("Off","متوقف")),controller._on_reduced_motion.bind(not controller._reduced_motion))
+		_label(trp("Camera · wheel or +/- · %.2fx", "الكاميرا · عجلة الفأرة أو +/- · %.2fx") % controller._city.zoom_preference)
+		_button("zoom_in",trp("Zoom in +","تقريب +"),controller._change_zoom.bind(0.2),controller._city.zoom_preference >= SandboxCityView.MAX_ZOOM)
+		_button("zoom_out",trp("Zoom out −","إبعاد −"),controller._change_zoom.bind(-0.2),controller._city.zoom_preference <= SandboxCityView.MIN_ZOOM)
+		_button("zoom_reset",trp("Reset camera","إعادة ضبط الكاميرا"),_reset_zoom)
 		_button("save",trp("Save city and conversation","احفظ المدينة والحوار"),_call.bind("_on_save"))
 		_button("load",trp("Load saved city","حمّل المدينة المحفوظة"),_call.bind("_on_load"))
 		_label(controller._notice_text)
@@ -279,18 +299,21 @@ func _publish() -> void:
 	await get_tree().process_frame
 	if not is_inside_tree(): return
 	var bounds: Dictionary={}
+	var mode_rect: Rect2=_mode.get_global_rect()
 	for key in _actions:
 		var button: Button=_actions[key]
-		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled}
+		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled,
+			"clipTop":_scroll.get_global_rect().position.y,"clipBottom":_scroll.get_global_rect().end.y}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
-	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
-	var height: float=minf(area.y-166,maxf(180,_body.get_combined_minimum_size().y+32))
+	var panel_top: float=194.0 if area.x<600 else 140.0
+	var height: float=minf(area.y-panel_top-24,maxf(180,_body.get_combined_minimum_size().y+32))
 	_panel.size.y=height
-	_panel.position.y=maxf(140,area.y-height-24) if controller._conversation!=null and tab=="requests" else 140
+	_panel.position.y=maxf(panel_top,area.y-height-24) if controller._conversation!=null and tab=="requests" else panel_top
 
 func place(stop: String) -> String:
 	if controller._ui_locale=="ar": return str(SandboxLanguagePresentation.AR_DISTRICTS.get(stop,SandboxRoads.location_name(stop)))
@@ -315,3 +338,7 @@ func waypoint_names() -> String:
 func _ack() -> void:
 	_action_serial+=1
 	call_deferred("_publish")
+
+func _reset_zoom() -> void:
+	controller._city.set_manual_zoom(SandboxCityView.DEFAULT_ZOOM)
+	sync()
