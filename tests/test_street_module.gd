@@ -6,6 +6,19 @@ func _initialize() -> void:
 	assert(points[0]==SandboxStreetModule.START)
 	assert(points[points.size()-1]==SandboxStreetModule.SITE)
 	assert(SandboxStreetModule.crossing_finished(0.9))
+	var clear_y: float=SandboxStreetModule.crossing_clear_y()
+	assert(clear_y>SandboxStreetModule.ROAD.end.y+SandboxStreetModule.PEDESTRIAN_RADIUS,
+			"Clearance must include the entire walker collider")
+	assert(clear_y<SandboxStreetModule.SOUTH_Y,
+			"Walker should be clear before reaching the south sidewalk center")
+	assert(not SandboxStreetModule.crossing_clear(
+			Vector2(SandboxStreetModule.CROSS_X,clear_y-0.1)))
+	assert(SandboxStreetModule.crossing_clear(
+			Vector2(SandboxStreetModule.CROSS_X,clear_y)))
+	assert(not SandboxStreetModule.crossing_finished(
+			SandboxStreetModule.progress_of(Vector2(SandboxStreetModule.CROSS_X,clear_y-0.1))))
+	assert(SandboxStreetModule.crossing_finished(
+			SandboxStreetModule.progress_of(Vector2(SandboxStreetModule.CROSS_X,clear_y+0.1))))
 	var crossing: Vector2=SandboxStreetModule.position_at(
 		SandboxStreetModule.progress_of(Vector2(SandboxStreetModule.CROSS_X,355.0)))
 	assert(is_equal_approx(crossing.x,SandboxStreetModule.CROSS_X))
