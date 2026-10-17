@@ -46,8 +46,14 @@ func _ready() -> void:
 				for other in SandboxCityData.EDGES:
 					var pair: PackedStringArray = str(other).split("|")
 					for j in range(21):
-						if at.distance_to(project(SandboxRoads.sample_edge(pair[0],pair[1],float(j)/20))) < 32:
+						var road: Vector3=SandboxRoads.sample_edge(pair[0],pair[1],float(j)/20)
+						if at.distance_to(project(road)) < 32:
 							valid = false
+						if road.y>0.0:
+							road.y=0.0
+							# Reserve actual ground under the deck for supports and
+							# the underpass; facade footprints cannot occupy a pier.
+							if Rect2(at,Vector2(42,45)).grow(30).has_point(project(road)): valid=false
 				for existing in _blocks:
 					if at.distance_to(existing["at"]) < 42: valid=false
 				if valid:
@@ -56,7 +62,7 @@ func _ready() -> void:
 
 	# Godot retains static CanvasItem drawing commands. Camera movement does
 	# not require rebuilding curves, facades and supports every frame.
-	for role in ["background","ground","deck","above"]:
+	for role in ["background","structure","ground","deck","above"]:
 		var layer: Node2D=Node2D.new()
 		layer.name=role.capitalize();layer.z_index=_layers.size()
 		layer.draw.connect(paint.bind(layer,role))
@@ -85,36 +91,42 @@ func _process(delta: float) -> void:
 	_layers["ground"].queue_redraw()
 	_layers["above"].queue_redraw()
 
-func _road(canvas: Node2D, a: String, b: String, elevated: bool) -> void:
+func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int=-1) -> void:
 	var points: PackedVector2Array = []
 	for i in range(49): points.append(project(SandboxRoads.sample_edge(a,b,float(i)/48)))
-	if elevated:
-		var shadows: PackedVector2Array = []
+	if elevated and pass_index in [-1,0]:
+		var underside: PackedVector2Array=[]
 		for i in range(49):
-			var ground: Vector3 = SandboxRoads.sample_edge(a,b,float(i)/48)
-			ground.y=0
-			shadows.append(project(ground)+Vector2(8,10))
-		canvas.draw_polyline(shadows,Color(0.025,0.035,0.04,.65),38,true)
-		for i in range(5,45,7):
-			var p: Vector3 = SandboxRoads.sample_edge(a,b,float(i)/48)
-			var ground: Vector3 = p; ground.y=0
-			canvas.draw_line(project(ground)+Vector2(13,4),project(p)+Vector2(13,0),Color("6d7772"),9,true)
-			canvas.draw_circle(project(ground)+Vector2(13,4),7,Color("435452"))
-	canvas.draw_polyline(points,Color("202e32"),34,true)
-	canvas.draw_polyline(points,Color("8c9d91") if elevated else Color("667773"),28,true)
-	canvas.draw_polyline(points,Color("374b50"),23,true)
+			var p: Vector3=SandboxRoads.sample_edge(a,b,float(i)/48.0)
+			underside.append(points[i]+Vector2(0,SandboxBridgePresentation.thickness(p.y)))
+		canvas.draw_polyline(underside,Color("4d605a"),33.0,true)
+	if pass_index in [-1,0]: canvas.draw_polyline(points,Color("202e32"),34,true)
+	if pass_index in [-1,1]: canvas.draw_polyline(points,Color("8c9d91") if elevated else Color("667773"),28,true)
+	if pass_index in [-1,2]: canvas.draw_polyline(points,Color("374b50"),23,true)
+	if pass_index not in [-1,3]: return
 	for i in range(0,47,3):
 		canvas.draw_line(points[i],points[i+1],Color("d2bc7d"),1.1,true)
 	if elevated:
+		for i in range(4,46,8):
+			var normal: Vector2=(points[i+1]-points[i]).normalized().orthogonal()
+			canvas.draw_line(points[i]-normal*11.0,points[i]+normal*11.0,Color("637570"),1.0,true)
 		for side in [-1,1]:
 			var rail: PackedVector2Array = []
-			for i in range(48):
-				var normal: Vector2 = (points[i+1]-points[i]).normalized().orthogonal()
+			for i in range(49):
+				if SandboxRoads.map_position(a).y>0.0 and points[i].distance_to(points[0])<17.0: continue
+				if SandboxRoads.map_position(b).y>0.0 and points[i].distance_to(points[48])<17.0: continue
+				var normal: Vector2 = (points[mini(i+1,48)]-points[maxi(0,i-1)]).normalized().orthogonal()
 				rail.append(points[i]+normal*float(side)*14)
 			canvas.draw_polyline(rail,Color("d2ccad"),1.6,true)
 
 func paint(canvas: Node2D, role: String) -> void:
 	if world == null: return
+	if role=="structure":
+		for key in SandboxCityData.EDGES:
+			var pair: PackedStringArray=str(key).split("|")
+			if SandboxRoads.map_position(pair[0]).y>0 or SandboxRoads.map_position(pair[1]).y>0:
+				SandboxBridgePresentation.paint_structure(canvas,pair[0],pair[1])
+		return
 	if role in ["ground","above"]:
 		_draw_people(canvas,role=="above")
 		var above: bool=world.player_position(visual_fraction).y>0
@@ -123,10 +135,19 @@ func paint(canvas: Node2D, role: String) -> void:
 		if above==(role=="above"): _taxi(canvas)
 		return
 	if role=="deck":
-		for key in SandboxCityData.EDGES:
-			var pair: PackedStringArray=str(key).split("|")
-			if SandboxRoads.map_position(pair[0]).y>0 or SandboxRoads.map_position(pair[1]).y>0:
-				_road(canvas,pair[0],pair[1],true)
+		# Paint outlines, curbs and surfaces in separate passes so one edge's
+		# butt end cannot cover its legal neighbor's asphalt at the ramp join.
+		for pass_index in range(4):
+			for key in SandboxCityData.EDGES:
+				var pair: PackedStringArray=str(key).split("|")
+				if SandboxRoads.map_position(pair[0]).y>0 or SandboxRoads.map_position(pair[1]).y>0:
+					_road(canvas,pair[0],pair[1],true,pass_index)
+			if pass_index==3: continue
+			for node in SandboxCityData.NODES:
+				var at: Vector3=SandboxRoads.map_position(str(node))
+				if at.y<=0.0 or SandboxRoads.LINKS[node].size()!=2: continue
+				canvas.draw_circle(project(at),[17.0,14.0,11.5][pass_index],
+					[Color("202e32"),Color("8c9d91"),Color("374b50")][pass_index])
 		return
 	canvas.draw_rect(Rect2(-1500,-1500,6000,6000),Color("263c3e"))
 	# The working cargo basin is water, never a driveable surface.

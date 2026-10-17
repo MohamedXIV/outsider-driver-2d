@@ -39,6 +39,10 @@ func _run() -> void:
 		if not phase.is_empty() and not captured.has(phase) and world.route_edge_elapsed>=int(SandboxRoads.edge_minutes(a,b)*(.7 if phase=="06-underpass" else .5)):
 			captured[phase]=true;scene._city.visual_fraction=.3
 			await shot(phase)
+			var zoom: float=scene._city.zoom_preference
+			scene._city.zoom_preference=SandboxCityView.MIN_ZOOM;scene._city._zoom=SandboxCityView.MIN_ZOOM
+			await shot(phase+"-wide")
+			scene._city.zoom_preference=zoom;scene._city._zoom=zoom
 		world.advance(1)
 	assert(captured.size()==4)
 	await shot("10-worker-belt-arrival")
@@ -52,4 +56,4 @@ func shot(label: String) -> void:
 	await RenderingServer.frame_post_draw
 	assert(root.get_texture().get_image().save_png(SHOTS.path_join(label+".png"))==OK)
 	var file: FileAccess=FileAccess.open(SHOTS.path_join(label+".json"),FileAccess.WRITE)
-	file.store_string(JSON.stringify({"minute":world.minute,"node":world.player_district,"position":str(world.player_position(scene._city.visual_fraction)),"route":world.route_nodes,"segment":world.route_segment,"edge_elapsed":world.route_edge_elapsed}))
+	file.store_string(JSON.stringify({"minute":world.minute,"node":world.player_district,"position":str(world.player_position(scene._city.visual_fraction)),"route":world.route_nodes,"segment":world.route_segment,"edge_elapsed":world.route_edge_elapsed,"zoom":scene._city._zoom}))

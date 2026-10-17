@@ -2,7 +2,7 @@
 
 [Draft PR #62](https://github.com/MohamedXIV/outsider-driver-2d/pull/62) uses the single `codex/overnight-completion` branch, based on `feat/native-pedestrian-crossing-pilot`. Existing PRs #55 and #61 remain untouched and unmerged. No issues or Epics are closed.
 
-Live baseline inspected before implementation: main `05ea3fdd3c5a0484f2b2db7657a639ad919bff30`; #55 `e18aa0cd1444865f0ce7f669590df201ad8de36b`; #61 `983ed8724baf936828bb620f270a387fcbd45b7a`. Final tested gameplay commit: `8ecf70e10834466fa20f159f52fd57c80365029b`. Later evidence/documentation commits do not change gameplay.
+Live baseline inspected before implementation: main `05ea3fdd3c5a0484f2b2db7657a639ad919bff30`; #55 `e18aa0cd1444865f0ce7f669590df201ad8de36b`; #61 `983ed8724baf936828bb620f270a387fcbd45b7a`. Initial execution tested gameplay commit: `8ecf70e10834466fa20f159f52fd57c80365029b`. Later evidence/documentation commits do not change gameplay.
 
 ## Implemented packages
 
@@ -11,9 +11,9 @@ Live baseline inspected before implementation: main `05ea3fdd3c5a0484f2b2db7657a
 | #56 | Closer 2.6x default; smooth bounded 1.25–4x zoom and follow; wheel, keyboard +/- and translated 44px on-screen buttons; reset; manual preference saved with the city; reduced motion removes easing/lookahead. UI scrolling does not zoom the world. No automatic context zoom competes with the preference. Human framing comfort remains pending. |
 | #57 | Reused #61's parked-taxi interpolation fix. Reproduced and corrected the remaining shared-clock freeze during actual concurrent player taxi/shuttle crossing holds. Held actors still clamp their own motion while other residents interpolate. Existing transit, save and event-provenance regressions retained. This does not claim final animation/art acceptance. |
 | #49 / #50 | Reused #55 Player Mode and complete fare/Ink flow. Reproduced and fixed 390px overflowing tabs/panels; wrapping tabs/actions, correct panel placement and 44px controls preserve phone access, including Arabic. Portrait art yields space to readable dialogue on phones. |
-| #58 | Partial: connected native four-way junction and right-angle corner extend the existing straight/T street kit. The same authored rectangles produce visible roads, sidewalks, regular lots and native navigation; explicit crossing links cross asphalt. Existing world graph/elevation remain authoritative. Citywide street replacement and bridge/ramp presentation are unfinished. |
+| #58 | Partial: connected native four-way junction and right-angle corner extend the existing straight/T street kit. The same authored rectangles produce visible roads, sidewalks, regular lots and native navigation; explicit crossing links cross asphalt. Existing world graph/elevation remain authoritative. The subsequent [bridge/ramp batch](BRIDGE_PRESENTATION.md) improves supported spans and ramp joins. Citywide street replacement remains unfinished. |
 | #51 / #52 | Existing #55 implementation retained, rather than rebuilt: metric road graph, real Curve2D travel, supported elevations, legal ramps and natural journey lengths. Native journey/grade tests and exported route interactions provide engineering evidence; visual/pacing acceptance remains human work. |
-| #59 / #60 | Existing #61 single native resident, two ambient lane cars and real taxi/shuttle crossing holds retained and regression-tested. The follow-up [two-resident crossing batch](MULTI_RESIDENT_CROSSING.md) implements native simultaneous residents, independent reservations, actual taxi/shuttle aggregate holds and save/handoff provenance. Junction traffic remains a subsequent batch. |
+| #59 / #60 | Existing #61 single native resident, two ambient lane cars and real taxi/shuttle crossing holds retained and regression-tested. The follow-up [two-resident crossing batch](MULTI_RESIDENT_CROSSING.md) implements native simultaneous residents, independent reservations, actual taxi/shuttle aggregate holds and save/handoff provenance. The subsequent [local junction batch](LOCAL_JUNCTION_TRAFFIC.md) adds bounded native FIFO contention and headway. |
 | #48 / #15 | Source/acceptance audit updated. Child implementation is distinguished from open PR merge status and human acceptance. Umbrella Epics remain open. |
 
 ## Verification
@@ -54,11 +54,8 @@ Reuse: one SandboxWorld; Ink and language/knowledge semantics; NPC identity, mon
 
 Replace: fixed camera zoom, abrupt route-start lookahead, shared interpolation suppression during taxi hold and overflowing phone layout. Retire: fixed-zoom expectation only. No duplicate city, population, traffic economy or migration compatibility layer is introduced.
 
-## Remaining and recommended next execution
+## Continuation and remaining work
 
-1. **#59 with #60 safety dependency:** multiple independently eligible persistent residents, per-ID native actor/save state and near/far handoff, physical spacing, exactly-once sourced arrivals. Replace all single-walker crossing assumptions together; taxi and shuttle may release only after every relevant body clears.
-2. **#60:** multiple reservations, local junction contention/right-of-way, deadlock prevention and independently owned native municipal fleet actors. Current world-owned shuttle presentation remains route-level, not a physics car fleet.
-3. **#58:** supported elevated straight/turn kit, bridge piers/ramps/edge depth/occlusion polish and representative city integration without changing legal grade connectivity.
-4. **Human acceptance:** camera comfort, UI/RTL readability, street/bridge appearance, traffic feel and natural trip pacing; actual Windows runtime. Keep #48/#15 open.
+The same branch now includes the [two-resident crossing](MULTI_RESIDENT_CROSSING.md), [bounded local junction arbitration](LOCAL_JUNCTION_TRAFFIC.md), and [supported bridge/ramp presentation](BRIDGE_PRESENTATION.md). These supersede the original single-resident/no-junction/bridge-pending limits above. No human acceptance is claimed.
 
-Recommended next package: a bounded two-resident native crossing with per-resident reservations and save/unload/reload, tested against the real player taxi plus a genuine world-owned shuttle. This is the next architectural step; extending decorative city coverage first would not resolve the single-actor safety assumptions.
+Remaining technical work is citywide native pedestrian coverage, additional crossing/junction composition and binding genuine world-owned vehicle bodies to broader native lane arbitration. The current local T-junction uses explicitly ambient physics cars; the real taxi/shuttle retain their canonical crossing hold ledgers. Windows runtime and human camera/UI/street/bridge/traffic/pacing acceptance remain pending. Keep #48/#15 and #58/#59/#60 open; PRs #55/#61 remain untouched and unmerged.

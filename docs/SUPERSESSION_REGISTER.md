@@ -62,3 +62,7 @@ Validation: <actual evidence, including gaps>
 ~~~
 
 **Rule of thumb:** Do not *polish* obsolete gameplay when the next milestone will *replace* it; also do not break a currently working proof until the replacement is runnable. A smaller correct successor beats maintaining two inconsistent designs.
+
+## Sequential continuation evidence — October 17, 2026
+
+Draft #62 extends the existing camera/HUD/street baseline rather than rebuilding it: [two persistent native residents and aggregate crossing holds](MULTI_RESIDENT_CROSSING.md), [bounded local junction arbitration](LOCAL_JUNCTION_TRAFFIC.md), and [supported bridge/ramp presentation](BRIDGE_PRESENTATION.md). Historical single-actor/no-junction/no-bridge-rework limits in earlier checkpoints no longer describe this branch. One SandboxWorld, legal graph, Ink and identity/economy authority remain unchanged; local ambient cars do not become synthetic residents. Citywide rollout and human acceptance are still pending. No PRs have been merged and no umbrella Epics closed.
