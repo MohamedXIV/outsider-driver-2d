@@ -60,6 +60,19 @@ The Patchworks pilot now has **two local** `SandboxTrafficVehicle`/`CharacterBod
 
 **Not yet implemented:** arbitrary independent cars with world travel itineraries, cross-district multi-car traffic, multiple simultaneous pedestrian reservations, intersection arbitration, player-controlled native car physics, exported Web/Windows runtime validation or human traffic-feel signoff. The draft remains stacked over #55.
 
+## R13: independently routed resident shuttles are visible as actual city traffic — October 17, 2026
+
+The city already has an **authoritative** independent transit system: when a real NPC fare offer expires, `SandboxAutonomy.begin_expired_trips` may choose a paid municipal `shuttle`, recording `npc_alternative_departed`, a complete `transit_nodes` road path, `transit_started`, `transit_until`, and cost against that **same** resident. `SandboxWorld.advance` eventually records `npc_alternative_arrived` and updates the resident's genuine destination.
+
+Previously, `SandboxCityView._draw_people` always rendered that resident as a walking stick figure, even while `transit_method == "shuttle"`. R13 closes this presentation/authority mismatch:
+
+- New focused `SandboxWorldTraffic.shuttle_pose(world,npc,fraction)` **reads**, never advances or mutates, an active genuine shuttle trip. It derives vehicle position directly from `SandboxWorld.npc_position`, route orientation from the same `SandboxRoads.position_on_path`, and retains the real `resident_id`/`transit_from_offer` provenance. Unrelated `walking` or completed trips do not qualify.
+- The actual world city renderer draws a distinguishable shuttle/car silhouette on the appropriate ground/elevated drawing layer, instead of a person marker. Its visual fraction moves even while the **player** is parked, and the renderer does not spawn an extra NPC, provider, driver, or vehicle itinerary.
+- New `tests/test_world_shuttle_visual.gd` lets the *real seeded NPC economy/dispatch* expire fare offers and choose an independent shuttle. It checks the departure event, world position, fractional interpolation, a valid restored active trip, rendering with no world mutation, exactly-once NPC arrival and removal of the shuttle pose when travel ends. No fabricated transit state is injected.
+- **Actual Godot 4.7.2** [run #38997839533](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38997839533) at source `ac935a612822b20fd0954e8dd68aa5606dbc01da` passed **14/14 targeted tests**. [Native logs](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38997839533/artifacts/12087698352), including `WORLD_SHUTTLE_VISUAL_PASS` and all previous native walking, two local physics cars, taxi yield, near/far, save and bridge checks.
+
+**Important scope boundary:** A world-owned *passenger's shuttle journey* is now faithfully represented by a world-positioned car silhouette. This is **not** yet a separately modeled persistent municipal shuttle fleet, a `CharacterBody2D` under local pedestrian traffic control, a proof of traffic-light/vehicle collision arbitration, or proof of exported Web/Windows gameplay. The two ambient physics vehicles in Patchworks remain a separate, bounded local demonstration. Multi-car junction arbitration and full lane ownership remain open.
+
 ## Next incremental integration — main city, not just the pilot
 
 - The default `sandbox.tscn` now can instantiate a **spatially embedded** Patchworks street module when the player is parked at the garage and a genuinely idle eligible resident has a local work/supplies errand. It uses the **same** `SandboxWorld` and `SandboxLocalPedestrianTrip.candidate(world)`, not a second seed or a fixed first passenger.

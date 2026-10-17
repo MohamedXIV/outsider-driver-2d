@@ -140,6 +140,12 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Test iteration:** Three prior runs failed due newly added assertions, not project parse: one assumed the rear car would always reach a full stop during natural crossing, and two staged runs counted initial zero velocity as a stop. Final native regression stages sustained reservation and checks *observed physical stop* before release.
 - **Remaining:** Two bounded demo cars are not a city traffic scheduler or world-owned car itineraries. Multi-pedestrian collision, intersection occupancy, native player-car body, Web/Windows and human playtest stay open.
 
+### R13 — render independent world-owned municipal shuttles, not phantom walking NPCs (October 17, 2026)
+- **Source of truth:** Real expired taxi offers can cause `SandboxAutonomy` to choose a **paid shuttle journey** for an existing persistent resident; `SandboxWorld` owns the route nodes, time, fare cost, arrival event, NPC identity and final destination.
+- **Implemented in Draft PR #61:** `SandboxWorldTraffic.shuttle_pose` provides a read-only vehicle projection of those existing trips. `SandboxCityView` renders the occupant as a shuttle vehicle instead of a walking person, with the same graph-based movement and no duplicate NPC, car trip or independent clock.
+- **Verified:** [Godot 4.7.2 native #38997839533](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38997839533), SHA `ac935a612822b20fd0954e8dd68aa5606dbc01da`, **14/14 PASS** including new `WORLD_SHUTTLE_VISUAL_PASS`. Test triggers an autonomous departure from real offers and confirms save/restore continuity, scene render without world mutation and a single legitimate arrival. [Logs/artifact](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38997839533/artifacts/12087698352).
+- **Outstanding:** This visual now represents genuinely simulated **passenger shuttle trips**, not a full world-owned driver/vehicle fleet. It does **not** yet coordinate with the physically yielding Patchworks cars, traffic signals, or full city collisions. Web/Windows runtime and human traffic-feel remain unverified.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.
