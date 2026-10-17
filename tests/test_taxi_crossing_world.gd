@@ -50,5 +50,55 @@ func _initialize() -> void:
 	world.advance(world.remaining_minutes)
 	assert(world.player_district=="market" and not world.is_travelling())
 	assert(saved.restore_snapshot(world.snapshot()))
-	print("TAXI_CROSSING_WORLD_PASS grounded road, clock-without-motion, held display, save events and resumed route")
+	# Return home on the SAME physical zebra from the opposite direction.
+	# The projected crossing stays at 35% garage->feeder but is traversed at
+	# 65% feeder->garage. Reverse journeys must obey identical right-of-way.
+	assert(is_equal_approx(SandboxStreetRouteBinding.crossing_fraction(
+			SandboxStreetRouteBinding.TO,SandboxStreetRouteBinding.FROM),0.65))
+	assert(SandboxStreetRouteBinding.crossing_fraction("market","garage")<0.0)
+	assert(world.reposition("garage","margin_gate"))
+	for i in range(world.remaining_minutes):
+		if SandboxStreetRouteBinding.on_edge(world):
+			break
+		assert(world.advance(1))
+	assert(SandboxStreetRouteBinding.on_edge(world),"Return trip missed the Patchworks feeder")
+	assert(world.route_nodes[world.route_segment]==SandboxStreetRouteBinding.TO)
+	assert(world.route_nodes[world.route_segment+1]==SandboxStreetRouteBinding.FROM)
+	assert(SandboxStreetRouteBinding.in_neighborhood(world),
+			"Return-leg pedestrian must be physically loaded before reaching the zebra")
+	assert(not world.begin_crossing_yield(),"Return taxi cannot yield before the reverse approach")
+	for i in range(SandboxRoads.edge_minutes(SandboxStreetRouteBinding.TO,
+			SandboxStreetRouteBinding.FROM)):
+		if SandboxStreetRouteBinding.approaching(world):
+			break
+		assert(world.advance(1))
+	assert(SandboxStreetRouteBinding.approaching(world),"Reverse route never approached the zebra")
+	var reverse_elapsed: int=world.route_edge_elapsed
+	var reverse_point: Vector3=world.player_position()
+	var reverse_remaining: int=world.remaining_minutes
+	assert(world.begin_crossing_yield())
+	assert(world.advance(3),"Time and resident ecology should continue while reverse taxi waits")
+	assert(world.route_edge_elapsed==reverse_elapsed and world.remaining_minutes==reverse_remaining)
+	assert(world.player_position().is_equal_approx(reverse_point))
+	assert(SandboxStreetRouteBinding.in_neighborhood(world),
+			"An actually held return taxi must retain its local pedestrian actor")
+	assert(saved.restore_snapshot(world.snapshot()),"Reverse-direction hold must survive save restore")
+	var reverse_forged: Dictionary=world.snapshot()
+	reverse_forged["route_hold_id"]=""
+	assert(not SandboxWorld.new().restore_snapshot(reverse_forged),
+			"Reverse hold cannot be erased without an end event")
+	assert(world.release_crossing_yield())
+	assert(world.advance(1))
+	assert(world.route_edge_elapsed>reverse_elapsed)
+	assert(saved.restore_snapshot(world.snapshot()))
+	assert(world.advance(world.remaining_minutes))
+	assert(world.player_district=="garage" and not world.is_travelling())
+	var reverse_starts: int=0
+	var reverse_ends: int=0
+	for event in world.events:
+		if event["kind"]=="taxi_yield_started": reverse_starts+=1
+		if event["kind"]=="taxi_yield_ended": reverse_ends+=1
+	assert(reverse_starts==2 and reverse_ends==2,
+			"Outbound and inbound visits must each have one matched yield pair")
+	print("TAXI_CROSSING_WORLD_PASS both grounded route directions, held clock, save provenance and resumed trips")
 	quit()

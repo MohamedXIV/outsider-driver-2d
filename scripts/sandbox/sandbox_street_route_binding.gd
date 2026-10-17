@@ -9,10 +9,19 @@ const TO: String = "margin_gate"
 const CROSS_FRACTION: float = 0.35
 const CROSSING_ID: String = "patchworks:garage-feeder-zebra"
 
+# The zebra is a single physical location, but route progress has opposite
+# fractions depending on which endpoint the taxi is approaching from.
+static func crossing_fraction(from_node: String, to_node: String) -> float:
+	if from_node==FROM and to_node==TO:
+		return CROSS_FRACTION
+	if from_node==TO and to_node==FROM:
+		return 1.0-CROSS_FRACTION
+	return -1.0
+
 static func on_edge(world: SandboxWorld) -> bool:
 	return world.is_travelling() and world.route_segment < world.route_nodes.size()-1 \
-			and world.route_nodes[world.route_segment]==FROM \
-			and world.route_nodes[world.route_segment+1]==TO
+			and crossing_fraction(world.route_nodes[world.route_segment],
+				world.route_nodes[world.route_segment+1])>=0.0
 
 static func grounded() -> bool:
 	return SandboxRoads.connected(FROM,TO) and \
@@ -32,22 +41,30 @@ static func street_transform() -> Transform2D:
 static func approaching(world: SandboxWorld) -> bool:
 	if not on_edge(world) or not grounded():
 		return false
-	var minutes: int=SandboxRoads.edge_minutes(FROM,TO)
+	var from_node: String=world.route_nodes[world.route_segment]
+	var to_node: String=world.route_nodes[world.route_segment+1]
+	var minutes: int=SandboxRoads.edge_minutes(from_node,to_node)
 	if minutes<=1:
 		return false
+	var threshold: float=crossing_fraction(from_node,to_node)
 	var before: float=float(world.route_edge_elapsed)/float(minutes)
 	var after: float=float(world.route_edge_elapsed+1)/float(minutes)
-	return before<CROSS_FRACTION and after>=CROSS_FRACTION
+	return before<threshold and after>=threshold
 
 static func in_neighborhood(world: SandboxWorld) -> bool:
 	if world.player_district==FROM and not world.is_travelling():
 		return true
 	if not on_edge(world) or not grounded():
 		return false
-	return float(world.route_edge_elapsed)/float(SandboxRoads.edge_minutes(FROM,TO))<=CROSS_FRACTION+0.10
+	var from_node: String=world.route_nodes[world.route_segment]
+	var to_node: String=world.route_nodes[world.route_segment+1]
+	return float(world.route_edge_elapsed)/float(SandboxRoads.edge_minutes(from_node,to_node)) \
+			<=crossing_fraction(from_node,to_node)+0.10
 
 static func taxi_occupies_crosswalk(world: SandboxWorld) -> bool:
 	if not on_edge(world) or not grounded() or not world.route_hold_id.is_empty():
 		return false
-	var at: float=float(world.route_edge_elapsed)/float(SandboxRoads.edge_minutes(FROM,TO))
-	return absf(at-CROSS_FRACTION)<=0.065
+	var from_node: String=world.route_nodes[world.route_segment]
+	var to_node: String=world.route_nodes[world.route_segment+1]
+	var at: float=float(world.route_edge_elapsed)/float(SandboxRoads.edge_minutes(from_node,to_node))
+	return absf(at-crossing_fraction(from_node,to_node))<=0.065

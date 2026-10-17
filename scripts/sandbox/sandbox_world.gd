@@ -811,13 +811,16 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if held!=ledger_hold:
 		return false
 	if held!="":
-		if segment<0 or segment>=route.size()-1 or route[segment]!=SandboxStreetRouteBinding.FROM \
-				or route[segment+1]!=SandboxStreetRouteBinding.TO:
+		if segment<0 or segment>=route.size()-1:
 			return false
-		var edge_minutes: int=SandboxRoads.edge_minutes(SandboxStreetRouteBinding.FROM,
-				SandboxStreetRouteBinding.TO)
-		if float(elapsed)/float(edge_minutes)>=SandboxStreetRouteBinding.CROSS_FRACTION \
-				or float(elapsed+1)/float(edge_minutes)<SandboxStreetRouteBinding.CROSS_FRACTION:
+		var from_node: String=route[segment]
+		var to_node: String=route[segment+1]
+		var crossing_fraction: float=SandboxStreetRouteBinding.crossing_fraction(from_node,to_node)
+		if crossing_fraction<0.0 or not SandboxStreetRouteBinding.grounded():
+			return false
+		var edge_minutes: int=SandboxRoads.edge_minutes(from_node,to_node)
+		if edge_minutes<=1 or float(elapsed)/float(edge_minutes)>=crossing_fraction \
+				or float(elapsed+1)/float(edge_minutes)<crossing_fraction:
 			return false
 	if active.is_empty() and relocation.is_empty():
 		if not route.is_empty() or not pending.is_empty() or not request.is_empty() \
