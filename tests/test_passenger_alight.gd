@@ -14,7 +14,7 @@ func _run() -> void:
 	assert(world.accept(str(offer["id"])))
 	var minutes: int = world.remaining_minutes
 	assert(minutes > 1 and world.advance(minutes))
-	assert(offer["status"] == "completed")
+	assert(world.offer_by_id(str(offer["id"]))["status"] == "completed")
 	var npc: Dictionary = world.resident(str(offer["npc_id"]))
 	var trip: Dictionary = npc.get("passenger_alight", {})
 	assert(trip.get("status", "") == "walking" and trip.get("site", "") == SandboxPassengerAlight.SITE)
