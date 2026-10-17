@@ -150,7 +150,7 @@ func sync() -> void:
 		"map": context=[world.route_nodes,world.pending_route_nodes,world.rider_route_request,world.player_district,world.credits,_map_selected,_planned_via,_planned_stops]
 		"gear": context=[world.starter_device,world.modules_owned,world.modules_installed,world.market_stock,world.player_district,world.is_travelling(),SandboxKnowledge.market_open(world.minute),world.credits,world.ar_owned,world.ar_equipped,controller._ar_note]
 		"contacts": context=[world.meetings,controller._selected_meeting_id,controller._meeting_text.text,controller._meeting_info.text,controller._meeting_accept.disabled,controller._meeting_decline.disabled,controller._meeting_attend.disabled]
-		"settings": context=[controller._notice_text]
+		"settings": context=[controller._notice_text,controller._city.zoom_preference]
 	var signature: String=JSON.stringify([tab,debug_mode,locale,controller._reduced_motion,context])
 	if signature==_last_signature: return
 	_last_signature=signature
@@ -260,6 +260,10 @@ func sync() -> void:
 		_button("english","English",controller._on_language_locale.bind("en"))
 		_button("arabic","العربية",controller._on_language_locale.bind("ar"))
 		_button("motion",trp("Reduced motion: ","تقليل الحركة: ")+(trp("On","مفعّل") if controller._reduced_motion else trp("Off","متوقف")),controller._on_reduced_motion.bind(not controller._reduced_motion))
+		_label(trp("Camera · wheel or +/- · %.2fx", "الكاميرا · عجلة الفأرة أو +/- · %.2fx") % controller._city.zoom_preference)
+		_button("zoom_in",trp("Zoom in +","تقريب +"),controller._change_zoom.bind(0.2),controller._city.zoom_preference >= SandboxCityView.MAX_ZOOM)
+		_button("zoom_out",trp("Zoom out −","إبعاد −"),controller._change_zoom.bind(-0.2),controller._city.zoom_preference <= SandboxCityView.MIN_ZOOM)
+		_button("zoom_reset",trp("Reset camera","إعادة ضبط الكاميرا"),_reset_zoom)
 		_button("save",trp("Save city and conversation","احفظ المدينة والحوار"),_call.bind("_on_save"))
 		_button("load",trp("Load saved city","حمّل المدينة المحفوظة"),_call.bind("_on_load"))
 		_label(controller._notice_text)
@@ -284,7 +288,7 @@ func _publish() -> void:
 		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
-	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
@@ -315,3 +319,7 @@ func waypoint_names() -> String:
 func _ack() -> void:
 	_action_serial+=1
 	call_deferred("_publish")
+
+func _reset_zoom() -> void:
+	controller._city.set_manual_zoom(SandboxCityView.DEFAULT_ZOOM)
+	sync()

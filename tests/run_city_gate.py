@@ -24,7 +24,7 @@ def run(label, args, timeout=90):
 
 run("import", ["--headless", "--editor", "--import", "--quit"])
 for path in sorted(pathlib.Path("tests").glob("test_*.gd")):
-    native = path.stem.endswith("_scene") or path.stem in ("test_native_ride", "test_city_presentation")
+    native = path.stem.endswith("_scene") or path.stem in ("test_native_ride", "test_city_presentation", "test_world_shuttle_visual")
     if native != NATIVE:
         continue
     args = ["--audio-driver", "Dummy"] if native else ["--headless"]

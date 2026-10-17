@@ -373,7 +373,27 @@ func _close_ar_hint() -> void:
 	_publish_ar_web()
 
 
+func _change_zoom(amount: float) -> void:
+	_city.set_manual_zoom(_city.zoom_preference + amount)
+	if _player_ui != null:
+		_player_ui.sync()
+		_player_ui.call_deferred("_publish")
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# GUI consumes wheel events first, so scrolling a panel never zooms the city.
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			_change_zoom(0.2 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -0.2)
+			get_viewport().set_input_as_handled()
+
+
 func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.ctrl_pressed and not event.alt_pressed and not event.meta_pressed:
+		if event.keycode in [KEY_PLUS, KEY_EQUAL, KEY_KP_ADD, KEY_MINUS, KEY_KP_SUBTRACT]:
+			_change_zoom(-0.2 if event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT] else 0.2)
+			get_viewport().set_input_as_handled()
+			return
 	if _ar_panel.visible and event.is_action_pressed("ui_cancel"):
 		_close_ar_hint()
 		get_viewport().set_input_as_handled()
@@ -590,7 +610,7 @@ func _on_new_seed() -> void:
 
 func _on_save() -> void:
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,
+	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
 			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else {}}) else "Save failed."
 	_render()
 
@@ -624,6 +644,7 @@ func _on_load() -> void:
 	_city.visual_fraction=_elapsed
 	_ui_locale=str(bundle.get("presentation",{}).get("locale",_ui_locale))
 	_reduced_motion=bool(bundle.get("presentation",{}).get("reduced_motion",_reduced_motion))
+	_city.set_manual_zoom(float(bundle.get("presentation",{}).get("camera_zoom",SandboxCityView.DEFAULT_ZOOM)))
 	_last_intent = "restored" if restored != null else ""
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."

@@ -9,6 +9,16 @@ var visual_fraction: float = 0.0
 var local_active_npc_id: String = ""
 var reduced_motion: bool = false
 var ui_rtl: bool = false
+const DEFAULT_ZOOM: float = 2.6
+const MIN_ZOOM: float = 1.25
+const MAX_ZOOM: float = 4.0
+var zoom_preference: float = DEFAULT_ZOOM
+var _zoom: float = DEFAULT_ZOOM
+
+func set_manual_zoom(value: float) -> void:
+	if is_finite(value):
+		zoom_preference = clampf(value, MIN_ZOOM, MAX_ZOOM)
+
 var _heading: float = 0.0
 var _blocks: Array[Dictionary] = []
 var _layers: Dictionary = {}
@@ -65,7 +75,8 @@ func _process(delta: float) -> void:
 	var camera: Camera2D = get_parent().get_node("Camera2D")
 	var framing: Vector2=Vector2(70 if ui_rtl else -70,-45)
 	camera.position = taxi + framing if reduced_motion else taxi + framing + (ahead-taxi)*.5
-	camera.zoom = Vector2(2.0,2.0)
+	_zoom = zoom_preference if reduced_motion else lerpf(_zoom, zoom_preference, 1.0-exp(-8.0*maxf(delta,0.0)))
+	camera.zoom = Vector2.ONE * _zoom
 	_layers["ground"].queue_redraw()
 	_layers["above"].queue_redraw()
 
