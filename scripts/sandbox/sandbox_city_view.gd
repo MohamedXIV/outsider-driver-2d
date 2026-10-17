@@ -67,7 +67,7 @@ var _blocks: Array[Dictionary] = []
 var _layers: Dictionary = {}
 
 static func project(p: Vector3) -> Vector2:
-	return Vector2((p.x-p.z*.55)*SCALE, (p.x*.32+p.z*.7)*SCALE-p.y*.24)
+	return SandboxIsoPresentation.project(p)
 
 func _ready() -> void:
 	# Authored street geometry determines every lot. No runtime population here.
@@ -139,6 +139,11 @@ func _process(delta: float) -> void:
 	_layers["above"].queue_redraw()
 
 func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int=-1) -> void:
+	# The first 2:1 street slice has authored two-lane edge/curb geometry.
+	# Route length, edge timing and legal graph remain in SandboxRoads.
+	if not elevated and (a == "clinic" or b == "clinic"):
+		SandboxIsoPresentation.draw_clinic_road(canvas, a, b, pass_index)
+		return
 	var points: PackedVector2Array = []
 	for i in range(49): points.append(project(SandboxRoads.sample_edge(a,b,float(i)/48)))
 	if elevated and pass_index in [-1,0]:
@@ -241,6 +246,7 @@ func paint(canvas: Node2D, role: String) -> void:
 		canvas.draw_circle(p+Vector2(24,-20),4,Color("e7bd78"))
 		canvas.draw_line(p+Vector2(24,-20),p+Vector2(24,-4),Color("afad94"),2)
 		canvas.draw_string(ThemeDB.fallback_font,p+Vector2(-45,-38),SandboxRoads.location_name(stop),HORIZONTAL_ALIGNMENT_CENTER,150,12,Color("f0d7a4"))
+	SandboxIsoPresentation.draw_clinic(canvas)
 	var shop: Vector2 = project(SandboxRoads.map_position("market"))+Vector2(37,13)
 	canvas.draw_rect(Rect2(shop,Vector2(40,24)),Color("668f80"))
 	for i in range(5): canvas.draw_rect(Rect2(shop+Vector2(i*8,-2),Vector2(8,6)),Color("deb68a") if i%2==0 else Color("9b735b"))
@@ -274,32 +280,15 @@ func _draw_people(canvas: Node2D, elevated: bool) -> void:
 # A world-owned passenger's independently timed shuttle trip. The car
 # silhouette is presentation only; city travel/arrival stays in SandboxWorld.
 func _draw_world_shuttle(canvas: Node2D, point: Vector2, heading: float) -> void:
-	canvas.draw_set_transform(point,heading)
-	canvas.draw_rect(Rect2(-11,-5,24,14),Color(0,0,0,0.4))
-	canvas.draw_rect(Rect2(-11,-7,22,13),Color("729c9b"))
-	canvas.draw_rect(Rect2(-4,-6,9,11),Color("264a51"))
-	canvas.draw_rect(Rect2(8,-5,3,3),Color("f3d9a0"))
-	canvas.draw_rect(Rect2(8,2,3,3),Color("f3d9a0"))
-	canvas.draw_line(Vector2(-8,-4),Vector2(-8,4),Color("b8d7d0"),1.0)
-	canvas.draw_set_transform(Vector2.ZERO)
+	SandboxIsoPresentation.draw_vehicle(canvas, point, heading, false)
 
 
 func _taxi(canvas: Node2D) -> void:
 	var taxi: Vector2 = project(world.player_position(visual_fraction))
-	canvas.draw_set_transform(taxi,_heading)
-	canvas.draw_rect(Rect2(-11,-5,25,14),Color(0,0,0,.35))
-	for x in [-7,7]:
-		for y in [-7,5]: canvas.draw_rect(Rect2(x,y,6,3),Color("172a30"))
-	canvas.draw_style_box(_car_style(),Rect2(-12,-6,26,12))
-	canvas.draw_rect(Rect2(-4,-5,10,10),Color("45676c"))
-	canvas.draw_line(Vector2(6,-4),Vector2(6,4),Color("b8d8c9"),2)
-	canvas.draw_rect(Rect2(12,-5,2,3),Color("fff0b5"))
-	canvas.draw_rect(Rect2(12,2,2,3),Color("fff0b5"))
-	canvas.draw_rect(Rect2(-2,-2,5,4),Color("e9cd8e"))
-	canvas.draw_set_transform(Vector2.ZERO)
-
-func _car_style() -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color=Color("d69b55"); style.set_corner_radius_all(4)
-	style.border_color=Color("f2ca86"); style.set_border_width_all(1)
-	return style
+	# Lane placement for the clinic pilot is presentation-only: it makes the
+	# two directed lanes readable without lying about authoritative routing.
+	if world.player_district == "clinic" or (world.is_travelling() and
+			(world.route_nodes[world.route_segment] == "clinic" or
+			world.route_nodes[world.route_segment+1] == "clinic")):
+		taxi += SandboxIsoPresentation.lane_offset(_heading)
+	SandboxIsoPresentation.draw_vehicle(canvas, taxi, _heading, true)
