@@ -50,7 +50,9 @@ Validation defects were also corrected: eight legacy browser scripts assumed
 the superseded five-node graph, old first-passenger language traits, fixed
 diagnostic coordinates and instantaneous +20 minute journeys. They now use
 real visible controls/current graph and physical crossing completion. Shared
-browser plumbing reads bounds only; it cannot command the world. The two
+browser plumbing reads bounds only; it cannot command the world. Request clicks
+are matched by persistent offer identity; freshly rebuilt/scrolled row bounds
+are checked against native Godot hit testing. The two
 frozen prototype journeys run against an archived source copy whose sole
 configuration difference is the prototype main scene. Export filters exclude
 repository reports/test resources, which have no runtime references.

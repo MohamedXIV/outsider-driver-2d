@@ -143,7 +143,7 @@ func _ready() -> void:
 		# Acknowledgement of real diagnostic button signals, never a command API.
 		for control in [$HUD/DockPanel/Content/TimeActions/Wait,_observe,_accept,_talk,
 				$HUD/DockPanel/Content/Persistence/Save,$HUD/DockPanel/Content/Persistence/Load,
-				_via,_honor,_meeting_accept,_meeting_attend]:
+				_via,_honor,_meeting_accept,_meeting_attend,_gps]:
 			control.pressed.connect(_acknowledge_debug_action)
 	_render()
 
@@ -1175,6 +1175,20 @@ func _render_route_picker(offer: Dictionary) -> void:
 	]
 
 
+
+func _debug_offer_bounds() -> Array:
+	# ItemList caches row rectangles until its next layout. Force the public
+	# Godot layout API before publishing hitboxes for a recently rebuilt list.
+	_offers.force_update_list_size()
+	var rows: Array=[]
+	for i in range(_offers.item_count):
+		var rect: Rect2=_offers.get_item_rect(i)
+		var at: Vector2=_offers.global_position+rect.get_center()-Vector2(0,_offers.get_v_scroll_bar().value)
+		rows.append({"index":i,"id":str(_offers.get_item_metadata(i)),"x":at.x,"y":at.y,
+			"top":_offers.global_position.y,"bottom":_offers.get_global_rect().end.y,"text":_offers.get_item_text(i)})
+	return rows
+
+
 func _publish_street_web() -> void:
 	if not OS.has_feature("web"): return
 	var actors: Array=[]
@@ -1208,16 +1222,11 @@ func _publish_street_web() -> void:
 		var controls: Dictionary={"wait":$HUD/DockPanel/Content/TimeActions/Wait,"observe":_observe,
 			"accept":_accept,"talk":_talk,"save":$HUD/DockPanel/Content/Persistence/Save,
 			"load":$HUD/DockPanel/Content/Persistence/Load,"via":_via,"honor":_honor,
-			"meeting_accept":_meeting_accept,"meeting_attend":_meeting_attend}
+			"meeting_accept":_meeting_accept,"meeting_attend":_meeting_attend,"gps":_gps}
 		for key in controls:
 			var rect: Rect2=controls[key].get_global_rect()
 			debug_controls[key]={"x":rect.get_center().x,"y":rect.get_center().y,"disabled":controls[key].disabled}
-		_offers.force_update_list()
-		for i in range(_offers.item_count):
-			var rect: Rect2=_offers.get_item_rect(i)
-			var at: Vector2=_offers.global_position+rect.get_center()-Vector2(0,_offers.get_v_scroll_bar().value)
-			debug_offers.append({"index":i,"x":at.x,"y":at.y,"top":_offers.global_position.y,
-				"bottom":_offers.get_global_rect().end.y,"text":_offers.get_item_text(i)})
+		debug_offers=_debug_offer_bounds()
 		for i in range(_via.item_count): via_options.append(str(_via.get_item_metadata(i)))
 		var popup: PopupMenu=_via.get_popup()
 		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]

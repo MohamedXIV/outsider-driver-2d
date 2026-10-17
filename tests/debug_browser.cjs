@@ -71,8 +71,8 @@ async function openDebugCity() {
   }
   async function select(index) {
     for (let i = 0; i < 20; i++) {
-      const p = JSON.parse((await data()).debugOffers).find(
-        (x) => x.index === index,
+      const p = JSON.parse((await data()).debugOffers).find((x) =>
+        typeof index === "string" ? x.id === index : x.index === index,
       );
       assert.ok(p, "Real offer row");
       if (p.y < p.top + 2 || p.y > p.bottom - 2) {
@@ -82,6 +82,10 @@ async function openDebugCity() {
         continue;
       }
       await point(p);
+      await page.waitForFunction(
+        (id) => document.documentElement.dataset.sandboxSelected === id,
+        p.id,
+      );
       return;
     }
     throw Error("Offer row unavailable");
@@ -122,9 +126,14 @@ async function openDebugCity() {
   }
   async function returning() {
     for (let i = 0; i < 150; i++) {
-      const index = Number((await data()).sandboxReturningIndex);
+      const state = await data(),
+        index = Number(state.sandboxReturningIndex);
       if (index >= 0) {
-        await select(index);
+        const row = JSON.parse(state.debugOffers).find(
+          (row) => row.index === index,
+        );
+        assert.ok(row && row.id, "Persistent returning request identity");
+        await select(row.id);
         return;
       }
       await dc("wait");

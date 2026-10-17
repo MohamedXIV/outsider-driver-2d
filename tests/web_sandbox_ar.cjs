@@ -15,7 +15,7 @@ checkDebug(
   }) => {
     let d = await data();
     assert.equal(d.sandboxAROwned, "false");
-    await native("sandboxStarterGPSPoint");
+    await dc("gps");
     await page.waitForFunction(
       () => document.documentElement.dataset.sandboxDevice === "gps",
     );

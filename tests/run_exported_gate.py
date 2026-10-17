@@ -63,6 +63,8 @@ def run(label, command, cwd=ROOT, env=None, timeout=900):
     manifest['suites'].append(record)
     persist()
     print(('PASS' if code == 0 else 'FAIL'), label, record['seconds'], flush=True)
+    if code != 0:
+        print((OUT / (label + '.log')).read_text(), flush=True)
     assert code == 0, f'{label}: see {OUT / (label + ".log")}'
     if label.startswith(('import-', 'export-')):
         output = (OUT / (label + '.log')).read_text()
