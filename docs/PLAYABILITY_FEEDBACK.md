@@ -107,16 +107,16 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Found during audit:** In the demo `SandboxStreetPriority` policy, a pedestrian reservation just after a car had passed its stop line could freeze that car inside the zebra, while the pedestrian waited for the car to clear: a deadlock risk.
 - **Implementation on draft stacked PR #61:** Cars at/before the line clamp to a safe stop when a pedestrian has reserved the crossing. Cars already beyond the line retain clearance priority; pedestrians wait until the car clears the lane. Removed the permissive 4 px post-line entry margin.
 - **Regression added:** `tests/test_street_priority.gd` simulates a reservation at 0.01 px past the stop line and checks crossing clearance, gate reopening, and existing variable-frame stop-line bounds.
-- **Evidence:** Code and regression committed; **new test not yet run in Godot**. The earlier R06 10/10 native pass predates the change. No exported Web/Windows or human verification on this follow-up.
-- **Acceptance:** Implementation in progress / technical check pending; #60 remains open. Workflow manual-only.
+- **Evidence:** [Godot 4.7.2 native run #38986769410](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38986769410), source `ed3c7708`, **10/10 targeted PASS**, including `STREET_PRIORITY_PASS` for late-reservation clearance. [Logs/artifacts](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38986769410/artifacts/12082857942). No Web/Windows or human verification on this follow-up.
+- **Acceptance:** Native technical gate PASS; full city traffic and human playtest pending. #60 remains open. GitHub Actions allowed: scoped push CI on pilot branch, documentation-only pushes ignored.
 
 ### R08 engineering follow-up — October 17, 2026
 - **Issue/feedback:** FB-009 / #60; physically grounded crossing clearance on the active Player Mode taxi route.
 - **Found:** The walker previously set `crossing_completed` once its center passed y=370, while the road still occupied y≤376 and its collision circle had a 7 px radius. The taxi could therefore resume while part of the NPC remained in the vehicle lane.
 - **Implemented on stacked Draft PR #61:** Physical `crossing_clear_y()` derived from shared road rectangle, walker radius and margin (currently y=384). Both the native walker and deterministic offscreen completion use it. Actual taxi hold release requires both a completion flag **and** physical lane clearance, protecting even against a stale/incorrect presentation flag after restore.
 - **New targeted regressions:** `test_street_module.gd`, `test_street_pilot_scene.gd`, `test_taxi_crossing_scene.gd` cover road boundary, native actor, blocked walker mid-crossing, stale completion flag and hold/resume after save/load.
-- **Validation:** 14/14 static source-and-geometry checks passed; **Godot 4.7.2 runtime tests not yet executed** on the latest branch. The earlier 10/10 Godot native pass was for pre-R07/R08 source. No Web/Windows or human traffic acceptance.
-- **Status:** Implemented in code / technical native gate pending. #60 and #59 remain open, PR #61 remains stacked DRAFT and Actions workflow stays manual-only.
+- **Validation:** 14/14 preliminary static checks plus a **real Godot 4.7.2 10/10 PASS** at `ed3c7708` ([run #38986769410](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38986769410)); the updated `TAXI_CROSSING_SCENE_PASS` confirms physical lane-body clearance and stale-flag guard. No Web/Windows or human traffic acceptance.
+- **Status:** Implemented and native test-verified. #60 and #59 remain open for broader traffic and playtest coverage, PR #61 remains stacked DRAFT; feature-branch native CI enabled, with documentation-only changes ignored.
 
 ## Guiding invariants
 
