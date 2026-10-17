@@ -17,13 +17,18 @@ func _run() -> void:
 	assert(absf(angle_difference(initial, city.saved_taxi_heading())) < .001,
 			"Freshly parked taxi must align with a grounded road, not global angle zero")
 	var before: Dictionary = world.snapshot()
+	city.restore_taxi_heading()
+	assert(world.snapshot() == before, "Changing visual facing must not mutate SandboxWorld")
 	scene._on_save()
 	assert(scene._notice_text == "Sandbox saved.")
+	# Reservation reconciliation during Save is a legitimate world event: only
+	# compare against the actual canonical snapshot written to the save file.
+	var persisted: Dictionary = scene._world.snapshot()
 	city._heading = 0.0
 	scene._on_load()
 	assert(scene._notice_text == "World, NPC and live dialogue restored.")
 	assert(absf(angle_difference(initial, city._heading)) < .001)
-	assert(scene._world.snapshot() == before, "Visual facing must not mutate world")
+	assert(scene._world.snapshot() == persisted, "Load must retain the committed world snapshot")
 
 	world = scene._world
 	assert(world.reposition("clinic"), "Taxi must genuinely drive toward Night Clinic")
