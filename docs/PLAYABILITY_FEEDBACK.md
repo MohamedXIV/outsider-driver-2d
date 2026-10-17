@@ -110,6 +110,14 @@ This is a workflow triggered by actual iterative gameplay/builds, **not** a back
 - **Evidence:** Code and regression committed; **new test not yet run in Godot**. The earlier R06 10/10 native pass predates the change. No exported Web/Windows or human verification on this follow-up.
 - **Acceptance:** Implementation in progress / technical check pending; #60 remains open. Workflow manual-only.
 
+### R08 engineering follow-up — October 17, 2026
+- **Issue/feedback:** FB-009 / #60; physically grounded crossing clearance on the active Player Mode taxi route.
+- **Found:** The walker previously set `crossing_completed` once its center passed y=370, while the road still occupied y≤376 and its collision circle had a 7 px radius. The taxi could therefore resume while part of the NPC remained in the vehicle lane.
+- **Implemented on stacked Draft PR #61:** Physical `crossing_clear_y()` derived from shared road rectangle, walker radius and margin (currently y=384). Both the native walker and deterministic offscreen completion use it. Actual taxi hold release requires both a completion flag **and** physical lane clearance, protecting even against a stale/incorrect presentation flag after restore.
+- **New targeted regressions:** `test_street_module.gd`, `test_street_pilot_scene.gd`, `test_taxi_crossing_scene.gd` cover road boundary, native actor, blocked walker mid-crossing, stale completion flag and hold/resume after save/load.
+- **Validation:** 14/14 static source-and-geometry checks passed; **Godot 4.7.2 runtime tests not yet executed** on the latest branch. The earlier 10/10 Godot native pass was for pre-R07/R08 source. No Web/Windows or human traffic acceptance.
+- **Status:** Implemented in code / technical native gate pending. #60 and #59 remain open, PR #61 remains stacked DRAFT and Actions workflow stays manual-only.
+
 ## Guiding invariants
 
 - Natural ride lengths arise from road geometry/topology, street speed and meaningful travel, not simply multiplying fixed 10-minute edges or penalizing the player for reading dialogue.
