@@ -47,6 +47,7 @@ func _ready() -> void:
 			return
 	SandboxStreetModule.install_navigation(self)
 	SandboxStreetModule.install_east_junction(self)
+	SandboxStreetModule.install_extension(self)
 	# Two real Godot CharacterBody2D lane vehicles in this bounded slice.
 	# These are ambient traffic actors, not extra world residents or taxis.
 	car = _make_lane_car("LocalTrafficCar",
@@ -150,6 +151,7 @@ func _on_resident_arrived(npc_id: String) -> void:
 func _draw() -> void:
 	SandboxStreetModule.paint(self)
 	SandboxStreetModule.paint_east_junction(self)
+	SandboxStreetModule.paint_extension(self)
 
 func _process(_delta: float) -> void:
 	if car != null:

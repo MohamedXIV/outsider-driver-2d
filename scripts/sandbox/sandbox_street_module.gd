@@ -165,3 +165,61 @@ static func paint_east_junction(canvas: Node2D) -> void:
 			Rect2(722,410,91,61),Rect2(887,414,105,55)]:
 		canvas.draw_rect(lot,Color("768987"))
 	canvas.draw_line(Vector2(824,169),Vector2(824,277),Color("d1b985"),1.5)
+
+# A second reusable junction and a right-angle block extend the same local
+# pilot avenue. These are ground-level pedestrian modules, not new city-road
+# graph edges: only the existing Patchworks zebra binds world vehicle routes.
+const EXTENSION_ROADS: Array[Rect2] = [
+	Rect2(1020,328,480,48), Rect2(1200,160,48,390),
+	Rect2(1452,328,48,272)
+]
+const EXTENSION_SIDEWALKS: Dictionary = {
+	"FourWayNorthWest": Rect2(1020,300,180,26),
+	"FourWayNorthEast": Rect2(1248,300,278,26),
+	"FourWaySouthWest": Rect2(1020,378,180,26),
+	"FourWaySouthEast": Rect2(1248,378,178,26),
+	"FourWayUpperWest": Rect2(1174,160,24,140),
+	"FourWayUpperEast": Rect2(1250,160,24,140),
+	"FourWayLowerWest": Rect2(1174,404,24,146),
+	"FourWayLowerEast": Rect2(1250,404,24,146),
+	"CornerOuterSidewalk": Rect2(1500,326,26,274),
+	"CornerInnerSidewalk": Rect2(1426,378,26,222)
+}
+const EXTENSION_CROSSINGS: Array[Vector4] = [
+	Vector4(1200,313,1248,313), Vector4(1200,391,1248,391),
+	Vector4(1100,313,1100,391), Vector4(1262,313,1262,391)
+]
+const EXTENSION_LOTS: Array[Rect2] = [
+	Rect2(1040,235,100,62),Rect2(1310,235,100,62),
+	Rect2(1040,410,100,62),Rect2(1320,440,80,90)
+]
+
+static func install_extension(parent: Node2D) -> void:
+	for label in EXTENSION_SIDEWALKS:
+		_add_sidewalk(parent,EXTENSION_SIDEWALKS[label],str(label))
+	for i in range(EXTENSION_CROSSINGS.size()):
+		var crossing: Vector4=EXTENSION_CROSSINGS[i]
+		_crossing(parent,"FourWayCrossing%d" % i,
+				Vector2(crossing.x,crossing.y),Vector2(crossing.z,crossing.w))
+
+static func paint_extension(canvas: Node2D) -> void:
+	for road in EXTENSION_ROADS:
+		canvas.draw_rect(road,Color("3f5555"))
+	for sidewalk in EXTENSION_SIDEWALKS.values():
+		canvas.draw_rect(sidewalk,Color("80908a"))
+	for lot in EXTENSION_LOTS:
+		canvas.draw_rect(lot,Color("9d896f"))
+		canvas.draw_rect(Rect2(lot.position+Vector2(8,8),Vector2(16,9)),Color("425b58"))
+	for crossing in EXTENSION_CROSSINGS:
+		var start: Vector2=Vector2(crossing.x,crossing.y)
+		var end: Vector2=Vector2(crossing.z,crossing.w)
+		var direction: Vector2=(end-start).normalized()
+		var normal: Vector2=direction.orthogonal()*11.0
+		for step in range(0,int(start.distance_to(end)),8):
+			var at: Vector2=start+direction*float(step)
+			canvas.draw_line(at-normal,at+normal,Color("e5d6a4"),4.0)
+	for x in range(1030,1440,36):
+		if x>1170 and x<1270: continue
+		canvas.draw_line(Vector2(x,352),Vector2(x+18,352),Color("d1b985"),2.0)
+	for y in range(410,590,36):
+		canvas.draw_line(Vector2(1476,y),Vector2(1476,y+18),Color("d1b985"),2.0)
