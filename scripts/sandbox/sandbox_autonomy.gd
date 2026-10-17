@@ -45,6 +45,8 @@ static func begin_expired_trips(residents: Array[Dictionary], offers: Array[Dict
 		npc["transit_to"] = str(offer["destination"])
 		npc["transit_from_offer"] = offer_id
 		npc["transit_method"] = method
+		npc["transit_pause_minutes"] = 0
+		npc["transit_hold_crossing"] = ""
 		npc["activity"] = "travelling"
 		npc["cooldown_until"] = maxi(int(npc["cooldown_until"]), minute + duration + 30)
 		changes.append({
@@ -73,6 +75,8 @@ static func finish_arrivals(residents: Array[Dictionary], minute: int) -> Array[
 		npc["transit_to"] = ""
 		npc["transit_from_offer"] = ""
 		npc["transit_method"] = ""
+		npc["transit_pause_minutes"] = 0
+		npc["transit_hold_crossing"] = ""
 		npc["activity"] = "available"
 		SandboxPopulation.finish_goal(npc, destination, minute)
 		changes.append({

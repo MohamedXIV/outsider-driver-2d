@@ -60,6 +60,8 @@ extends Node2D
 
 const REAL_SECONDS_PER_STEP: float = 1.0
 
+var _street_pilot: SandboxStreetPilot
+var _street_restore_state: Dictionary = {}
 var _player_ui: SandboxPlayerUI
 var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
@@ -145,15 +147,28 @@ func _process(delta: float) -> void:
 			_finish_language_reveal()
 	if _world.meeting_in_progress():
 		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
+		_city.visual_fraction = 0.0
+		_city.queue_redraw()
 		return
+	# Reconcile real scene proximity before advancing the next world tick.
+	# A local pedestrian can hold the actual player taxi at a grounded zebra;
+	# never stop the city clock, other NPCs or money settlement elsewhere.
+	_sync_local_pedestrian()
+	_update_player_crossing_yield()
+	_update_shuttle_crossing_yields()
 	_elapsed += maxf(delta, 0.0)
 	while _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
+		_update_player_crossing_yield()
+		_update_shuttle_crossing_yields()
 		_world.advance(1)
 		_render()
-	if _world.is_travelling():
-		_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
-		_city.queue_redraw()
+	# Nearby NPCs keep walking when the player's taxi is parked. The visual
+	# fraction belongs to presentation time, NOT the player's travel state.
+	_city.visual_fraction = 0.0 if not _world.route_hold_id.is_empty() else \
+			clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
+	_city.queue_redraw()
+	_sync_local_pedestrian()
 
 
 func _on_meeting_selected(index: int) -> void:
@@ -459,7 +474,105 @@ func _on_observe() -> void:
 	_render()
 
 
+# Local native Godot navigation runs only for a genuine resident in the garage
+# vicinity. It is one shared world, not an alternate passenger simulator.
+func _update_player_crossing_yield() -> void:
+	if not _world.route_hold_id.is_empty():
+		# A presentation flag is not proof that the crossing is empty. Keep
+		# the actual player taxi held until the walker's collision body is
+		# entirely beyond the roadway, including after a mid-hold restore.
+		if _street_pilot==null:
+			# The native actor may have been unloaded or re-created. Never
+			# release solely because a presentation node is absent.
+			if SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world):
+				_world.release_crossing_yield()
+		elif _street_pilot.world_reported_arrival or \
+				(_street_pilot.pedestrian.crossing_completed and \
+				SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)):
+			_world.release_crossing_yield()
+		return
+	if _street_pilot!=null and _street_pilot.pedestrian.crossing_reserved \
+			and not _street_pilot.pedestrian.crossing_completed \
+			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position) \
+			and SandboxStreetRouteBinding.approaching(_world):
+		_world.begin_crossing_yield()
+
+
+# Shuttle route motion is owned by SandboxWorld. Physical pedestrian
+# state is consulted before the next simulated minute; held shuttles never
+# silently progress while their crossing is occupied.
+func _update_shuttle_crossing_yields() -> void:
+	var has_walker: bool=_street_pilot!=null and not _street_pilot.world_reported_arrival
+	var occupied: bool=has_walker and _street_pilot.pedestrian.crossing_reserved \
+			and not _street_pilot.pedestrian.crossing_completed \
+			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)
+	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) \
+			if _street_pilot==null else _street_pilot.world_reported_arrival or \
+			(_street_pilot.pedestrian.crossing_completed and \
+			SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position))
+	for npc in _world.residents:
+		if npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
+			if cleared: _world.release_shuttle_crossing_yield(str(npc["id"]))
+		elif occupied and SandboxWorldTraffic.approaching_zebra(_world,npc):
+			_world.begin_shuttle_crossing_yield(str(npc["id"]))
+
+
+func _sync_local_pedestrian() -> void:
+	var visible_neighborhood: bool=SandboxStreetRouteBinding.in_neighborhood(_world)
+	if not visible_neighborhood:
+		if _street_pilot != null:
+			if not _street_pilot.world_reported_arrival:
+				var phase: float=SandboxStreetModule.progress_of(_street_pilot.pedestrian.position)
+				if SandboxLocalPedestrianTrip.handoff(_world,_street_pilot.walking_npc_id,phase):
+					_street_restore_state.clear()
+			_street_pilot.queue_free()
+			_street_pilot=null
+			_city.local_active_npc_id=""
+		return
+	if _street_pilot != null:
+		return
+	var npc_id: String=SandboxLocalPedestrianTrip.candidate(_world)
+	if npc_id.is_empty():
+		return
+	var trip: Dictionary=_world.resident(npc_id).get("local_pedestrian_trip",{})
+	if trip.get("status","")=="offscreen":
+		var phase: float=SandboxLocalPedestrianTrip.resume(_world,npc_id)
+		if phase<0.0:
+			return
+		_street_restore_state={
+			"npc_id":npc_id,
+			"pedestrian_x":SandboxStreetModule.position_at(phase).x,
+			"pedestrian_y":SandboxStreetModule.position_at(phase).y,
+			"car_x":SandboxStreetModule.VEHICLE_START.x,
+			"car_y":SandboxStreetModule.VEHICLE_START.y,
+			"crossing_reserved":SandboxStreetModule.crossing_started(phase),
+			"crossing_completed":SandboxStreetModule.crossing_finished(phase),
+			"did_arrive":false}
+	var local: SandboxStreetPilot=SandboxStreetPilot.new()
+	local.name="PatchworksStreetTraffic"
+	local.embedded=true
+	local.world=_world
+	local.walking_npc_id=npc_id
+	local.resume_state=_street_restore_state.duplicate(true)
+	# Author the crossing on the actual route-graph edge and in the actual
+	# ground plane; no unrelated screen-space fake crossing.
+	local.transform=SandboxStreetRouteBinding.street_transform()
+	local.z_index=5
+	_street_pilot=local
+	_city.local_active_npc_id=npc_id
+	add_child(local)
+	_street_restore_state.clear()
+
+func _reset_local_pedestrian() -> void:
+	if _street_pilot != null:
+		_street_pilot.queue_free()
+		_street_pilot = null
+	_street_restore_state.clear()
+	_city.local_active_npc_id=""
+
+
 func _on_new_seed() -> void:
+	_reset_local_pedestrian()
 	_world = SandboxWorld.new(_world.seed + 1)
 	_conversation = null
 	_last_intent = ""
@@ -477,7 +590,8 @@ func _on_new_seed() -> void:
 
 func _on_save() -> void:
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
-	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion}) else "Save failed."
+	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,
+			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else {}}) else "Save failed."
 	_render()
 
 
@@ -496,8 +610,10 @@ func _on_load() -> void:
 			_notice_text = "Save has an invalid or expired conversation."
 			_render()
 			return
+	_reset_local_pedestrian()
 	_world = saved
 	_city.world = saved
+	_street_restore_state = bundle.get("presentation",{}).get("street_state",{}).duplicate(true)
 	_conversation = restored
 	_selected_id = restored.offer_id if restored != null else ""
 	_route_for_offer = _selected_id
@@ -512,6 +628,7 @@ func _on_load() -> void:
 	_last_outcome = ""
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
+	_sync_local_pedestrian()
 	_refresh_web_hitboxes_after_layout()
 
 

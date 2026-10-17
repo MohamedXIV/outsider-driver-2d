@@ -33,6 +33,8 @@ static func create(seed: int) -> Array[Dictionary]:
 			"transit_to": "",
 			"transit_from_offer": "",
 			"transit_method": "",
+			"transit_pause_minutes": 0,
+			"transit_hold_crossing": "",
 			"purpose": kind,
 			"destination": destination,
 			"need": 30 + posmod(seed * 3 + i * 17, 51),
@@ -66,7 +68,8 @@ static func step(residents: Array[Dictionary], minute: int) -> Array[Dictionary]
 	var hour: int = (minute % 1440) / 60
 	for npc in residents:
 		var next_activity: String = "available"
-		if int(npc["transit_until"]) > 0 or not str(npc.get("taxi_offer", "")).is_empty():
+		if int(npc["transit_until"]) > 0 or not str(npc.get("taxi_offer", "")).is_empty() \
+				or npc.get("local_pedestrian_trip",{}).get("status","") in ["walking","offscreen"]:
 			next_activity = "travelling"
 		elif (hour >= 22 or hour < 6) and str(npc["location"]) == str(npc["home"]):
 			next_activity = "resting"

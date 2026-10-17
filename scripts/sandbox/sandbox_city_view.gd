@@ -6,6 +6,7 @@ const SCALE: float = 0.12
 var world: SandboxWorld
 var preview_nodes: Array[String] = []
 var visual_fraction: float = 0.0
+var local_active_npc_id: String = ""
 var reduced_motion: bool = false
 var ui_rtl: bool = false
 var _heading: float = 0.0
@@ -164,12 +165,36 @@ func paint(canvas: Node2D, role: String) -> void:
 func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
+		if str(npc.get("id",""))==local_active_npc_id \
+				or npc.get("local_pedestrian_trip",{}).get("status","")=="offscreen": continue
 		var pos: Vector3 = world.npc_position(npc,visual_fraction)
 		if (pos.y>0) != elevated: continue
+		var shuttle: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,visual_fraction)
+		if not shuttle.is_empty():
+			# Same resident and world trip, shown as transport rather than a
+			# second walking NPC (or an invented municipal driver).
+			var next_pos: Vector2=project(shuttle["ahead"])
+			var here: Vector2=project(pos)
+			var tangent: Vector2=next_pos-here
+			_draw_world_shuttle(canvas,here,tangent.angle() if tangent.length()>0.001 else 0.0)
+			continue
 		var p: Vector2 = project(pos)+Vector2(15,12)
 		canvas.draw_circle(p+Vector2(2,3),4,Color("172a30"))
 		canvas.draw_line(p,p-Vector2(0,5),Color("c3b797"),4)
 		canvas.draw_circle(p-Vector2(0,6),2.5,Color("a5bbac"))
+
+# A world-owned passenger's independently timed shuttle trip. The car
+# silhouette is presentation only; city travel/arrival stays in SandboxWorld.
+func _draw_world_shuttle(canvas: Node2D, point: Vector2, heading: float) -> void:
+	canvas.draw_set_transform(point,heading)
+	canvas.draw_rect(Rect2(-11,-5,24,14),Color(0,0,0,0.4))
+	canvas.draw_rect(Rect2(-11,-7,22,13),Color("729c9b"))
+	canvas.draw_rect(Rect2(-4,-6,9,11),Color("264a51"))
+	canvas.draw_rect(Rect2(8,-5,3,3),Color("f3d9a0"))
+	canvas.draw_rect(Rect2(8,2,3,3),Color("f3d9a0"))
+	canvas.draw_line(Vector2(-8,-4),Vector2(-8,4),Color("b8d7d0"),1.0)
+	canvas.draw_set_transform(Vector2.ZERO)
+
 
 func _taxi(canvas: Node2D) -> void:
 	var taxi: Vector2 = project(world.player_position(visual_fraction))
