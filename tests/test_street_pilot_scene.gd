@@ -20,6 +20,8 @@ func _run() -> void:
 		if walker.global_position.distance_to(original)>30.0:
 			navigated = true
 		if walker.crossing_completed:
+			assert(SandboxStreetModule.crossing_clear(walker.position),
+					"Resident must not end crossing while their collision body remains over asphalt")
 			crossed = true
 		# Sidewalk motion or legal marked crossing only. Never walk sideways
 		# through an arbitrary traffic lane or ride over a simulated vehicle.
