@@ -1,7 +1,8 @@
 extends SceneTree
 
-# Two native CharacterBody2D cars follow one physical lane; both obey the
-# same world-owned pedestrian's zebra right of way without overlapping.
+# Two real Godot lane bodies under a deliberately long native crossing
+# reservation. The ordinary unfrozen walker navigation is independently
+# checked by test_street_pilot_scene.gd.
 func _initialize() -> void:
 	call_deferred("_run")
 
@@ -16,40 +17,56 @@ func _run() -> void:
 	assert(pilot.pedestrian.traffic_following==pilot.follower)
 	var gap: float=SandboxStreetPriority.FOLLOW_SPACING
 	assert(pilot.follower.position.x<=pilot.car.position.x-gap)
-	var stopped_leader: bool=false
-	var stopped_follower: bool=false
-	var cleared: bool=false
-	var arrived: bool=false
-	var frames_checked: int=0
-	for i in range(1500):
+	# A native resident has reserved the legal zebra. Hold its movement only
+	# to give the rear vehicle time to reach its safe following stop.
+	var walker: SandboxPedestrianActor=pilot.pedestrian
+	walker.position=Vector2(SandboxStreetModule.CROSS_X,
+			SandboxStreetModule.NORTH_Y+6.0)
+	walker.crossing_reserved=true
+	walker.crossing_completed=false
+	walker.set_physics_process(false)
+	walker._agent.avoidance_enabled=false
+	var both_stopped: bool=false
+	for i in range(400):
 		await physics_frame
-		frames_checked+=1
 		assert(pilot.follower.position.x<=pilot.car.position.x-gap+0.25,
-				"Second live physics car overlapped or overtook the leading body")
+				"Trailing physical body must not overlap its leader")
 		assert(absf(pilot.follower.position.y-pilot.car.position.y)<0.1)
-		var reserved: bool=pilot.pedestrian.crossing_reserved and not pilot.pedestrian.crossing_completed
-		if reserved:
-			if pilot.car.position.x<=SandboxStreetPriority.stop_line()+0.15 \
-					and pilot.car.velocity.x<0.01:
-				stopped_leader=true
-			if pilot.follower.velocity.x<0.01:
-				stopped_follower=true
-		if pilot.pedestrian.crossing_completed:
-			cleared=true
+		if pilot.car.velocity.x<0.01 and pilot.follower.velocity.x<0.01:
+			both_stopped=true
+			break
+	assert(both_stopped,"Both physical cars must stop while this crossing remains reserved")
+	assert(pilot.car.position.x<=SandboxStreetPriority.stop_line()+0.2)
+	assert(pilot.follower.position.x<=pilot.car.position.x-gap+0.25)
+	assert(SandboxStreetPriority.pedestrian_may_enter(pilot.car.position.x))
+	assert(SandboxStreetPriority.pedestrian_may_enter(pilot.follower.position.x))
+	assert(pilot.car_yielded)
+	# The collision body exits the road; both vehicles may resume, and the
+	# same real resident continues on the native sidewalk toward its site.
+	walker.position=Vector2(SandboxStreetModule.CROSS_X,
+			SandboxStreetModule.crossing_clear_y())
+	walker.crossing_completed=true
+	walker.set_physics_process(true)
+	var resumed_leader: bool=false
+	var resumed_follower: bool=false
+	var arrived: bool=false
+	for i in range(400):
+		await physics_frame
+		assert(pilot.follower.position.x<=pilot.car.position.x-gap+0.25,
+				"Resumed vehicles must still preserve safe following distance")
+		if pilot.car.velocity.x>0.1: resumed_leader=true
+		if pilot.follower.velocity.x>0.1: resumed_follower=true
 		if pilot.world_reported_arrival:
 			arrived=true
 			break
-	assert(frames_checked>1)
-	assert(stopped_leader,"Leading car never yielded to its real walking resident")
-	assert(stopped_follower,"Follower never yielded or stopped behind the first car")
-	assert(cleared and arrived,"Real pedestrian must clear road and arrive exactly once")
-	assert(SandboxStreetModule.crossing_clear(pilot.pedestrian.position))
+	assert(resumed_leader and resumed_follower,
+			"Both waiting lane vehicles must resume after actual road clearance")
+	assert(arrived,"The world-owned resident failed to reach their actual site")
+	assert(SandboxStreetModule.crossing_clear(walker.position))
 	assert(pilot.world.resident(pilot.walking_npc_id)["local_pedestrian_trip"]["status"]=="arrived")
-	assert(pilot.follower.position.x<=pilot.car.position.x-gap+0.25)
-	var saved: Dictionary=pilot.visual_snapshot()
-	assert(saved.get("npc_id","")==pilot.walking_npc_id)
-	assert(absf(float(saved["car_x"])-pilot.car.position.x)<0.001)
-	assert(absf(float(saved["follower_x"])-pilot.follower.position.x)<0.001)
+	var snapshot: Dictionary=pilot.visual_snapshot()
+	assert(snapshot.get("npc_id","")==pilot.walking_npc_id)
+	assert(absf(float(snapshot["follower_x"])-pilot.follower.position.x)<0.001)
 	assert(SandboxWorld.new().restore_snapshot(pilot.world.snapshot()))
-	print("STREET_MULTI_VEHICLE_PASS two native lane bodies, safe gap, shared zebra yielding, world-owned arrival and snapshot")
+	print("STREET_MULTI_VEHICLE_PASS two native cars stop, maintain gap, resume and share one world-owned zebra arrival")
 	quit()
