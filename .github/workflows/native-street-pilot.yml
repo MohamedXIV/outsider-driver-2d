@@ -35,12 +35,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for spec in test_street_module test_street_priority test_street_pilot_scene test_street_multi_vehicle_scene test_street_junction_scene test_npc_interpolation_scene test_street_main_scene test_street_handoff test_taxi_crossing_world test_taxi_crossing_scene test_taxi_crossing_return_scene test_taxi_crossing_unload_scene test_world_shuttle_visual test_city_presentation; do
+          for spec in test_street_module test_street_priority test_street_pilot_scene test_street_multi_vehicle_scene test_street_junction_scene test_npc_interpolation_scene test_street_main_scene test_street_handoff test_taxi_crossing_world test_taxi_crossing_scene test_taxi_crossing_return_scene test_taxi_crossing_unload_scene test_world_shuttle_visual test_shuttle_crossing_world test_shuttle_crossing_scene test_city_presentation; do
             LIBGL_ALWAYS_SOFTWARE=1 timeout 95s xvfb-run -a -s "-screen 0 1280x720x24" \
               /tmp/godot --audio-driver Dummy --path . --script "res://tests/${spec}.gd" > "/tmp/${spec}.log" 2>&1 || { cat "/tmp/${spec}.log"; exit 1; }
             cat "/tmp/${spec}.log"
             if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script|ERROR:' "/tmp/${spec}.log"; then exit 1; fi
-            if ! grep -E 'STREET_MODULE_PASS|STREET_PRIORITY_PASS|STREET_PILOT_PASS|STREET_MULTI_VEHICLE_PASS|STREET_JUNCTION_PASS|NPC_INTERPOLATION_PASS|STREET_MAIN_PASS|STREET_HANDOFF_PASS|TAXI_CROSSING_WORLD_PASS|TAXI_CROSSING_SCENE_PASS|TAXI_CROSSING_RETURN_SCENE_PASS|TAXI_CROSSING_UNLOAD_SCENE_PASS|WORLD_SHUTTLE_VISUAL_PASS|CITY_PRESENTATION_PASS' "/tmp/${spec}.log"; then exit 1; fi
+            if ! grep -E 'STREET_MODULE_PASS|STREET_PRIORITY_PASS|STREET_PILOT_PASS|STREET_MULTI_VEHICLE_PASS|STREET_JUNCTION_PASS|NPC_INTERPOLATION_PASS|STREET_MAIN_PASS|STREET_HANDOFF_PASS|TAXI_CROSSING_WORLD_PASS|TAXI_CROSSING_SCENE_PASS|TAXI_CROSSING_RETURN_SCENE_PASS|TAXI_CROSSING_UNLOAD_SCENE_PASS|WORLD_SHUTTLE_VISUAL_PASS|SHUTTLE_CROSSING_WORLD_PASS|SHUTTLE_CROSSING_SCENE_PASS|CITY_PRESENTATION_PASS' "/tmp/${spec}.log"; then exit 1; fi
           done
       - name: Upload targeted native proof logs
         uses: actions/upload-artifact@v4
@@ -63,5 +63,7 @@ jobs:
             /tmp/test_taxi_crossing_unload_scene.log
             /tmp/test_city_presentation.log
             /tmp/test_world_shuttle_visual.log
+            /tmp/test_shuttle_crossing_world.log
+            /tmp/test_shuttle_crossing_scene.log
             /tmp/od2d-street-evidence/*.png
           if-no-files-found: ignore

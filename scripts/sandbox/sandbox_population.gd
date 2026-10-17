@@ -33,6 +33,8 @@ static func create(seed: int) -> Array[Dictionary]:
 			"transit_to": "",
 			"transit_from_offer": "",
 			"transit_method": "",
+			"transit_pause_minutes": 0,
+			"transit_hold_crossing": "",
 			"purpose": kind,
 			"destination": destination,
 			"need": 30 + posmod(seed * 3 + i * 17, 51),

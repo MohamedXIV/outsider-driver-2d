@@ -155,10 +155,12 @@ func _process(delta: float) -> void:
 	# never stop the city clock, other NPCs or money settlement elsewhere.
 	_sync_local_pedestrian()
 	_update_player_crossing_yield()
+	_update_shuttle_crossing_yields()
 	_elapsed += maxf(delta, 0.0)
 	while _elapsed >= REAL_SECONDS_PER_STEP:
 		_elapsed -= REAL_SECONDS_PER_STEP
 		_update_player_crossing_yield()
+		_update_shuttle_crossing_yields()
 		_world.advance(1)
 		_render()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
@@ -494,6 +496,25 @@ func _update_player_crossing_yield() -> void:
 			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position) \
 			and SandboxStreetRouteBinding.approaching(_world):
 		_world.begin_crossing_yield()
+
+
+# Shuttle route motion is owned by SandboxWorld. Physical pedestrian
+# state is consulted before the next simulated minute; held shuttles never
+# silently progress while their crossing is occupied.
+func _update_shuttle_crossing_yields() -> void:
+	var has_walker: bool=_street_pilot!=null and not _street_pilot.world_reported_arrival
+	var occupied: bool=has_walker and _street_pilot.pedestrian.crossing_reserved \
+			and not _street_pilot.pedestrian.crossing_completed \
+			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)
+	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) \
+			if _street_pilot==null else _street_pilot.world_reported_arrival or \
+			(_street_pilot.pedestrian.crossing_completed and \
+			SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position))
+	for npc in _world.residents:
+		if npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
+			if cleared: _world.release_shuttle_crossing_yield(str(npc["id"]))
+		elif occupied and SandboxWorldTraffic.approaching_zebra(_world,npc):
+			_world.begin_shuttle_crossing_yield(str(npc["id"]))
 
 
 func _sync_local_pedestrian() -> void:

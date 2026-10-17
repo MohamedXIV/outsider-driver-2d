@@ -229,6 +229,11 @@ func advance(minutes: int) -> bool:
 		return false
 	for i in range(minutes / STEP_MINUTES):
 		minute += STEP_MINUTES
+		for npc in residents:
+			if npc.get("transit_method","")=="shuttle" \
+					and npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
+				npc["transit_pause_minutes"]=int(npc.get("transit_pause_minutes",0))+1
+				npc["transit_until"]=int(npc["transit_until"])+1
 		SandboxLocalPedestrianTrip.advance_offscreen(self)
 		if minute % 10 == 0:
 			_record_changes(SandboxPopulation.step(residents, minute))
@@ -304,8 +309,11 @@ func npc_position(npc: Dictionary, fraction: float = 0.0) -> Vector3:
 	if int(npc.get("transit_until",0))>0:
 		var nodes: Array[String] = []
 		for node in npc.get("transit_nodes",[]): nodes.append(str(node))
-		return SandboxRoads.position_on_path(nodes,float(minute-int(npc.get("transit_started",minute)))+fraction,
-			float(int(npc["transit_until"])-int(npc["transit_started"])))
+		return SandboxRoads.position_on_path(nodes,maxf(0.0,float(minute-int(npc.get("transit_started",minute))
+				-int(npc.get("transit_pause_minutes",0)))+
+				(0.0 if not str(npc.get("transit_hold_crossing","")).is_empty() else fraction)),
+			float(int(npc["transit_until"])-int(npc["transit_started"])
+				-int(npc.get("transit_pause_minutes",0))))
 	return SandboxRoads.map_position(str(npc["location"]))
 
 
@@ -430,6 +438,40 @@ func _route_time_left() -> int:
 		return SandboxRoads.minutes_left(route_nodes, route_segment, route_edge_elapsed)
 	return SandboxRoads.edge_minutes(route_nodes[route_segment], route_nodes[route_segment + 1]) \
 			- route_edge_elapsed + SandboxRoads.path_minutes(pending_route_nodes)
+
+
+# World-owned municipal shuttle yielding; only one authored zebra.
+# The same resident retains transit nodes, fare and route provenance.
+func begin_shuttle_crossing_yield(npc_id: String) -> bool:
+	var npc: Dictionary=resident(npc_id)
+	if npc.is_empty() or not str(npc.get("transit_hold_crossing","")).is_empty() \
+			or not SandboxWorldTraffic.approaching_zebra(self,npc):
+		return false
+	npc["transit_hold_crossing"]=SandboxStreetRouteBinding.CROSSING_ID
+	_record("npc_shuttle_yield_started",npc_id,{
+		"crossing":SandboxStreetRouteBinding.CROSSING_ID,
+		"source_offer":str(npc["transit_from_offer"]),
+		"edge":SandboxRoads.edge_key(SandboxStreetRouteBinding.FROM,SandboxStreetRouteBinding.TO)})
+	return true
+
+
+func release_shuttle_crossing_yield(npc_id: String) -> bool:
+	var npc: Dictionary=resident(npc_id)
+	if npc.is_empty() or npc.get("transit_hold_crossing","")!=SandboxStreetRouteBinding.CROSSING_ID:
+		return false
+	var started: int=-1
+	for i in range(events.size()-1,-1,-1):
+		if events[i].get("kind","")=="npc_shuttle_yield_started" \
+				and events[i].get("subject","")==npc_id:
+			started=int(events[i]["minute"])
+			break
+	if started<0: return false
+	_record("npc_shuttle_yield_ended",npc_id,{
+		"crossing":SandboxStreetRouteBinding.CROSSING_ID,
+		"source_offer":str(npc["transit_from_offer"]),
+		"wait_minutes":minute-started})
+	npc["transit_hold_crossing"]=""
+	return true
 
 
 # Right of way is a gameplay event, not a pause of the entire simulation.
@@ -692,6 +734,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 				or not (npc.get("contacts") is Dictionary) \
 				or int(npc.get("last_peer_day", -2)) < -1:
 			return false
+		if not SandboxWorldTraffic.valid_yield_history(npc,value["events"],int(value["minute"])):
+			return false
 		var taxi_id: String = str(npc.get("taxi_offer", ""))
 		if not taxi_id.is_empty():
 			if taxi_id != active or npc.get("activity") != "travelling": return false
@@ -713,7 +757,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 					or transit.front() != npc.get("location") or transit.back() != npc.get("transit_to") \
 					or int(npc.get("transit_started", -1)) < 0 \
 					or int(npc.get("transit_started", -1)) > int(value["minute"]) \
-					or travel_until - int(npc.get("transit_started", -1)) != SandboxRoads.path_minutes(transit) * (1 if npc.get("transit_method") == "shuttle" else 4) \
+					or travel_until - int(npc.get("transit_started", -1)) \
+					-int(npc.get("transit_pause_minutes",0)) != SandboxRoads.path_minutes(transit) * (1 if npc.get("transit_method") == "shuttle" else 4) \
 					or travel_until <= int(value["minute"]) \
 					or not SandboxRoads.DISTRICTS.has(npc.get("transit_to", "")) \
 					or str(npc.get("transit_from_offer", "")).is_empty() \
