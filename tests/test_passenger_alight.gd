@@ -44,6 +44,8 @@ func _run() -> void:
 		if fake["id"] == id: fake["passenger_alight"]["arrived"] = world.minute - 1
 	assert(not SandboxWorld.new().restore_snapshot(forged), "Tampered arrival time must not pass")
 	var second: SandboxWorld = SandboxWorld.new(9)
-	assert(second.accept(str(offer["id"])) == false, "An offer is not shared between independent worlds")
+	assert(second.offer_by_id(str(offer["id"])).get("status", "") == "open",
+			"Independent same-seed world must not inherit a fare settlement")
+	assert(second.events.size() < world.events.size())
 	print("PASSENGER_ALIGHT_PASS real medical fare, sourced lifecycle, offscreen progress, replay and tamper guard")
 	quit()
