@@ -14,5 +14,13 @@ func _run() -> void:
 	assert(traffic.priority.queue==["branch"])
 	assert(SandboxJunctionTraffic.valid_snapshot(saved))
 	saved["owner"]="unknown";assert(not SandboxJunctionTraffic.valid_snapshot(saved))
+	# A save can occur in the exact frame a physical owner clears the box.
+	for id in traffic.IDS:
+		traffic.distances[id]=159.9 if id=="main" else 50.0
+		traffic._place(id)
+	traffic.priority.owner="main";traffic.priority.queue.assign(["branch","following"])
+	traffic.step(1.0/60.0)
+	assert(traffic.actors["main"].position.x>=traffic.EXIT_X)
+	assert(SandboxJunctionTraffic.valid_snapshot(traffic.snapshot()),"The clearance frame must remain saveable")
 	print("JUNCTION_PREENTRY_PASS admission and FIFO survive save before movement; ghost owners rejected")
 	quit()

@@ -114,10 +114,13 @@ static func valid_snapshot(state: Variant) -> bool:
 func _physics_process(delta: float) -> void:
 	step(delta)
 
-func step(delta: float) -> void:
-	if actors.is_empty() or delta<=0.0: return
+func _release_cleared_owner() -> void:
 	if not priority.owner.is_empty() and actors[priority.owner].position.x>=EXIT_X:
 		priority.release(priority.owner,true)
+
+func step(delta: float) -> void:
+	if actors.is_empty() or delta<=0.0: return
+	_release_cleared_owner()
 	for id in IDS:
 		if _waiting(id): priority.request(id)
 	var before: String=priority.owner
@@ -147,3 +150,6 @@ func step(delta: float) -> void:
 		else: distances[id]=routes[id].get_closest_offset(body.position)
 		var tangent: Vector2=_point(id,float(distances[id])+.5)-_point(id,float(distances[id])-.5)
 		if tangent.length_squared()>.001: body.rotation=tangent.angle()
+	# Input/save callbacks may run before the next physics tick. Complete the
+	# physical clearance transition in this tick so every live state is saveable.
+	_release_cleared_owner()

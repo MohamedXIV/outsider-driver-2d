@@ -37,6 +37,10 @@ Rebase/merge changes the code identity and requires fresh validation.
   Presentation validation now precedes opening/truncating the file.
 * Saved junction admission before the owner's first movement lost FIFO
   ownership. The validated token is now persisted with positions and queue.
+* At the exact frame a junction owner physically cleared the exit, its token
+  remained until the next tick and a legitimate save was rejected. Clearance
+  now settles at the end of the same physical step. Every ordinary frame in
+  the native merge/blocked-exit/restore test must pass save validation.
 * Restore accepted forged resumed progress and premature offscreen arrivals.
   It now checks progress against elapsed canonical ticks and independent
   arrival provenance, without converting a blocked native body into arrival.

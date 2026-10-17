@@ -25,6 +25,7 @@ func _run() -> void:
 	for frame in range(1600):
 		traffic.step(1.0/60.0)
 		await physics_frame
+		assert(SandboxLocalPedestrianTrip.valid_presentation(pilot.world,pilot.visual_snapshot()),"Every ordinary physical frame must be saveable")
 		var occupied: int=0
 		for id in traffic.IDS:
 			if traffic._in_conflict(id): occupied+=1
