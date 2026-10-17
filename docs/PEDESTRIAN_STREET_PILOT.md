@@ -102,6 +102,21 @@ A P0 audit found a possible deadlock in the **local demo traffic vehicle**: if t
 
 **Validation status:** These new code/test changes are committed but **have not yet been executed under Godot**. The earlier [10/10 native run #38967936158](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/38967936158) tested `fb7e6a2` before this fix. Do not report the new regression as passing until the test runs in Godot 4.7.2. The targeted workflow remains `workflow_dispatch`-only; no extra Actions run was requested for this small change.
 
+## Follow-up: release only after the pedestrian body clears the actual lane — October 17, 2026
+
+The original walker set `crossing_completed` at `position.y > 370`, even though the authored vehicle road continues to **y=376** and the pedestrian owns a **7 px radius collision body**. That meant the real player taxi could release its route hold while the pedestrian still overlapped the traffic surface. This is separate from R07's *late reservation / demo-car deadlock*.
+
+Changes in stacked PR #61:
+- `SandboxStreetModule` now derives a clearance boundary from the actual authored road edge, the walker collision radius, and 1 px margin: **y=384** in the current Patchworks geometry.
+- `SandboxPedestrianActor` uses that same physical clearance to mark crossing completed, instead of the previous hard-coded y=370.
+- Deterministic `crossing_finished(progress)` for the offscreen handoff uses the same source-derived boundary.
+- The normal Player Mode taxi will **not** release a world-route hold merely because `crossing_completed` is true. It also requires that the visible walker's physical position clears that boundary. A nearby pedestrian that is blocked midway through crossing therefore holds the taxi while the world clock continues.
+- Targeted GDScript regressions were added/extended in `test_street_module.gd` (geometry and offscreen threshold), `test_street_pilot_scene.gd` (real native actor position), and `test_taxi_crossing_scene.gd` (stale completion flag, blocked mid-lane NPC, mid-hold save/reload and lawful release).
+
+**Evidence classification:** 14/14 source/geometry static sanity checks passed in the coding session. **No Godot 4.7.2 native runtime or Web/Windows export has run after these commits.** The earlier 10/10 native evidence remains valid only for source head `fb7e6a2`. The environment has no installed Godot binary and dependency download was not reachable; workflow remains manual-only. Do not mark new tests passing or this PR merge-ready until a native gate confirms the updated cases.
+
+**Remaining risk:** This is a bounded crossing. Player taxi movement is still discrete authoritative road-graph progress rather than a physics-body braking/collision model; reverse-direction crossing, missing/despawned walkers, prolonged obstructions, network-wide traffic and grade-separated cases need further acceptance.
+
 ## Next increment
 Run the amended priority regression together with the existing native crossing scenes at the next justified Godot gate. Then test actual start/clear/resume ordering around the player's own world-graph taxi, including a pedestrian that becomes blocked or leaves the local actor range, opposite traversal direction, and safe grade separation. Afterward broaden the street-module pilot to additional regular blocks while keeping the current one-world near/far handoff model.
 
