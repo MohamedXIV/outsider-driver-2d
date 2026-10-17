@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - feat/native-pedestrian-crossing-pilot
+    paths-ignore:
+      - 'docs/**'
 permissions:
   contents: read
 jobs:
