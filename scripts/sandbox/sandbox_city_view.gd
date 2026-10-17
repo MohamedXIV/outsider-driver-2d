@@ -249,6 +249,10 @@ func paint(canvas: Node2D, role: String) -> void:
 func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
+		if npc.get("passenger_alight", {}).get("status", "") in ["walking", "offscreen", "arrived"]:
+			# The same resident is represented by the local native actor or
+			# is inside the clinic; never draw a second static node marker.
+			continue
 		if (str(npc.get("id",""))==local_active_npc_id or local_active_npc_ids.has(str(npc.get("id","")))) \
 				or npc.get("local_pedestrian_trip",{}).get("status","")=="offscreen": continue
 		var pos: Vector3 = world.npc_position(npc,visual_fraction)

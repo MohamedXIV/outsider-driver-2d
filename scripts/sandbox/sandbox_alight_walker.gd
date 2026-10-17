@@ -34,10 +34,10 @@ func _physics_process(_delta: float) -> void:
 		velocity = Vector2.ZERO
 		reached.emit(global_position)
 		return
+	var next: Vector2 = _agent.get_next_path_position()
 	if not _agent.is_target_reachable(): # No imagined arrival through obstructed ground.
 		velocity = Vector2.ZERO
 		return
-	var next: Vector2 = _agent.get_next_path_position()
 	velocity = global_position.direction_to(next) * SandboxAlightGeometry.WALK_SPEED
 	move_and_slide()
 	queue_redraw()

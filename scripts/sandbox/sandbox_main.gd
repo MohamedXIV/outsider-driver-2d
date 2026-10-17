@@ -62,6 +62,8 @@ const REAL_SECONDS_PER_STEP: float = 1.0
 
 var _street_pilot: SandboxStreetPilot
 var _street_restore_state: Dictionary = {}
+var _alight_view: SandboxAlightView
+var _alight_restore_state: Dictionary = {}
 var _player_ui: SandboxPlayerUI
 var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
@@ -166,6 +168,7 @@ func _process(delta: float) -> void:
 	# A local pedestrian can hold the actual player taxi at a grounded zebra;
 	# never stop the city clock, other NPCs or money settlement elsewhere.
 	_sync_local_pedestrian()
+	_sync_passenger_alight()
 	_update_player_crossing_yield()
 	_update_shuttle_crossing_yields()
 	_elapsed += maxf(delta, 0.0)
@@ -174,12 +177,14 @@ func _process(delta: float) -> void:
 		_update_player_crossing_yield()
 		_update_shuttle_crossing_yields()
 		_world.advance(1)
+		_sync_passenger_alight()
 		_render()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
 	# fraction belongs to presentation time, NOT the player's travel state.
 	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
 	_sync_local_pedestrian()
+	_sync_passenger_alight()
 	_publish_street_web()
 
 
@@ -512,10 +517,12 @@ func _advance_manual_time(minutes: int) -> void:
 	# boundary as ordinary time. The native bodies do not move in this loop.
 	for tick in range(minutes):
 		_sync_local_pedestrian()
+		_sync_passenger_alight()
 		_update_player_crossing_yield()
 		_update_shuttle_crossing_yields()
 		_world.advance(1)
 	_sync_local_pedestrian()
+	_sync_passenger_alight()
 
 
 # Local native Godot navigation runs only for a genuine resident in the garage
@@ -586,6 +593,42 @@ func _sync_local_pedestrian() -> void:
 	_city.local_active_npc_ids=local.loaded_ids()
 	_street_restore_state.clear()
 
+func _reset_passenger_alight() -> void:
+	if _alight_view != null:
+		_alight_view.queue_free()
+		_alight_view = null
+	_alight_restore_state.clear()
+
+func _sync_passenger_alight() -> void:
+	var nearby: bool = not _world.is_travelling() and _world.player_district == "clinic"
+	if _alight_view != null:
+		var id: String = _alight_view.npc_id
+		var status: String = str(_world.resident(id).get("passenger_alight", {}).get("status", ""))
+		if not nearby or status != "walking":
+			if status == "walking" and _alight_view.walker != null:
+				_alight_view.handoff()
+			_alight_view.queue_free()
+			_alight_view = null
+	if not nearby or _alight_view != null: return
+	for npc in _world.residents:
+		var trip: Dictionary = npc.get("passenger_alight", {})
+		if trip.get("site", "") != SandboxPassengerAlight.SITE or trip.get("status", "") not in ["walking", "offscreen"]:
+			continue
+		var local: SandboxAlightView = SandboxAlightView.new()
+		local.world = _world
+		local.npc_id = str(npc["id"])
+		local.resume_state = _alight_restore_state.duplicate(true)
+		local.z_index = 6
+		local.name = "NightClinicResidentAlight"
+		add_child(local)
+		if local.walker != null:
+			_alight_view = local
+		else:
+			local.queue_free()
+		_alight_restore_state.clear()
+		break
+
+
 func _reset_local_pedestrian() -> void:
 	if _street_pilot != null:
 		_street_pilot.queue_free()
@@ -596,6 +639,7 @@ func _reset_local_pedestrian() -> void:
 
 
 func _on_new_seed() -> void:
+	_reset_passenger_alight()
 	_reset_local_pedestrian()
 	_world = SandboxWorld.new(_world.seed + 1)
 	_conversation = null
@@ -616,10 +660,12 @@ func _on_new_seed() -> void:
 
 
 func _on_save() -> void:
+	_sync_passenger_alight()
 	if _street_pilot!=null: _street_pilot.reconcile_reservations()
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
 	var successful: bool=SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,"taxi_heading":_city.saved_taxi_heading(),
-			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state})
+			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else _street_restore_state,
+			"alight_state": _alight_view.visual_snapshot() if _alight_view != null else {}})
 	_notice_text="Sandbox saved." if successful else "Save failed."
 	if successful: _publish_street_boundary("streetSavedActors")
 	_render()
@@ -640,11 +686,13 @@ func _on_load() -> void:
 			_notice_text = "Save has an invalid or expired conversation."
 			_render()
 			return
+	_reset_passenger_alight()
 	_reset_local_pedestrian()
 	_world = saved
 	_city._camera_initialized=false
 	_city.world = saved
 	_street_restore_state = bundle.get("presentation",{}).get("street_state",{}).duplicate(true)
+	_alight_restore_state = bundle.get("presentation",{}).get("alight_state",{}).duplicate(true)
 	_conversation = restored
 	_selected_id = restored.offer_id if restored != null else ""
 	_route_for_offer = _selected_id
@@ -662,6 +710,7 @@ func _on_load() -> void:
 	_notice_text = "World, NPC and live dialogue restored."
 	_render()
 	_sync_local_pedestrian()
+	_sync_passenger_alight()
 	_publish_street_boundary("streetRestoredActors")
 	_refresh_web_hitboxes_after_layout()
 

@@ -235,6 +235,7 @@ func advance(minutes: int) -> bool:
 				npc["transit_pause_minutes"]=int(npc.get("transit_pause_minutes",0))+1
 				npc["transit_until"]=int(npc["transit_until"])+1
 		SandboxLocalPedestrianTrip.advance_offscreen(self)
+		SandboxPassengerAlight.advance_offscreen(self)
 		if minute % 10 == 0:
 			_record_changes(SandboxPopulation.step(residents, minute))
 		_record_changes(SandboxAutonomy.finish_arrivals(residents, minute))
@@ -561,6 +562,10 @@ func _complete_active_trip() -> void:
 	# The source remains the actual fare settlement, not a fabricated NPC quest.
 	var fare_source: String = str(events.back()["id"])
 	SandboxMeetings.maybe_invite(self, npc, fare_source)
+	# The fare is settled only once; its real resident can now walk from the
+	# curb toward the authored clinic entrance. This does not create an NPC.
+	if route_segment > 0:
+		SandboxPassengerAlight.begin(self, npc, offer, route_nodes[route_segment - 1])
 	active_offer_id = ""
 	route_nodes.clear()
 	route_segment = 0
@@ -730,6 +735,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 			if walking_slots.has(slot) or walking_slots.size()>=2: return false
 			walking_slots[slot]=true
 		if not SandboxLocalPedestrianTrip.valid_history(npc, value["events"], int(value["minute"])):
+			return false
+		if not SandboxPassengerAlight.valid_history(npc, value["offers"], value["events"], int(value["minute"])):
 			return false
 		if not ["kind:a", "kind:b", "kind:c", "kind:d"].has(npc.get("species")) \
 				or not ["harbor", "exchange", "newcomer"].has(npc.get("community")) \
