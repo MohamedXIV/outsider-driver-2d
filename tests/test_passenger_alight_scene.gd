@@ -37,6 +37,7 @@ func _run() -> void:
 	assert(not scene._alight_view.walker._agent.is_navigation_finished())
 	scene._on_save()
 	assert(scene._notice_text == "Sandbox saved.")
+	var saved_pose: Vector2 = scene._alight_view.walker.position
 	var balance: int = world.credits
 	var source_events: int = world.events.filter(func(e: Dictionary) -> bool:
 		return e.get("kind", "") == "fare_settled" and e.get("subject", "") == offer["id"]).size()
@@ -44,7 +45,7 @@ func _run() -> void:
 	assert(scene._notice_text == "World, NPC and live dialogue restored.")
 	assert(scene._world.credits == balance and source_events == 1)
 	assert(scene._alight_view != null and scene._alight_view.npc_id == id)
-	assert(scene._alight_view.walker.position.distance_to(before_save) < .1,
+	assert(scene._alight_view.walker.position.distance_to(saved_pose) < .1,
 			"Native body must resume at its actual physical saved pose")
 	var arrived: bool = false
 	for frame in range(200):
