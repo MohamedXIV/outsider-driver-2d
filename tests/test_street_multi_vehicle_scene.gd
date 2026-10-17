@@ -32,7 +32,12 @@ func _run() -> void:
 		assert(pilot.follower.position.x<=pilot.car.position.x-gap+0.25,
 				"Trailing physical body must not overlap its leader")
 		assert(absf(pilot.follower.position.y-pilot.car.position.y)<0.1)
-		if pilot.car.velocity.x<0.01 and pilot.follower.velocity.x<0.01:
+		# SceneTree.physics_frame fires before node physics callbacks. Both
+		# new cars initially have velocity zero: do not count their initial
+		# state as a real brake/yield event until they reached their stop.
+		if pilot.car.position.x>=SandboxStreetPriority.stop_line()-0.25 \
+				and pilot.follower.position.x>=pilot.car.position.x-gap-0.25 \
+				and pilot.car.velocity.x<0.01 and pilot.follower.velocity.x<0.01:
 			both_stopped=true
 			break
 	assert(both_stopped,"Both physical cars must stop while this crossing remains reserved")
