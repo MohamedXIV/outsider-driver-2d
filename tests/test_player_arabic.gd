@@ -2,6 +2,8 @@ extends SceneTree
 func _initialize() -> void: call_deferred("_run")
 func _run() -> void:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate();root.add_child(scene);scene.set_process(false)
+	scene._player_ui._tab("settings")
+	assert(scene._player_ui._actions["arabic"].get_theme_font("font").has_char("ع".unicode_at(0)),"Arabic language choice must be readable before switching locale")
 	scene._on_language_locale("ar")
 	for tab in ["requests","map","gear","contacts","settings"]:
 		scene._player_ui._tab(tab)

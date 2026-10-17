@@ -35,6 +35,16 @@ const { openCity } = require('./city_browser.cjs');
     await page.waitForFunction(()=>JSON.parse(document.documentElement.dataset.playerViewport)[0]===390);
     await click('arabic');
     await shot('camera-phone-arabic');
+    const beforeMode=await data(),mode=JSON.parse(beforeMode.playerModeBounds);
+    const canvas=await page.locator('canvas').boundingBox(),viewport=JSON.parse(beforeMode.playerViewport);
+    // The edge lies underneath the compact grid's empty cell. Real input
+    // must still reach the mode button, not an invisible container.
+    await page.mouse.click(canvas.x+(mode[0]+4)*canvas.width/viewport[0],canvas.y+(mode[1]+mode[3]/2)*canvas.height/viewport[1]);
+    await page.waitForFunction(()=>document.documentElement.dataset.playerMode==='false');
+    await page.keyboard.press('F3');
+    await page.waitForFunction(()=>document.documentElement.dataset.playerMode==='true');
+    assert.equal((await data()).sandboxCredits,beforeMode.sandboxCredits);
+    assert.equal((await data()).playerLocale,'ar');
     assert.equal(Number((await data()).playerZoom), 2.6, 'UI scrolling cannot zoom the world');
     assert.deepEqual(errors, []);
     console.log('WEB_CAMERA_PASS wheel keyboard touch save reload desktop narrow');

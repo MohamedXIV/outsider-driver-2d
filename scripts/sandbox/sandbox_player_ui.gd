@@ -51,8 +51,12 @@ func bind(host: Node) -> void:
 	root.theme=theme
 	_header=Label.new();root.add_child(_header);_header.position=Vector2(24,16);_header.add_theme_font_size_override("font_size",23)
 	_hint=Label.new();root.add_child(_hint);_hint.position=Vector2(24,50);_hint.add_theme_color_override("font_color",Color("a9c2b4"))
+	# World place labels must not compete with the status text behind the HUD.
+	var status_style: StyleBoxFlat=StyleBoxFlat.new();status_style.bg_color=panel_style.bg_color
+	status_style.set_corner_radius_all(4)
+	_header.add_theme_stylebox_override("normal",status_style);_hint.add_theme_stylebox_override("normal",status_style)
 	_mode=Button.new();_mode.name="Mode";_mode.text="Debug · F3";_mode.custom_minimum_size=Vector2(130,44);root.add_child(_mode);_mode.pressed.connect(toggle_debug)
-	_tabs=GridContainer.new();_tabs.columns=5;root.add_child(_tabs);_tabs.position=Vector2(24,86);_tabs.add_theme_constant_override("h_separation",6);_tabs.add_theme_constant_override("v_separation",6)
+	_tabs=GridContainer.new();_tabs.mouse_filter=Control.MOUSE_FILTER_IGNORE;_tabs.columns=5;root.add_child(_tabs);_tabs.position=Vector2(24,86);_tabs.add_theme_constant_override("h_separation",6);_tabs.add_theme_constant_override("v_separation",6)
 	for key in ["requests","map","gear","contacts","settings"]:
 		var button: Button=Button.new();button.name=key;button.custom_minimum_size=Vector2(0,44);_tabs.add_child(button);button.pressed.connect(_tab.bind(key))
 	_panel=PanelContainer.new();root.add_child(_panel);_panel.position=Vector2(24,140)
@@ -72,7 +76,9 @@ func _layout() -> void:
 	_tabs.columns=3 if area.x<600 else 5
 	_tabs.size=Vector2.ZERO
 	var panel_top: float=194.0 if area.x<600 else 140.0
-	_mode.position=Vector2(area.x-154,18)
+	# The unused third cell of the second compact tab row keeps the mode
+	# toggle accessible without covering the status line in either locale.
+	_mode.position=Vector2(area.x-154,136 if area.x<600 else 18)
 	_body.custom_minimum_size.x=minf(380,area.x-48)-40
 	for child in _body.get_children():
 		if child is Label: child.custom_minimum_size.x=_body.custom_minimum_size.x
@@ -81,7 +87,9 @@ func _layout() -> void:
 	_body.custom_minimum_size.x=_panel.size.x-40
 	_portrait.position=Vector2(area.x-230,120);_portrait.size=Vector2(200,190)
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
-	_header.size.x=area.x-200;_hint.size.x=area.x-60
+	_header.add_theme_font_size_override("font_size",20 if area.x<600 else 23)
+	_header.size.x=area.x-48 if area.x<600 else area.x-200
+	_hint.size.x=_header.size.x
 	_header.clip_text=true;_hint.clip_text=true
 	call_deferred("_fit_panel");call_deferred("_publish")
 
@@ -266,7 +274,7 @@ func sync() -> void:
 	elif tab=="settings":
 		_label(trp("Make yourself at home","خياراتك"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))
-		_button("arabic","العربية",controller._on_language_locale.bind("ar"))
+		_button("arabic","العربية",controller._on_language_locale.bind("ar")).add_theme_font_override("font",_arabic_font)
 		_button("motion",trp("Reduced motion: ","تقليل الحركة: ")+(trp("On","مفعّل") if controller._reduced_motion else trp("Off","متوقف")),controller._on_reduced_motion.bind(not controller._reduced_motion))
 		_label(trp("Camera · wheel or +/- · %.2fx", "الكاميرا · عجلة الفأرة أو +/- · %.2fx") % controller._city.zoom_preference)
 		_button("zoom_in",trp("Zoom in +","تقريب +"),controller._change_zoom.bind(0.2),controller._city.zoom_preference >= SandboxCityView.MAX_ZOOM)
@@ -291,13 +299,14 @@ func _publish() -> void:
 	await get_tree().process_frame
 	if not is_inside_tree(): return
 	var bounds: Dictionary={}
+	var mode_rect: Rect2=_mode.get_global_rect()
 	for key in _actions:
 		var button: Button=_actions[key]
 		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled,
 			"clipTop":_scroll.get_global_rect().position.y,"clipBottom":_scroll.get_global_rect().end.y}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
-	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size

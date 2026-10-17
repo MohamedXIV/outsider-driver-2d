@@ -45,6 +45,12 @@ Rebase/merge changes the code identity and requires fresh validation.
   strand walking residents without actors and discard the local queue. Saved
   poses now produce sourced far handoffs; suspended traffic survives far
   save/load and resumes at the same positions/owner/queue on return.
+* Final screenshot review found missing Arabic glyphs on the English-mode
+  language selector and status/mode overlap in the compact HUD. The selector
+  always uses the shipped Arabic font; compact mode control now occupies the
+  unused tab cell without intercepting tabs. Status backdrops protect text
+  from world labels. Native glyph/layout checks and real browser edge clicks
+  cover the correction without changing world state.
 * Restore accepted forged resumed progress and premature offscreen arrivals.
   It now checks progress against elapsed canonical ticks and independent
   arrival provenance, without converting a blocked native body into arrival.

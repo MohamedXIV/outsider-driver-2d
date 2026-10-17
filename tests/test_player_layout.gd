@@ -7,6 +7,10 @@ func _run() -> void:
 		for tab in ["requests","map","gear","contacts","settings"]:
 			scene._player_ui._tab(tab)
 			await process_frame;await process_frame;await process_frame
+			var mode_bounds: Rect2=scene._player_ui._mode.get_global_rect()
+			assert(not scene._player_ui._hint.get_global_rect().intersects(mode_bounds),"Status text must not run underneath the mode button")
+			for child in scene._player_ui._tabs.get_children():
+				assert(not child.get_global_rect().intersects(mode_bounds),"Compact mode control must leave every tab clickable")
 			var panel: Control=scene._player_ui._panel
 			var bounds: Rect2=panel.get_global_rect()
 			assert(bounds.end.x<=root.get_visible_rect().size.x+1,"Panel overflow %s %s: %s" % [area,tab,bounds])
