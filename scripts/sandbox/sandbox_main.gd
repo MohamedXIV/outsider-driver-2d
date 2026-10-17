@@ -168,6 +168,7 @@ func _process(delta: float) -> void:
 	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
 	_city.queue_redraw()
 	_sync_local_pedestrian()
+	_publish_street_web()
 
 
 func _on_meeting_selected(index: int) -> void:
@@ -498,90 +499,43 @@ func _on_observe() -> void:
 # Local native Godot navigation runs only for a genuine resident in the garage
 # vicinity. It is one shared world, not an alternate passenger simulator.
 func _update_player_crossing_yield() -> void:
+	var occupied: bool=_street_pilot!=null and _street_pilot.crossing_occupied()
+	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
 	if not _world.route_hold_id.is_empty():
-		# A presentation flag is not proof that the crossing is empty. Keep
-		# the actual player taxi held until the walker's collision body is
-		# entirely beyond the roadway, including after a mid-hold restore.
-		if _street_pilot==null:
-			# The native actor may have been unloaded or re-created. Never
-			# release solely because a presentation node is absent.
-			if SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world):
-				_world.release_crossing_yield()
-		elif _street_pilot.world_reported_arrival or \
-				(_street_pilot.pedestrian.crossing_completed and \
-				SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)):
-			_world.release_crossing_yield()
-		return
-	if _street_pilot!=null and _street_pilot.pedestrian.crossing_reserved \
-			and not _street_pilot.pedestrian.crossing_completed \
-			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position) \
-			and SandboxStreetRouteBinding.approaching(_world):
+		if cleared: _world.release_crossing_yield()
+	elif occupied and SandboxStreetRouteBinding.approaching(_world):
 		_world.begin_crossing_yield()
 
-
-# Shuttle route motion is owned by SandboxWorld. Physical pedestrian
-# state is consulted before the next simulated minute; held shuttles never
-# silently progress while their crossing is occupied.
 func _update_shuttle_crossing_yields() -> void:
-	var has_walker: bool=_street_pilot!=null and not _street_pilot.world_reported_arrival
-	var occupied: bool=has_walker and _street_pilot.pedestrian.crossing_reserved \
-			and not _street_pilot.pedestrian.crossing_completed \
-			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)
-	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) \
-			if _street_pilot==null else _street_pilot.world_reported_arrival or \
-			(_street_pilot.pedestrian.crossing_completed and \
-			SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position))
+	var occupied: bool=_street_pilot!=null and _street_pilot.crossing_occupied()
+	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
 	for npc in _world.residents:
 		if npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
 			if cleared: _world.release_shuttle_crossing_yield(str(npc["id"]))
 		elif occupied and SandboxWorldTraffic.approaching_zebra(_world,npc):
 			_world.begin_shuttle_crossing_yield(str(npc["id"]))
 
-
 func _sync_local_pedestrian() -> void:
-	var visible_neighborhood: bool=SandboxStreetRouteBinding.in_neighborhood(_world)
-	if not visible_neighborhood:
-		if _street_pilot != null:
-			if not _street_pilot.world_reported_arrival:
-				var phase: float=SandboxStreetModule.progress_of(_street_pilot.pedestrian.position)
-				if SandboxLocalPedestrianTrip.handoff(_world,_street_pilot.walking_npc_id,phase):
-					_street_restore_state.clear()
-			_street_pilot.queue_free()
-			_street_pilot=null
-			_city.local_active_npc_id=""
+	if not SandboxStreetRouteBinding.in_neighborhood(_world):
+		if _street_pilot!=null:
+			_street_pilot.handoff_all()
+			_street_pilot.queue_free();_street_pilot=null
+			_street_restore_state.clear()
+			_city.local_active_npc_id="";_city.local_active_npc_ids.clear()
 		return
-	if _street_pilot != null:
+	if _street_pilot!=null:
+		_city.local_active_npc_ids=_street_pilot.loaded_ids()
+		_city.local_active_npc_id=_street_pilot.walking_npc_id
 		return
-	var npc_id: String=SandboxLocalPedestrianTrip.candidate(_world)
-	if npc_id.is_empty():
-		return
-	var trip: Dictionary=_world.resident(npc_id).get("local_pedestrian_trip",{})
-	if trip.get("status","")=="offscreen":
-		var phase: float=SandboxLocalPedestrianTrip.resume(_world,npc_id)
-		if phase<0.0:
-			return
-		_street_restore_state={
-			"npc_id":npc_id,
-			"pedestrian_x":SandboxStreetModule.position_at(phase).x,
-			"pedestrian_y":SandboxStreetModule.position_at(phase).y,
-			"car_x":SandboxStreetModule.VEHICLE_START.x,
-			"car_y":SandboxStreetModule.VEHICLE_START.y,
-			"crossing_reserved":SandboxStreetModule.crossing_started(phase),
-			"crossing_completed":SandboxStreetModule.crossing_finished(phase),
-			"did_arrive":false}
+	var ids: Array[String]=SandboxLocalPedestrianTrip.candidates(_world)
+	if ids.is_empty(): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
-	local.name="PatchworksStreetTraffic"
-	local.embedded=true
-	local.world=_world
-	local.walking_npc_id=npc_id
-	local.resume_state=_street_restore_state.duplicate(true)
-	# Author the crossing on the actual route-graph edge and in the actual
-	# ground plane; no unrelated screen-space fake crossing.
-	local.transform=SandboxStreetRouteBinding.street_transform()
-	local.z_index=5
-	_street_pilot=local
-	_city.local_active_npc_id=npc_id
-	add_child(local)
+	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
+	local.walking_npc_id=ids[0];local.resume_state=_street_restore_state.duplicate(true)
+	local.transform=SandboxStreetRouteBinding.street_transform();local.z_index=5
+	_street_pilot=local;add_child(local)
+	_city.local_active_npc_id=local.walking_npc_id
+	_city.local_active_npc_ids=local.loaded_ids()
 	_street_restore_state.clear()
 
 func _reset_local_pedestrian() -> void:
@@ -590,6 +544,7 @@ func _reset_local_pedestrian() -> void:
 		_street_pilot = null
 	_street_restore_state.clear()
 	_city.local_active_npc_id=""
+	_city.local_active_npc_ids.clear()
 
 
 func _on_new_seed() -> void:
@@ -611,6 +566,7 @@ func _on_new_seed() -> void:
 
 
 func _on_save() -> void:
+	if _street_pilot!=null: _street_pilot.reconcile_reservations()
 	var dialogue_snapshot: Dictionary = _conversation.snapshot() if _conversation != null else {}
 	_notice_text = "Sandbox saved." if SandboxSave.save_world(_world, SandboxSave.PATH, dialogue_snapshot, {"clock_fraction":_elapsed,"locale":_ui_locale,"reduced_motion":_reduced_motion,"camera_zoom":_city.zoom_preference,
 			"street_state": _street_pilot.visual_snapshot() if _street_pilot != null else {}}) else "Save failed."
@@ -1195,3 +1151,25 @@ func _render_route_picker(offer: Dictionary) -> void:
 		" > ".join(preview), SandboxRoads.path_minutes(preview),
 		SandboxRoads.path_expense(preview), exposure
 	]
+
+
+func _publish_street_web() -> void:
+	if not OS.has_feature("web"): return
+	var actors: Array=[]
+	if _street_pilot!=null:
+		for id in _street_pilot.pedestrians:
+			var actor: SandboxPedestrianActor=_street_pilot.pedestrians[id]
+			actors.append({"id":id,"x":actor.position.x,"y":actor.position.y,
+				"native":actor._agent!=null,"blocked":actor.path_blocked,
+				"trip":_world.resident(str(id)).get("local_pedestrian_trip",{}).duplicate(true)})
+	var trips: Dictionary={}
+	for npc in _world.residents:
+		if not npc.get("local_pedestrian_trip",{}).is_empty(): trips[npc["id"]]=npc["local_pedestrian_trip"].duplicate(true)
+	var local_events: Array=[]
+	for evt in _world.events:
+		if str(evt["kind"]).begins_with("local_pedestrian_"): local_events.append(evt)
+	var seed_point: Vector2=($HUD/DockPanel/Content/TimeActions/NewSeed as Button).get_global_rect().get_center()
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
+		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),
+		"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
+		"streetNewSeedPoint":JSON.stringify([seed_point.x,seed_point.y])}),true)

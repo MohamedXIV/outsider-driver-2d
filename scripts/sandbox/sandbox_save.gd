@@ -34,6 +34,7 @@ static func load_bundle(file_path: String = PATH) -> Dictionary:
 	if not ["en","ar"].has(presentation.get("locale","en")) or not (presentation.get("reduced_motion",false) is bool): return {}
 	var zoom: Variant=presentation.get("camera_zoom",2.6)
 	if not (zoom is float or zoom is int) or not is_finite(float(zoom)) or float(zoom)<1.25 or float(zoom)>4.0: return {}
+	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})): return {}
 	var fraction: Variant=presentation.get("clock_fraction",0.0)
 	if not (fraction is float or fraction is int) or not is_finite(float(fraction)) or float(fraction)<0 or float(fraction)>=1: return {}
 	return {"world": world, "dialogue": value["dialogue"], "presentation":presentation}

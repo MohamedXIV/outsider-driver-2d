@@ -14,22 +14,25 @@ const SITE: Vector2 = Vector2(500.0, SOUTH_Y)
 const VEHICLE_START: Vector2 = Vector2(110.0, LANE_Y)
 const OFFSCREEN_MINUTES: float = 8.0
 const NORTH_SIDEWALK: Rect2 = Rect2(100, 300, 460, 26)
-const SOUTH_SIDEWALK: Rect2 = Rect2(100, 378, 460, 26)
+const SOUTH_SIDEWALK: Rect2 = Rect2(100, 378, 460, 40)
 const ROAD: Rect2 = Rect2(95, 328, 475, 48)
 const PEDESTRIAN_RADIUS: float = 7.0
 # Clearance is the WHOLE pedestrian collision body beyond the road edge,
 # plus a small margin, not merely their center reaching the zebra paint.
 const FRONTAGES: Array[Rect2] = [
 	Rect2(160,235,90,62), Rect2(270,235,80,62),
-	Rect2(390,235,110,62), Rect2(450,405,110,66)
+	Rect2(390,235,110,62), Rect2(450,425,110,66)
 ]
 
-static func waypoints() -> PackedVector2Array:
-	return PackedVector2Array([START,Vector2(CROSS_X,NORTH_Y),
-			Vector2(CROSS_X,SOUTH_Y),SITE])
+static func destination(slot: int=0) -> Vector2:
+	return SITE+Vector2(-20*slot,18*slot)
 
-static func position_at(progress: float) -> Vector2:
-	var path: PackedVector2Array = waypoints()
+static func waypoints(slot: int=0) -> PackedVector2Array:
+	return PackedVector2Array([START-Vector2(30*slot,0),Vector2(CROSS_X,NORTH_Y),
+			Vector2(CROSS_X,SOUTH_Y),destination(slot)])
+
+static func position_at(progress: float, slot: int=0) -> Vector2:
+	var path: PackedVector2Array = waypoints(slot)
 	var total: float = 0.0
 	for i in range(path.size()-1):
 		total += path[i].distance_to(path[i+1])
@@ -41,8 +44,8 @@ static func position_at(progress: float) -> Vector2:
 		remaining-=segment_length
 	return path[path.size()-1]
 
-static func progress_of(where: Vector2) -> float:
-	var path: PackedVector2Array = waypoints()
+static func progress_of(where: Vector2, slot: int=0) -> float:
+	var path: PackedVector2Array = waypoints(slot)
 	var total: float = 0.0
 	for i in range(path.size()-1):
 		total += path[i].distance_to(path[i+1])
@@ -69,8 +72,8 @@ static func crossing_clear_y() -> float:
 static func crossing_clear(where: Vector2) -> bool:
 	return where.y >= crossing_clear_y()
 
-static func crossing_finished(progress: float) -> bool:
-	return progress >= progress_of(Vector2(CROSS_X,crossing_clear_y()))
+static func crossing_finished(progress: float, slot: int=0) -> bool:
+	return progress >= progress_of(Vector2(CROSS_X,crossing_clear_y()),slot)
 
 static func install_navigation(parent: Node2D) -> void:
 	_add_sidewalk(parent,NORTH_SIDEWALK,"NorthSidewalk")
@@ -110,8 +113,8 @@ static func paint(canvas: Node2D) -> void:
 		Color("768987"),Color("9d896f"),Color("768987"),Color("8b7867")]
 	for i in range(FRONTAGES.size()):
 		canvas.draw_rect(FRONTAGES[i],facade_colors[i])
-	canvas.draw_rect(Rect2(462,416,26,36),Color("d2c49f"))
-	canvas.draw_string(ThemeDB.fallback_font,Vector2(454,440),"PARTS",
+	canvas.draw_rect(Rect2(462,436,26,36),Color("d2c49f"))
+	canvas.draw_string(ThemeDB.fallback_font,Vector2(454,460),"PARTS",
 			HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("28383a"))
 
 
@@ -223,3 +226,16 @@ static func paint_extension(canvas: Node2D) -> void:
 		canvas.draw_line(Vector2(x,352),Vector2(x+18,352),Color("d1b985"),2.0)
 	for y in range(410,590,36):
 		canvas.draw_line(Vector2(1476,y),Vector2(1476,y+18),Color("d1b985"),2.0)
+
+# Native curb bodies share the painted sidewalk/road boundaries. Avoidance
+# cannot push a pedestrian onto asphalt outside the marked crossing opening.
+static func install_curbs(parent: Node2D) -> void:
+	var rects: Array[Rect2]=[Rect2(100,298,460,2),Rect2(100,SOUTH_SIDEWALK.end.y,460,2)]
+	for y in [326.0,376.0]:
+		rects.append(Rect2(100,y,CROSS_X-120.0,2))
+		rects.append(Rect2(CROSS_X+20.0,y,560.0-CROSS_X-20.0,2))
+	for rect in rects:
+		var body: StaticBody2D=StaticBody2D.new();body.collision_layer=8;body.collision_mask=2
+		var hitbox: CollisionShape2D=CollisionShape2D.new()
+		var shape: RectangleShape2D=RectangleShape2D.new();shape.size=rect.size
+		hitbox.shape=shape;hitbox.position=rect.get_center();body.add_child(hitbox);parent.add_child(body)

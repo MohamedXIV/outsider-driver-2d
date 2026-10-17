@@ -7,6 +7,7 @@ var world: SandboxWorld
 var preview_nodes: Array[String] = []
 var visual_fraction: float = 0.0
 var local_active_npc_id: String = ""
+var local_active_npc_ids: Array[String]=[]
 var reduced_motion: bool = false
 var ui_rtl: bool = false
 const DEFAULT_ZOOM: float = 2.6
@@ -180,7 +181,7 @@ func paint(canvas: Node2D, role: String) -> void:
 func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
-		if str(npc.get("id",""))==local_active_npc_id \
+		if (str(npc.get("id",""))==local_active_npc_id or local_active_npc_ids.has(str(npc.get("id","")))) \
 				or npc.get("local_pedestrian_trip",{}).get("status","")=="offscreen": continue
 		var pos: Vector3 = world.npc_position(npc,visual_fraction)
 		if (pos.y>0) != elevated: continue

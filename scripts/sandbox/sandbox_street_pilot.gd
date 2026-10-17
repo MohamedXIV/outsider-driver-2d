@@ -1,152 +1,174 @@
 class_name SandboxStreetPilot
 extends Node2D
 
-# Reusable bounded Outer Margin street slice: standalone test or main-scene actor.
-# Separate 2D NavigationRegions for sidewalks, a NavigationLink2D at the
-# marked crossing, native CharacterBody2D movement and two yielding lane cars.
-# The visible resident always belongs to one shared SandboxWorld; there
-# is no second fake population or autonomous city traffic manager.
-const CROSS_X: float = SandboxStreetModule.CROSS_X
-const NORTH_Y: float = SandboxStreetModule.NORTH_Y
-const SOUTH_Y: float = SandboxStreetModule.SOUTH_Y
-const SITE: String = SandboxLocalPedestrianTrip.PATCHWORKS_PARTS
-var world: SandboxWorld = SandboxWorld.new(8)
+# One local presenter for at most two real SandboxWorld residents. Primary
+# aliases retain existing fixture access; safety always uses the whole registry.
+const CROSS_X: float=SandboxStreetModule.CROSS_X
+const NORTH_Y: float=SandboxStreetModule.NORTH_Y
+const SOUTH_Y: float=SandboxStreetModule.SOUTH_Y
+const SITE: String=SandboxLocalPedestrianTrip.PATCHWORKS_PARTS
+var world: SandboxWorld
+var pedestrians: Dictionary={}
 var pedestrian: SandboxPedestrianActor
+var walking_npc_id: String=""
+var world_reported_arrival: bool=false
 var car: CharacterBody2D
 var follower: CharacterBody2D
-var car_yielded: bool = false
-var world_reported_arrival: bool = false
-var walking_npc_id: String = "npc:07"
-var embedded: bool = false
-var resume_state: Dictionary = {}
+var car_yielded: bool=false
+var embedded: bool=false
+var resume_state: Dictionary={}
+
+func _actor_snapshot(actor: SandboxPedestrianActor) -> Dictionary:
+	return {"npc_id":actor.npc_id,"pedestrian_x":actor.position.x,"pedestrian_y":actor.position.y,
+		"crossing_reserved":actor.crossing_reserved,"crossing_completed":actor.crossing_completed,
+		"did_arrive":actor.did_arrive}
 
 func visual_snapshot() -> Dictionary:
-	if pedestrian == null or car == null or follower == null:
-		return {}
-	return {
-		"npc_id": walking_npc_id,
-		"pedestrian_x": pedestrian.position.x,
-		"pedestrian_y": pedestrian.position.y,
-		"car_x": car.position.x,
-		"car_y": car.position.y,
-		"follower_x": follower.position.x,
-		"follower_y": follower.position.y,
-		"crossing_reserved": pedestrian.crossing_reserved,
-		"crossing_completed": pedestrian.crossing_completed,
-		"did_arrive": pedestrian.did_arrive
-	}
-
+	if pedestrian==null or car==null or follower==null: return {}
+	var state: Dictionary=_actor_snapshot(pedestrian)
+	state.merge({"car_x":car.position.x,"car_y":car.position.y,
+		"follower_x":follower.position.x,"follower_y":follower.position.y,"actors":{}})
+	for id in pedestrians: state["actors"][id]=_actor_snapshot(pedestrians[id])
+	return state
 
 func _ready() -> void:
-	if not embedded:
-		# Standalone test mode still derives its pedestrian from live seeded
-		# world needs, never a hard-coded guaranteed passenger.
-		walking_npc_id = SandboxLocalPedestrianTrip.candidate(world)
-		if walking_npc_id.is_empty():
-			push_error("No available Patchworks resident for local walking test")
-			return
+	if world==null: world=SandboxWorld.new(8)
 	SandboxStreetModule.install_navigation(self)
 	SandboxStreetModule.install_east_junction(self)
 	SandboxStreetModule.install_extension(self)
-	# Two real Godot CharacterBody2D lane vehicles in this bounded slice.
-	# These are ambient traffic actors, not extra world residents or taxis.
-	car = _make_lane_car("LocalTrafficCar",
-			SandboxStreetModule.VEHICLE_START+Vector2(70,0))
-	follower = _make_lane_car("LocalFollowingCar",SandboxStreetModule.VEHICLE_START)
-	pedestrian = SandboxPedestrianActor.new()
-	pedestrian.name = "ResidentWalkingToPartsCounter"
-	pedestrian.position = SandboxStreetModule.START
-	pedestrian.destination = SandboxStreetModule.SITE
-	pedestrian.npc_id = walking_npc_id
-	pedestrian.traffic = car
-	pedestrian.traffic_following = follower
-	pedestrian.reached_site.connect(_on_resident_arrived)
-	add_child(pedestrian)
-	var current_trip: Dictionary = world.resident(walking_npc_id).get("local_pedestrian_trip", {})
-	if current_trip.is_empty():
-		assert(SandboxLocalPedestrianTrip.begin(world, walking_npc_id, SITE))
-	elif current_trip.get("site", "") != SITE:
-		push_error("Resident has a different local walking destination")
+	SandboxStreetModule.install_curbs(self)
+	car=_make_lane_car("LocalTrafficCar",SandboxStreetModule.VEHICLE_START+Vector2(70,0))
+	follower=_make_lane_car("LocalFollowingCar",SandboxStreetModule.VEHICLE_START)
+	var ids: Array[String]=[]
+	for id in resume_state.get("actors",{}):
+		if world.resident(str(id)).get("local_pedestrian_trip",{}).get("status","") in ["walking","offscreen","arrived"]:
+			ids.append(str(id))
+	for id in SandboxLocalPedestrianTrip.candidates(world):
+		if ids.size()<2 and not ids.has(id): ids.append(id)
+	for id in ids: _spawn_resident(id)
+	if pedestrian==null:
+		push_error("No eligible Patchworks resident for native street presenter")
 		return
-	if resume_state.get("npc_id", "") == walking_npc_id:
-		pedestrian.position = Vector2(
-				clampf(float(resume_state.get("pedestrian_x",SandboxStreetModule.START.x)),100.0,560.0),
-				clampf(float(resume_state.get("pedestrian_y",NORTH_Y)),300.0,404.0))
-		car.position = Vector2(
-				clampf(float(resume_state.get("car_x",SandboxStreetModule.VEHICLE_START.x+70.0)),100.0,570.0),
-				clampf(float(resume_state.get("car_y",350.0)),330.0,374.0))
-		follower.position = Vector2(
-				minf(float(resume_state.get("follower_x",SandboxStreetModule.VEHICLE_START.x)),
-						car.position.x-SandboxStreetPriority.FOLLOW_SPACING),
-				clampf(float(resume_state.get("follower_y",350.0)),330.0,374.0))
-		pedestrian.crossing_reserved = bool(resume_state.get("crossing_reserved",false))
-		pedestrian.crossing_completed = bool(resume_state.get("crossing_completed",false))
-		pedestrian.did_arrive = bool(resume_state.get("did_arrive",false))
-	if current_trip.get("status", "") == "arrived":
-		pedestrian.did_arrive = true
-		pedestrian.position = SandboxStreetModule.SITE
-		world_reported_arrival = true
-	if embedded:
-		queue_redraw()
-		return
-	var camera: Camera2D = Camera2D.new()
-	camera.position = Vector2(325, 355)
-	camera.zoom = Vector2(1.7,1.7)
-	camera.enabled = true
-	add_child(camera)
-	var notes: CanvasLayer = CanvasLayer.new()
-	add_child(notes)
-	var label: Label = Label.new()
-	label.text = "OUTER MARGIN / Native Godot sidewalk + marked crossing pilot (issue #59 / #60)"
-	label.position = Vector2(24,20)
-	label.add_theme_color_override("font_color",Color("f1e1bd"))
-	notes.add_child(label)
+	car.position=Vector2(clampf(float(resume_state.get("car_x",180.0)),100.0,570.0),350.0)
+	follower.position=Vector2(minf(float(resume_state.get("follower_x",110.0)),car.position.x-SandboxStreetPriority.FOLLOW_SPACING),350.0)
+	reconcile_reservations()
+	if not embedded:
+		var camera: Camera2D=Camera2D.new()
+		camera.position=Vector2(325,355);camera.zoom=Vector2.ONE*1.7;add_child(camera)
+		var notes: CanvasLayer=CanvasLayer.new();add_child(notes)
+		var label: Label=Label.new();label.position=Vector2(24,20)
+		label.text="OUTER MARGIN / Native resident sidewalks and reserved crossing"
+		notes.add_child(label)
 	queue_redraw()
 
-func _make_lane_car(label: String, start: Vector2) -> CharacterBody2D:
+func _spawn_resident(id: String) -> void:
+	var trip: Dictionary=world.resident(id).get("local_pedestrian_trip",{})
+	if trip.is_empty():
+		if not SandboxLocalPedestrianTrip.begin(world,id,SITE): return
+		trip=world.resident(id)["local_pedestrian_trip"]
+	var slot: int=int(trip.get("slot",0))
+	var at: Vector2=SandboxStreetModule.waypoints(slot)[0]
+	if trip.get("status","")=="offscreen":
+		var phase: float=SandboxLocalPedestrianTrip.offscreen_progress(world,id)
+		var old_phase: float=float(trip["handoff_progress"])
+		var anchor: Vector2=Vector2(float(trip.get("handoff_x",SandboxStreetModule.position_at(old_phase,slot).x)),
+				float(trip.get("handoff_y",SandboxStreetModule.position_at(old_phase,slot).y)))
+		var offset: Vector2=anchor-SandboxStreetModule.position_at(old_phase,slot)
+		at=SandboxStreetModule.position_at(phase,slot)+offset*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
+		SandboxLocalPedestrianTrip.resume(world,id)
+	var saved: Dictionary=resume_state.get("actors",{}).get(id,{})
+	if saved.is_empty() and resume_state.get("npc_id","")==id: saved=resume_state
+	if not saved.is_empty(): at=Vector2(float(saved.get("pedestrian_x",at.x)),float(saved.get("pedestrian_y",at.y)))
+	var actor: SandboxPedestrianActor=SandboxPedestrianActor.new()
+	actor.name="Resident_"+id.replace(":","_");actor.npc_id=id;actor.slot=slot;actor.position=at
+	actor.destination=SandboxStreetModule.destination(slot)
+	actor.traffic=car;actor.traffic_following=follower
+	actor.crossing_reserved=bool(saved.get("crossing_reserved",false)) or trip.get("crossing_state","") in ["reserved","entered","cleared"]
+	actor.crossing_completed=SandboxStreetModule.crossing_clear(at)
+	actor.reached_site.connect(_on_resident_arrived)
+	pedestrians[id]=actor;add_child(actor)
+	if trip.get("status","")=="arrived":
+		actor.position=at if not saved.is_empty() else actor.destination;actor.did_arrive=true
+	if pedestrian==null:
+		pedestrian=actor;walking_npc_id=id
+	world_reported_arrival=world.resident(walking_npc_id).get("local_pedestrian_trip",{}).get("status","")=="arrived"
+
+func loaded_ids() -> Array[String]:
+	var ids: Array[String]=[]
+	for id in pedestrians: ids.append(str(id))
+	return ids
+
+func reconcile_reservations() -> void:
+	for id in pedestrians:
+		var actor: SandboxPedestrianActor=pedestrians[id]
+		var trip: Dictionary=world.resident(str(id)).get("local_pedestrian_trip",{})
+		if trip.get("status","")!="walking": continue
+		var in_road: bool=SandboxStreetModule.ROAD.grow(SandboxStreetModule.PEDESTRIAN_RADIUS).has_point(actor.position)
+		if actor.path_blocked: SandboxLocalPedestrianTrip.withdraw(world,str(id),actor.position)
+		if actor.crossing_reserved or in_road: SandboxLocalPedestrianTrip.reserve(world,str(id))
+		if in_road: SandboxLocalPedestrianTrip.entered(world,str(id))
+		if SandboxStreetModule.crossing_clear(actor.position):
+			actor.crossing_completed=true
+			SandboxLocalPedestrianTrip.clear(world,str(id))
+
+func crossing_occupied() -> bool:
+	reconcile_reservations()
+	for id in pedestrians:
+		var actor: SandboxPedestrianActor=pedestrians[id]
+		if SandboxStreetModule.ROAD.grow(SandboxStreetModule.PEDESTRIAN_RADIUS).has_point(actor.position): return true
+		if actor.crossing_reserved and not SandboxStreetModule.crossing_clear(actor.position): return true
+	return false
+
+func crossing_cleared() -> bool:
+	return not crossing_occupied() and SandboxLocalPedestrianTrip.crossing_cleared_without_actor(world,loaded_ids())
+
+func cancel_resident(id: String) -> bool:
+	if not pedestrians.has(id): return false
+	var actor: SandboxPedestrianActor=pedestrians[id]
+	if not SandboxLocalPedestrianTrip.cancel(world,id,actor.position): return false
+	actor.set_physics_process(false);actor._motion_permitted=false;actor.velocity=Vector2.ZERO
+	actor._agent.set_velocity(Vector2.ZERO)
+	pedestrians.erase(id);actor.queue_free()
+	if actor==pedestrian:
+		pedestrian=null;walking_npc_id="";world_reported_arrival=false
+		if not pedestrians.is_empty():
+			walking_npc_id=str(pedestrians.keys()[0]);pedestrian=pedestrians[walking_npc_id]
+	return true
+
+func handoff_all() -> void:
+	reconcile_reservations()
+	for id in pedestrians:
+		var actor: SandboxPedestrianActor=pedestrians[id]
+		var slot: int=int(world.resident(str(id)).get("local_pedestrian_trip",{}).get("slot",0))
+		var phase: float=minf(.999999,SandboxStreetModule.progress_of(actor.position,slot))
+		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position)
+
+func _make_lane_car(label: String,start: Vector2) -> CharacterBody2D:
 	var vehicle: SandboxTrafficVehicle=SandboxTrafficVehicle.new()
-	vehicle.name=label
-	vehicle.position=start
-	vehicle.collision_layer=4
-	vehicle.collision_mask=2
+	vehicle.name=label;vehicle.position=start;vehicle.collision_layer=4;vehicle.collision_mask=2
 	var hitbox: CollisionShape2D=CollisionShape2D.new()
-	var shape: RectangleShape2D=RectangleShape2D.new()
-	shape.size=Vector2(25,17)
-	hitbox.shape=shape
-	vehicle.add_child(hitbox)
-	add_child(vehicle)
+	var shape: RectangleShape2D=RectangleShape2D.new();shape.size=Vector2(25,17)
+	hitbox.shape=shape;vehicle.add_child(hitbox);add_child(vehicle)
 	return vehicle
 
-
 func _physics_process(delta: float) -> void:
-	# This one visible vehicle uses a lane and yields to the marked crossing.
-	# Crossing priority is traffic policy, not an automatic NavMesh feature.
-	if car == null or follower == null or pedestrian == null:
-		return
-	pedestrian.block_for_player = embedded and \
-			(SandboxStreetRouteBinding.taxi_occupies_crosswalk(world) \
-			or SandboxWorldTraffic.occupies_zebra(world))
-	var occupied: bool = pedestrian.crossing_reserved and not pedestrian.crossing_completed
-	var traffic_speed: float = SandboxStreetPriority.vehicle_velocity(
-			car.position.x,pedestrian.crossing_reserved,
-			pedestrian.crossing_completed,delta)
-	if occupied and car.position.x <= SandboxStreetPriority.stop_line()+0.1:
-		car_yielded = true
-	car.velocity = Vector2(traffic_speed,0.0)
-	car.move_and_slide()
-	# The trailing body respects both the same pedestrian stop policy and
-	# a non-overlapping physical headway behind the leader's latest position.
-	var following_speed: float=SandboxStreetPriority.follower_velocity(
-			follower.position.x,car.position.x,pedestrian.crossing_reserved,
-			pedestrian.crossing_completed,delta)
-	follower.velocity=Vector2(following_speed,0.0)
-	follower.move_and_slide()
-	queue_redraw()
+	if car==null or follower==null: return
+	var occupied: bool=crossing_occupied()
+	for actor in pedestrians.values():
+		actor.block_for_player=embedded and (SandboxStreetRouteBinding.taxi_occupies_crosswalk(world) or SandboxWorldTraffic.occupies_zebra(world))
+	var speed: float=SandboxStreetPriority.vehicle_velocity(car.position.x,occupied,false,delta)
+	if occupied and car.position.x<=SandboxStreetPriority.stop_line()+.1: car_yielded=true
+	car.velocity=global_transform.x.normalized()*speed;car.move_and_slide()
+	follower.velocity=global_transform.x.normalized()*SandboxStreetPriority.follower_velocity(follower.position.x,car.position.x,occupied,false,delta)
+	follower.move_and_slide();queue_redraw()
 
-func _on_resident_arrived(npc_id: String) -> void:
-	if world_reported_arrival:
-		return
-	world_reported_arrival = SandboxLocalPedestrianTrip.arrive(world,npc_id,SITE)
+func _on_resident_arrived(id: String) -> void:
+	if not pedestrians.has(id): return
+	var actor: SandboxPedestrianActor=pedestrians[id]
+	var slot: int=int(world.resident(id).get("local_pedestrian_trip",{}).get("slot",0))
+	if actor.position.distance_to(SandboxStreetModule.destination(slot))>9.0: return
+	SandboxLocalPedestrianTrip.arrive(world,id,SITE)
+	if id==walking_npc_id: world_reported_arrival=true
 
 func _draw() -> void:
 	SandboxStreetModule.paint(self)
@@ -154,7 +176,5 @@ func _draw() -> void:
 	SandboxStreetModule.paint_extension(self)
 
 func _process(_delta: float) -> void:
-	if car != null:
-		car.queue_redraw()
-	if follower != null:
-		follower.queue_redraw()
+	if car!=null: car.queue_redraw()
+	if follower!=null: follower.queue_redraw()
