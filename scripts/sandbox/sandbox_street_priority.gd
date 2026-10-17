@@ -21,8 +21,12 @@ static func pedestrian_may_enter(vehicle_x: float) -> bool:
 	return vehicle_x <= stop_line() or vehicle_x >= CROSS_X+CLEAR_AHEAD
 
 static func vehicle_velocity(vehicle_x: float, reserved: bool,
-		completed: bool, delta: float) -> float:
+		completed: bool, delta: float, walker_in_road_ahead: bool = false) -> float:
 	if vehicle_x >= LANE_END_X:
+		return 0.0
+	# A physically committed pedestrian is ahead of this vehicle; never
+	# try to clear the crossing *through* their collision body.
+	if reserved and not completed and walker_in_road_ahead:
 		return 0.0
 	if reserved and not completed and vehicle_x <= stop_line():
 		# Clamp distance per physics frame so even a long frame cannot drift
@@ -38,6 +42,7 @@ static func vehicle_velocity(vehicle_x: float, reserved: bool,
 # UPDATED position bounds the follower, without pretending the demo vehicles
 # are independently simulated residents of SandboxWorld.
 static func follower_velocity(follower_x: float, updated_leader_x: float,
-		reserved: bool, completed: bool, delta: float) -> float:
+		reserved: bool, completed: bool, delta: float,
+		walker_in_road_ahead: bool = false) -> float:
 	var gap_velocity: float=maxf(0.0,updated_leader_x-FOLLOW_SPACING-follower_x)/maxf(delta,0.0001)
-	return minf(vehicle_velocity(follower_x,reserved,completed,delta),gap_velocity)
+	return minf(vehicle_velocity(follower_x,reserved,completed,delta,walker_in_road_ahead),gap_velocity)

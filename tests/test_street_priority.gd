@@ -13,6 +13,11 @@ func _initialize() -> void:
 	assert(SandboxStreetPriority.vehicle_velocity(110.0,false,false,0.016)>0)
 	assert(SandboxStreetPriority.vehicle_velocity(limit,true,false,0.016)==0.0)
 	assert(SandboxStreetPriority.vehicle_velocity(limit,true,true,0.016)>0)
+	# Reproduce the actual R05 blocked walker x=317, y=349 and leader
+	# x=298: the driver behind must wait once the resident is on asphalt.
+	assert(SandboxStreetPriority.vehicle_velocity(298.0,true,false,.016,true)==0.0)
+	assert(SandboxStreetPriority.vehicle_velocity(298.0,true,false,.016,false)>0.0)
+	assert(SandboxStreetPriority.follower_velocity(260.0,310.0,true,false,.016,true)==0.0)
 	assert(SandboxStreetPriority.vehicle_velocity(551.0,true,true,0.016)==0.0)
 	for dt in [0.016,0.03,0.11,0.3]:
 		for x in [115.0,230.0,limit-1.0,limit]:

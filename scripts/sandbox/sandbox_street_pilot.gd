@@ -177,10 +177,18 @@ func _physics_process(delta: float) -> void:
 	var occupied: bool=crossing_occupied()
 	for actor in pedestrians.values():
 		actor.block_for_player=embedded and (SandboxStreetRouteBinding.taxi_occupies_crosswalk(world) or SandboxWorldTraffic.occupies_zebra(world))
-	var speed: float=SandboxStreetPriority.vehicle_velocity(car.position.x,occupied,false,delta)
+	var walker_ahead_of_leader: bool=false
+	var walker_ahead_of_follower: bool=false
+	for actor in pedestrians.values():
+		if actor.crossing_reserved and not actor.crossing_completed and SandboxStreetModule.ROAD.has_point(actor.position):
+			walker_ahead_of_leader=walker_ahead_of_leader or actor.position.x>car.position.x
+			walker_ahead_of_follower=walker_ahead_of_follower or actor.position.x>follower.position.x
+	var speed: float=SandboxStreetPriority.vehicle_velocity(
+			car.position.x,occupied,false,delta,walker_ahead_of_leader)
 	if occupied and car.position.x<=SandboxStreetPriority.stop_line()+.1: car_yielded=true
 	car.velocity=global_transform.x.normalized()*speed;car.move_and_slide()
-	follower.velocity=global_transform.x.normalized()*SandboxStreetPriority.follower_velocity(follower.position.x,car.position.x,occupied,false,delta)
+	follower.velocity=global_transform.x.normalized()*SandboxStreetPriority.follower_velocity(
+			follower.position.x,car.position.x,occupied,false,delta,walker_ahead_of_follower)
 	follower.move_and_slide();queue_redraw()
 
 func _on_resident_arrived(id: String) -> void:
