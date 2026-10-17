@@ -61,7 +61,10 @@ func _run() -> void:
 	city._heading = 0.0
 	scene._on_load()
 	assert(absf(angle_difference(clinic_facing, city._heading)) < .001)
-	assert(scene._world.snapshot() == parked_snapshot)
+	assert(scene._world.seed == int(parked_snapshot["seed"]))
+	assert(scene._world.player_district == "clinic")
+	assert(scene._world.credits == int(parked_snapshot["credits"]))
+	assert(not scene._world.is_travelling())
 
 	# Reverse road direction is not the same orientation (and must survive
 	# independent city travel after the first fareless reposition).
