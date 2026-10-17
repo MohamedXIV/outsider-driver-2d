@@ -34,6 +34,20 @@ func _run() -> void:
 			assert(is_finite(area) and area>=0.0)
 			if area<=0.01: degenerate_faces+=1
 	assert(degenerate_faces>0,"The regression must cover genuinely degenerate side faces")
+	for i in range(721):
+		var angle: float=TAU*float(i)/720.0
+		var ground: PackedVector2Array=SandboxIsoPresentation.vehicle_quad(Vector2(10,20),angle)
+		var raised: PackedVector2Array=SandboxIsoPresentation.vehicle_quad(Vector2(10,20),angle,
+				SandboxIsoPresentation.CAR_ELEVATION)
+		for side in range(4):
+			var face: PackedVector2Array=SandboxIsoPresentation.vehicle_side_face(ground,raised,side)
+			var v0: Vector2=face[0]
+			for corner in [1,2]:
+				var is_good: bool=SandboxIsoPresentation.valid_triangle(
+						v0,face[corner],face[corner+1])
+				if is_good: assert(face[corner].is_finite())
+		# Ensure all accepted triangles have nonzero signed area even at
+		# cardinal and nearly-cardinal headings (720 samples).
 	var sample: PackedVector2Array=SandboxIsoPresentation.road_points("clinic","docks")
 	assert(sample.size()==49 and sample[0].distance_to(
 			SandboxCityView.project(SandboxRoads.map_position("clinic")))<.001)
