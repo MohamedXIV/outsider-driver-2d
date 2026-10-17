@@ -476,12 +476,17 @@ func _on_observe() -> void:
 # vicinity. It is one shared world, not an alternate passenger simulator.
 func _update_player_crossing_yield() -> void:
 	if not _world.route_hold_id.is_empty():
+		# A presentation flag is not proof that the crossing is empty. Keep
+		# the actual player taxi held until the walker's collision body is
+		# entirely beyond the roadway, including after a mid-hold restore.
 		if _street_pilot==null or _street_pilot.world_reported_arrival \
-				or _street_pilot.pedestrian.crossing_completed:
+				or (_street_pilot.pedestrian.crossing_completed \
+				and SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position)):
 			_world.release_crossing_yield()
 		return
 	if _street_pilot!=null and _street_pilot.pedestrian.crossing_reserved \
 			and not _street_pilot.pedestrian.crossing_completed \
+			and not SandboxStreetModule.crossing_clear(_street_pilot.pedestrian.position) \
 			and SandboxStreetRouteBinding.approaching(_world):
 		_world.begin_crossing_yield()
 
