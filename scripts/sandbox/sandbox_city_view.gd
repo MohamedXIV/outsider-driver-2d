@@ -121,7 +121,7 @@ func _process(delta: float) -> void:
 		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
 		var tangent: Vector2 = project(SandboxRoads.sample_edge(a,b,minf(.999,t+.003)))-project(SandboxRoads.sample_edge(a,b,maxf(0,t-.003)))
 		if tangent.length() > .001:
-			_heading = lerp_angle(_heading,tangent.angle(), minf(1,delta*7))
+			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
 	elif _last_parked_stop != world.player_district:
 		# A just-finished route has no active nodes. Face its last legal edge,

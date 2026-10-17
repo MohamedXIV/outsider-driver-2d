@@ -275,6 +275,12 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 
 static func valid_presentation(world: SandboxWorld,state: Variant) -> bool:
 	if state is Dictionary and not SandboxJunctionTraffic.valid_snapshot(state.get("junction",{})): return false
+	if state is Dictionary:
+		for key in ["car_speed","follower_speed"]:
+			if not state.has(key): continue
+			var value: Variant=state[key]
+			if not (value is float or value is int) or not is_finite(float(value)) or float(value)<0.0 \
+					or float(value)>SandboxVehicleKinematics.CRUISE+0.001: return false
 	if not state is Dictionary: return false
 	var actors: Variant=state.get("actors",{})
 	if not state.has("actors") and not str(state.get("npc_id","")).is_empty():
