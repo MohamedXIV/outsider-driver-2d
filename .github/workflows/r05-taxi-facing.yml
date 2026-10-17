@@ -25,6 +25,16 @@ jobs:
           chmod +x /tmp/godot
           sudo apt-get update -qq
           sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+      - name: Fast focused native facing regression
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/r05
+          /tmp/godot --headless --path . --editor --import --quit > work/r05/focus-import.log 2>&1
+          timeout 40s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_taxi_heading_scene.gd 2>&1 | tee work/r05/focus.log
+          grep -q TAXI_HEADING_SCENE_PASS work/r05/focus.log
       - name: Domain and adapter tests
         env:
           GODOT_BIN: /tmp/godot
