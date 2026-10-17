@@ -28,3 +28,7 @@ Actual exported Chromium full-fare regression PASS: live fare + Ink + midride In
 The existing straight/T module now connects to a native four-way module and a right-angle corner. Authored road, sidewalk, crossing and regular lot rectangles drive both drawing and Godot navigation. Four explicit crossing links retain separation between sidewalk surfaces and asphalt. New regression verifies paths from the existing east block through both vertical arms and around the corner, building setbacks, unchanged world snapshot, and rendered close/wide captures. Existing world road graph, legal ramps, elevation and the original taxi/shuttle zebra binding are unchanged.
 
 This is a local ground-level kit extension, not citywide geometry replacement, intersection vehicle arbitration or improved bridge art. Existing single resident still has its original goal; the extension paths are native navigation proof. Multiple concurrent native residents (#59), multi-reservation junction traffic (#60) and better elevated bridge/ramp presentation (#58) remain technical work.
+
+## Camera follow #56 follow-up
+
+A focused route-start test reproduced the existing instantaneous look-ahead jump. Camera target now eases with a frame-rate-independent exponential factor; first frame, explicit world load/reseed and reduced motion snap to the current target. Zoom continues to respect the manual preference. The route-start regression failed before the correction and passes afterward. This replaces only presentation motion, preserving authoritative taxi position and time.

@@ -32,5 +32,12 @@ func _run() -> void:
 	city.set_manual_zoom(3.5)
 	scene._on_load()
 	assert(is_equal_approx(city.zoom_preference, 1.25), "Manual preference survives world load")
+	city.reduced_motion=false
+	city._process(0.0)
+	var parked_camera: Vector2=camera.position
+	assert(scene.get("_world").reposition("market"))
+	city._process(0.01)
+	assert(camera.position.distance_to(parked_camera)<5.0,
+			"Starting a route must ease lookahead instead of jumping the camera")
 	print("CAMERA_ZOOM_PASS closer bounded smooth reduced-motion touch persistent world-neutral")
 	quit()

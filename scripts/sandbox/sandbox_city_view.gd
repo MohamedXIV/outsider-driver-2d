@@ -14,6 +14,7 @@ const MIN_ZOOM: float = 1.25
 const MAX_ZOOM: float = 4.0
 var zoom_preference: float = DEFAULT_ZOOM
 var _zoom: float = DEFAULT_ZOOM
+var _camera_initialized: bool = false
 
 func set_manual_zoom(value: float) -> void:
 	if is_finite(value):
@@ -74,7 +75,10 @@ func _process(delta: float) -> void:
 			ahead += tangent.normalized()*65
 	var camera: Camera2D = get_parent().get_node("Camera2D")
 	var framing: Vector2=Vector2(70 if ui_rtl else -70,-45)
-	camera.position = taxi + framing if reduced_motion else taxi + framing + (ahead-taxi)*.5
+	var target: Vector2=taxi + framing if reduced_motion else taxi + framing + (ahead-taxi)*.5
+	camera.position = target if reduced_motion or not _camera_initialized else \
+			camera.position.lerp(target,1.0-exp(-8.0*maxf(delta,0.0)))
+	_camera_initialized=true
 	_zoom = zoom_preference if reduced_motion else lerpf(_zoom, zoom_preference, 1.0-exp(-8.0*maxf(delta,0.0)))
 	camera.zoom = Vector2.ONE * _zoom
 	_layers["ground"].queue_redraw()

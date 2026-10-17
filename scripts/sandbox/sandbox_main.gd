@@ -605,6 +605,7 @@ func _on_new_seed() -> void:
 	_selected_meeting_id = ""
 	_meeting_dialogue = null
 	_elapsed = 0.0
+	_city._camera_initialized=false
 	_notice_text = "Fresh independent simulated city seed."
 	_render()
 
@@ -633,6 +634,7 @@ func _on_load() -> void:
 			return
 	_reset_local_pedestrian()
 	_world = saved
+	_city._camera_initialized=false
 	_city.world = saved
 	_street_restore_state = bundle.get("presentation",{}).get("street_state",{}).duplicate(true)
 	_conversation = restored
