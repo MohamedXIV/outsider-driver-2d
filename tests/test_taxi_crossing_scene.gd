@@ -42,6 +42,10 @@ func _run() -> void:
 	assert(scene._street_pilot.pedestrian.crossing_reserved)
 	assert(scene._world.player_position().is_equal_approx(point))
 	scene._street_pilot.pedestrian.set_physics_process(false)
+	# Keep the resident physically blocked in the middle of the vehicle lane:
+	# city time must progress, but the fare/route must not teleport through.
+	scene._street_pilot.pedestrian.position=Vector2(SandboxStreetModule.CROSS_X,
+			SandboxStreetModule.LANE_Y)
 	scene._process(2.0)
 	assert(scene._world.remaining_minutes==remaining)
 	assert(scene._world.player_position().is_equal_approx(point))
