@@ -31,6 +31,12 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 			else clampf(fraction,0.0,1.0)),
 			0.0,route_duration)
 	var current: Vector3=world.npc_position(npc,fraction)
+	# Keep canonical centreline position for world ownership, persistence and
+	# crossing. The independent visual shuttle now uses taxi-compatible lanes.
+	var visual: Vector3=SandboxDirectedLanes.path_lane_point(nodes,elapsed,route_duration)
+	if not visual.is_finite(): return {}
+	var visual_heading: float=SandboxDirectedLanes.path_screen_heading(
+			nodes,elapsed,route_duration)
 	var ahead: Vector3=SandboxRoads.position_on_path(nodes,minf(route_duration,
 			elapsed+0.15),route_duration)
 	if ahead.distance_to(current)<0.0001:
@@ -41,6 +47,8 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 		"source_offer":str(npc["transit_from_offer"]),
 		"position":current,
 		"ahead":ahead,
+		"visual_position":visual,
+		"visual_heading":visual_heading,
 		"arrival_at":finish
 	}
 

@@ -103,6 +103,35 @@ static func route_lane_point(nodes: Array[String], segment: int,
 		if joined.is_finite(): return joined
 	return lane_point(from,to,t,index)
 
+# A visual translation of authoritative NPC transit minutes into directed
+# world-metric lanes. No simulation state, residents or extra route minutes.
+static func path_lane_point(nodes: Array[String], elapsed: float,
+		duration: float = -1.0, index: int = 0) -> Vector3:
+	if not SandboxRoads.valid_path(nodes) or not is_finite(elapsed): return Vector3.INF
+	if duration != -1.0 and (not is_finite(duration) or duration<=0.0): return Vector3.INF
+	var total: float=float(SandboxRoads.path_minutes(nodes))
+	if total<=0.0: return Vector3.INF
+	var progress: float=clampf(elapsed*total/duration if duration>0.0 else elapsed,0.0,total)
+	for segment in range(nodes.size()-1):
+		var edge: float=float(SandboxRoads.edge_minutes(nodes[segment],nodes[segment+1]))
+		if progress<=edge or segment==nodes.size()-2:
+			return route_lane_point(nodes,segment,clampf(progress/edge,0.0,1.0),index)
+		progress-=edge
+	return Vector3.INF
+
+static func path_screen_heading(nodes: Array[String], elapsed: float,
+		duration: float = -1.0, index: int = 0) -> float:
+	if not SandboxRoads.valid_path(nodes): return 0.0
+	var finish: float=duration if duration>0.0 else float(SandboxRoads.path_minutes(nodes))
+	if finish<=0.0 or not is_finite(elapsed): return 0.0
+	var at: float=clampf(elapsed,0.0,finish)
+	var behind: Vector3=path_lane_point(nodes,maxf(0.0,at-.15),duration,index)
+	var ahead: Vector3=path_lane_point(nodes,minf(finish,at+.15),duration,index)
+	if not behind.is_finite() or not ahead.is_finite(): return 0.0
+	var tangent: Vector2=SandboxIsoPresentation.project(ahead)-SandboxIsoPresentation.project(behind)
+	return tangent.angle() if tangent.length_squared()>.000001 else 0.0
+
+
 static func route_screen_heading(nodes: Array[String], segment: int,
 		fraction: float) -> float:
 	if segment<0 or segment>=nodes.size()-1: return 0.0

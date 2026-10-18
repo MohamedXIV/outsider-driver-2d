@@ -274,10 +274,10 @@ func _draw_people(canvas: Node2D, elevated: bool) -> void:
 		if not shuttle.is_empty():
 			# Same resident and world trip, shown as transport rather than a
 			# second walking NPC (or an invented municipal driver).
-			var next_pos: Vector2=project(shuttle["ahead"])
-			var here: Vector2=project(pos)
-			var tangent: Vector2=next_pos-here
-			_draw_world_shuttle(canvas,here,tangent.angle() if tangent.length()>0.001 else 0.0)
+			# Present the SAME world resident in its directed lane, without
+			# changing canonical trip timing, crossing or NPC arrival.
+			_draw_world_shuttle(canvas,project(shuttle["visual_position"]),
+					float(shuttle["visual_heading"]))
 			continue
 		var p: Vector2 = project(pos)+Vector2(15,12)
 		canvas.draw_circle(p+Vector2(2,3),4,Color("172a30"))
