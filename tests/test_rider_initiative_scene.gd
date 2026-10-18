@@ -31,6 +31,11 @@ func _run() -> void:
 	mode.debug_mode=false
 	mode.sync()
 	assert(mode._actions.has("reply_silent"))
+	var understood: bool=SandboxRiderInitiative.understood(scene._world)
+	assert(mode._actions.has("reply_brief")==understood,
+			"Brief answer must be visible only if passenger speech is understood")
+	assert(mode._actions.has("reply_deflect")==understood,
+			"Deflection must be visible only if passenger speech is understood")
 	assert(mode._body.get_children().any(func(c: Node)->bool:
 		return c is Label and str(c.text).contains("passenger") or (
 			c is Label and str(c.text).contains("راكب"))))
