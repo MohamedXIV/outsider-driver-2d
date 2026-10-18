@@ -112,15 +112,19 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if world == null: return
 	if not _heading_initialized: restore_taxi_heading()
-	var taxi: Vector2 = project(world.player_position(visual_fraction))
+	var taxi: Vector2 = SandboxDirectedLanes.taxi_screen(world,visual_fraction)
 	var ahead: Vector2 = taxi
 	if world.is_travelling():
 		_last_parked_stop = ""
 		var a: String = world.route_nodes[world.route_segment]
 		var b: String = world.route_nodes[world.route_segment+1]
 		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
-		var tangent: Vector2 = project(SandboxRoads.sample_edge(a,b,minf(.999,t+.003)))-project(SandboxRoads.sample_edge(a,b,maxf(0,t-.003)))
-		if tangent.length() > .001:
+		var p: Vector3 = SandboxDirectedLanes.route_lane_point(world.route_nodes,
+				world.route_segment,maxf(0.0,t-.003))
+		var q: Vector3 = SandboxDirectedLanes.route_lane_point(world.route_nodes,
+				world.route_segment,minf(1.0,t+.003))
+		var tangent: Vector2 = project(q)-project(p)
+		if p.is_finite() and q.is_finite() and tangent.length() > .001:
 			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
 	elif _last_parked_stop != world.player_district:

@@ -47,5 +47,36 @@ func _run() -> void:
 	assert(second.reposition("docks"))
 	assert(SandboxDirectedLanes.taxi_screen(second,.1).is_finite())
 	assert(SandboxRoads.path_minutes(["clinic","docks"])==SandboxRoads.edge_minutes("clinic","docks"))
+	# Adjacent, genuinely connected profiled road lanes must not jump
+	# across the junction when the canonical World changes route segment.
+	var corridor: Array[String]=["docks","clinic","basin_turn"]
+	assert(SandboxRoads.valid_path(corridor))
+	assert(SandboxDirectedLanes.can_turn("docks","clinic","basin_turn"))
+	var incoming: Vector3=SandboxDirectedLanes.route_lane_point(corridor,0,1.0)
+	var outgoing: Vector3=SandboxDirectedLanes.route_lane_point(corridor,1,0.0)
+	assert(incoming.is_finite() and incoming.distance_to(outgoing)<.001,
+			"Actual lane joins must remain position-continuous across segment switch")
+	var start_join: Vector3=SandboxDirectedLanes.route_lane_point(corridor,0,1.0-SandboxDirectedLanes.TURN_FRACTION)
+	var end_join: Vector3=SandboxDirectedLanes.route_lane_point(corridor,1,SandboxDirectedLanes.TURN_FRACTION)
+	assert(start_join.distance_to(SandboxDirectedLanes.lane_point("docks","clinic",
+			1.0-SandboxDirectedLanes.TURN_FRACTION))<.001)
+	assert(end_join.distance_to(SandboxDirectedLanes.lane_point("clinic","basin_turn",
+			SandboxDirectedLanes.TURN_FRACTION))<.001)
+	var in_heading: float=SandboxDirectedLanes.route_screen_heading(corridor,0,.9999)
+	var out_heading: float=SandboxDirectedLanes.route_screen_heading(corridor,1,.0001)
+	assert(absf(angle_difference(in_heading,out_heading))<.06,
+			"Visual taxi steering must not snap when crossing a profiled junction")
+	var single: Array[String]=["clinic","docks"]
+	assert(SandboxDirectedLanes.route_lane_point(single,0,.5).distance_to(
+			SandboxDirectedLanes.lane_point("clinic","docks",.5))<.001)
+	assert(not SandboxDirectedLanes.can_turn("docks","clinic","docks"),
+			"No invented U-turn on the opposite directed lane")
+	assert(not SandboxDirectedLanes.can_turn("bridge_east","margin_gate","old_square"),
+			"An unprofiled/elevated route must never receive a fake level-grade connector")
+	assert(SandboxDirectedLanes.turn_connector_point("bridge_east","margin_gate","old_square",
+			.5)==Vector3.INF)
+	# The transition is a rendering-only projection, not a new trip or
+	# event. Every checked World member, fare, and minute remains unchanged.
+	assert(world.snapshot()==before)
 	print("DIRECTED_LANES_PASS world-metric opposite lanes, four-lane arterial, real taxi arrival, unchanged fares")
 	quit()
