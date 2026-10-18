@@ -79,23 +79,38 @@ static func vehicle_side_face(base: PackedVector2Array, roof: PackedVector2Array
 	var next: int=(index+1)%4
 	return PackedVector2Array([base[index],base[next],roof[next],roof[index]])
 
+# Every raised face is convex, but Godot's Web triangulator can reject a
+# nearly-collinear *quad* at certain continuous road tangents. Send only
+# non-degenerate triangles; the same safety contract runs in native/Web.
+static func valid_triangle(a: Vector2, b: Vector2, c: Vector2) -> bool:
+	if not a.is_finite() or not b.is_finite() or not c.is_finite(): return false
+	return absf((b-a).cross(c-a)) > 0.5
+
+static func safe_face(canvas: Node2D, vertices: PackedVector2Array, tint: Color) -> void:
+	if vertices.size() < 3: return
+	# All authored faces here are convex and consistently ordered.
+	for i in range(1,vertices.size()-1):
+		if valid_triangle(vertices[0],vertices[i],vertices[i+1]):
+			canvas.draw_colored_polygon(PackedVector2Array([
+				vertices[0],vertices[i],vertices[i+1]]),tint)
+
 static func draw_vehicle(canvas: Node2D, at: Vector2, heading: float, taxi: bool) -> void:
 	var base: PackedVector2Array=vehicle_quad(at,heading)
 	var roof: PackedVector2Array=vehicle_quad(at,heading,CAR_ELEVATION)
 	var paint: Color=Color("da9e5e") if taxi else Color("78a8a2")
 	var trim: Color=Color("f1d7a4") if taxi else Color("bad8d2")
-	canvas.draw_colored_polygon(PackedVector2Array([
+	safe_face(canvas,PackedVector2Array([
 		base[0]+Vector2(3,5),base[1]+Vector2(3,5),
 		base[2]+Vector2(3,5),base[3]+Vector2(3,5)]),Color(0.02,0.07,0.08,0.42))
-	canvas.draw_colored_polygon(base,paint.darkened(.51))
+	safe_face(canvas,base,paint.darkened(.51))
 	# Four vertical side faces make the car visibly raised over the road.
 	# Far faces first; foreground edges are drawn after roof.
 	for side in [0,3,1,2]:
 		var face: PackedVector2Array = vehicle_side_face(base,roof,side)
 		# Do not send degenerate vertical faces to the GPU/Web renderer.
-		if polygon_area(face) > 0.01:
-			canvas.draw_colored_polygon(face,paint.darkened(.30 if side in [0,1] else .47))
-	canvas.draw_colored_polygon(roof,paint.lightened(.14))
+		if polygon_area(face) > 0.5:
+			safe_face(canvas,face,paint.darkened(.30 if side in [0,1] else .47))
+	safe_face(canvas,roof,paint.lightened(.14))
 	canvas.draw_polyline(PackedVector2Array([roof[0],roof[1],roof[2],roof[3],roof[0]]),trim,1.2,true)
 	var front: Vector2=(roof[1]+roof[2])*0.5
 	var rear: Vector2=(roof[0]+roof[3])*0.5
@@ -105,7 +120,7 @@ static func draw_vehicle(canvas: Node2D, at: Vector2, heading: float, taxi: bool
 	var windshield: PackedVector2Array=PackedVector2Array([
 		middle.lerp(left,.42),middle.lerp(front,.56),
 		middle.lerp(right,.42),middle.lerp(rear,.24)])
-	canvas.draw_colored_polygon(windshield,Color("315b62") if taxi else Color("34555c"))
+	safe_face(canvas,windshield,Color("315b62") if taxi else Color("34555c"))
 	canvas.draw_line(front+Vector2(0,-1),front+Vector2(0,2),Color("ffe0a0"),2.7,true)
 	if taxi: canvas.draw_circle(middle+Vector2(0,-2),2.7,Color("f5d999"))
 
@@ -123,13 +138,13 @@ static func draw_clinic(canvas: Node2D) -> void:
 	var rise: Vector2=Vector2(0,-41)
 	var roof: PackedVector2Array=[]
 	for p in base: roof.append(p+rise)
-	canvas.draw_colored_polygon(PackedVector2Array([
+	safe_face(canvas,PackedVector2Array([
 		base[0]+Vector2(8,12),base[1]+Vector2(8,12),
 		base[2]+Vector2(8,12),base[3]+Vector2(8,12)]),Color(0.03,0.09,0.1,.45))
-	canvas.draw_colored_polygon(PackedVector2Array([base[3],base[2],roof[2],roof[3]]),Color("496f75"))
-	canvas.draw_colored_polygon(PackedVector2Array([base[2],base[1],roof[1],roof[2]]),Color("294e57"))
-	canvas.draw_colored_polygon(PackedVector2Array([base[0],base[3],roof[3],roof[0]]),Color("3e626b"))
-	canvas.draw_colored_polygon(roof,Color("8ba6a3"))
+	safe_face(canvas,PackedVector2Array([base[3],base[2],roof[2],roof[3]]),Color("496f75"))
+	safe_face(canvas,PackedVector2Array([base[2],base[1],roof[1],roof[2]]),Color("294e57"))
+	safe_face(canvas,PackedVector2Array([base[0],base[3],roof[3],roof[0]]),Color("3e626b"))
+	safe_face(canvas,roof,Color("8ba6a3"))
 	canvas.draw_polyline(PackedVector2Array([roof[0],roof[1],roof[2],roof[3],roof[0]]),Color("aec7bc"),1.2,true)
 	var entrance: Vector2=clinic_doorway()
 	canvas.draw_line(entrance+Vector2(-6,0),entrance+Vector2(-6,-17),Color("192f36"),8.0,true)
