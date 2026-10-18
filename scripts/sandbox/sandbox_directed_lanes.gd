@@ -103,6 +103,25 @@ static func route_lane_point(nodes: Array[String], segment: int,
 		if joined.is_finite(): return joined
 	return lane_point(from,to,t,index)
 
+# Pure display sampling for real World-owned journeys. The units/edge times
+# are exactly SandboxRoads' canonical minutes; no independent vehicle clock.
+# Unprofiled roads preserve their existing centerline presentation.
+static func route_point_at_minutes(nodes: Array[String], elapsed: float,
+		duration: float = -1.0, index: int = 0) -> Vector3:
+	if not SandboxRoads.valid_path(nodes) or not is_finite(elapsed) or not is_finite(duration):
+		return Vector3.INF
+	if duration == 0.0 or (duration < 0.0 and duration != -1.0):
+		return Vector3.INF
+	var total: float = float(SandboxRoads.path_minutes(nodes))
+	var progress: float = clampf(elapsed * total / duration if duration > 0.0 else elapsed,
+			0.0, total)
+	for segment in range(nodes.size()-1):
+		var minutes: float = float(SandboxRoads.edge_minutes(nodes[segment], nodes[segment+1]))
+		if progress <= minutes:
+			return route_lane_point(nodes, segment, progress / minutes, index)
+		progress -= minutes
+	return route_lane_point(nodes, nodes.size()-2, 1.0, index)
+
 static func route_screen_heading(nodes: Array[String], segment: int,
 		fraction: float) -> float:
 	if segment<0 or segment>=nodes.size()-1: return 0.0

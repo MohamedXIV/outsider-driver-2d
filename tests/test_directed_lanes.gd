@@ -66,6 +66,26 @@ func _run() -> void:
 	var out_heading: float=SandboxDirectedLanes.route_screen_heading(corridor,1,.0001)
 	assert(absf(angle_difference(in_heading,out_heading))<.06,
 			"Visual taxi steering must not snap when crossing a profiled junction")
+	# A genuine shuttle's elapsed World minutes must sample these same
+	# directed lanes, including the seamless junction transition.
+	var join_minute: float=float(SandboxRoads.edge_minutes("docks","clinic"))
+	var before_join: Vector3=SandboxDirectedLanes.route_point_at_minutes(
+			corridor,join_minute-0.001)
+	var at_join: Vector3=SandboxDirectedLanes.route_point_at_minutes(corridor,join_minute)
+	var after_join: Vector3=SandboxDirectedLanes.route_point_at_minutes(
+			corridor,join_minute+0.001)
+	assert(before_join.distance_to(at_join)<1.0 and after_join.distance_to(at_join)<1.0,
+			"World-minute shuttle presentation must not jump at a directed junction")
+	assert(at_join.distance_to(incoming)<0.001)
+	var full_duration: float=float(SandboxRoads.path_minutes(corridor))
+	assert(SandboxDirectedLanes.route_point_at_minutes(corridor,join_minute,
+			full_duration).distance_to(at_join)<0.001)
+	assert(SandboxDirectedLanes.route_point_at_minutes(
+			corridor,full_duration,full_duration).distance_to(
+			SandboxDirectedLanes.route_lane_point(corridor,1,1.0))<0.001)
+	var bad_nodes: Array[String]=["docks","docks"]
+	assert(SandboxDirectedLanes.route_point_at_minutes(bad_nodes,1.0)==Vector3.INF)
+	assert(SandboxDirectedLanes.route_point_at_minutes(corridor,1.0,0.0)==Vector3.INF)
 	var single: Array[String]=["clinic","docks"]
 	assert(SandboxDirectedLanes.route_lane_point(single,0,.5).distance_to(
 			SandboxDirectedLanes.lane_point("clinic","docks",.5))<.001)

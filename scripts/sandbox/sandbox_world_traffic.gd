@@ -36,11 +36,22 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 	if ahead.distance_to(current)<0.0001:
 		ahead=SandboxRoads.position_on_path(nodes,maxf(0.0,elapsed-0.15),
 				route_duration)
+	# Only the visible pose moves onto the same authored directional road
+	# geometry as the taxi. Existing canonical position and arrivals are intact.
+	var render_position: Vector3=SandboxDirectedLanes.route_point_at_minutes(
+			nodes,elapsed,route_duration)
+	var render_ahead: Vector3=SandboxDirectedLanes.route_point_at_minutes(
+			nodes,minf(route_duration,elapsed+0.15),route_duration)
+	if render_ahead.distance_to(render_position)<0.0001:
+		render_ahead=SandboxDirectedLanes.route_point_at_minutes(
+				nodes,maxf(0.0,elapsed-0.15),route_duration)
 	return {
 		"resident_id":str(npc["id"]),
 		"source_offer":str(npc["transit_from_offer"]),
 		"position":current,
 		"ahead":ahead,
+		"render_position":render_position,
+		"render_ahead":render_ahead,
 		"arrival_at":finish
 	}
 
