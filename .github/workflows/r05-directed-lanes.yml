@@ -12,7 +12,7 @@ permissions:
 jobs:
   godot:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 32
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Godot 4.7.2
@@ -42,6 +42,23 @@ jobs:
           set -euo pipefail
           OD2D_LOGS=work/r05-directed/domain python3 tests/run_city_gate.py | tee work/r05-directed/domain-summary.log
           OD2D_LOGS=work/r05-directed/native xvfb-run -a -s '-screen 0 1280x1400x24' python3 tests/run_city_gate.py --native | tee work/r05-directed/native-summary.log
+      - name: Install pinned Web export templates and Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip -d /tmp/godot-templates
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          cp /tmp/godot-templates/templates/web* ~/.local/share/godot/export_templates/4.7.2.stable/
+          npm install --prefix /tmp/od2d-node playwright@1.56.0
+          /tmp/od2d-node/node_modules/.bin/playwright install --with-deps chromium
+          echo 'NODE_PATH=/tmp/od2d-node/node_modules' >> "$GITHUB_ENV"
+      - name: Exact-head integrated Chromium current-world suites
+        env:
+          GODOT_BIN: /tmp/godot
+          OD2D_LOGS: work/r05-directed/chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: python3 tests/run_exported_gate.py --scope current
       - uses: actions/upload-artifact@v4
         if: always()
         with:
