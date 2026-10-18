@@ -102,10 +102,21 @@ static func question(world: SandboxWorld, locale: String) -> String:
 # Event validation detects invented initiation, answer and signed response.
 # Historical answered rides can be closed without keeping phantom pending UI.
 static func valid_history(snapshot: Dictionary) -> bool:
-	var events: Array = snapshot.get("events",[])
-	var offers: Array = snapshot.get("offers",[])
+	var events_value: Variant = snapshot.get("events",[])
+	var offers_value: Variant = snapshot.get("offers",[])
+	var residents_value: Variant = snapshot.get("residents",[])
 	var state: Variant = snapshot.get("rider_initiative",{})
-	if not (state is Dictionary): return false
+	if not (events_value is Array) or not (offers_value is Array) \
+			or not (residents_value is Array) or not (state is Dictionary):
+		return false
+	var events: Array = events_value
+	var offers: Array = offers_value
+	for evt in events:
+		if not (evt is Dictionary) or not (evt.get("detail",{}) is Dictionary): return false
+	for offer in offers:
+		if not (offer is Dictionary): return false
+	for npc in residents_value:
+		if not (npc is Dictionary): return false
 	var attempts: Dictionary = {}
 	var settled: Dictionary = {}
 	var recorded_scrutiny: Dictionary = {}
