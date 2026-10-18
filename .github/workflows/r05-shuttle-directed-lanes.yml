@@ -34,7 +34,7 @@ jobs:
           /tmp/godot --headless --path . --editor --import --quit > work/r05-shuttle/import.log 2>&1
           timeout 45s /tmp/godot --headless --path . --script res://tests/test_directed_lanes.gd 2>&1 | tee work/r05-shuttle/focused.log
           grep -q DIRECTED_LANES_PASS work/r05-shuttle/focused.log
-          timeout 40s /tmp/godot --headless --path . --script res://tests/test_world_shuttle_visual.gd 2>&1 | tee work/r05-shuttle/visual.log
+          timeout 75s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_world_shuttle_visual.gd 2>&1 | tee work/r05-shuttle/visual.log
           grep -q WORLD_SHUTTLE_VISUAL_PASS work/r05-shuttle/visual.log
           timeout 40s /tmp/godot --headless --path . --script res://tests/test_shuttle_crossing_world.gd 2>&1 | tee work/r05-shuttle/yield.log
           grep -q SHUTTLE_CROSSING_WORLD_PASS work/r05-shuttle/yield.log
