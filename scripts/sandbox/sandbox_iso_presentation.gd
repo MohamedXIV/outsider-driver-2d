@@ -53,6 +53,9 @@ static func draw_clinic_road(canvas: Node2D, a: String, b: String, pass_index: i
 				canvas.draw_line(centre[i],centre[i+2],Color("cfbd80"),1.25,true)
 
 static func draw_arterial_road(canvas: Node2D, a: String, b: String, pass_index: int) -> void:
+	if pass_index == -1:
+		for i in range(4): draw_arterial_road(canvas,a,b,i)
+		return
 	var centre: PackedVector2Array=road_points(a,b)
 	match pass_index:
 		0:
