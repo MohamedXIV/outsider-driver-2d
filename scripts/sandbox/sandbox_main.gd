@@ -266,6 +266,14 @@ func _on_apply_reroute() -> void:
 	_render()
 
 
+func _on_rider_initiative_answer(response: String) -> void:
+	if _world.answer_rider_initiative(response):
+		_notice_text = "Passenger exchange recorded. The journey continues."
+	else:
+		_notice_text = "No comprehensible active passenger question."
+	_render()
+
+
 func _on_rider_answer(agree: bool) -> void:
 	if _world.respond_rider_route(agree):
 		_notice_text = "Passenger route request %s; relationship updated." % (
@@ -1198,6 +1206,8 @@ func _render_route_picker(offer: Dictionary) -> void:
 	_apply_route.visible = active
 	var request: Dictionary = _world.rider_route_request
 	var pending_question: bool = active and request.get("status", "") == "pending"
+	var initiative: Dictionary = _world.rider_initiative
+	var rider_asks: bool = initiative.get("status","")=="pending"
 	_honor.visible = pending_question
 	_refuse.visible = pending_question
 	_rider_info.visible = active
@@ -1220,6 +1230,8 @@ func _render_route_picker(offer: Dictionary) -> void:
 			] if legible else "Rider gestures toward %s on the map; motive unclear." % str(request["via"]).capitalize()
 		else:
 			_rider_info.text = "Rider route request: %s" % str(request.get("status", "none"))
+		if rider_asks:
+			_rider_info.text += "\n" + SandboxRiderInitiative.question(_world,_ui_locale)
 	if _via.disabled:
 		_city.preview_nodes = _world.route_nodes.duplicate() if active else []
 		_route_preview.text = "Final edge: next junction is the destination." if active else "No connected path."

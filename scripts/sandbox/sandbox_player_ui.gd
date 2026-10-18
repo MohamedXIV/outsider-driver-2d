@@ -162,7 +162,8 @@ func sync() -> void:
 			var local: Array=[]
 			for offer in world.open_offers():
 				if offer["origin"]==world.player_district: local.append(offer)
-			context=[local,world.player_district,world.active_offer_id,world.is_travelling(),controller._selected_id,controller._dialogue_text.text,controller._notice_text]
+			context=[local,world.player_district,world.active_offer_id,world.is_travelling(),
+					world.rider_initiative,controller._selected_id,controller._dialogue_text.text,controller._notice_text]
 		"map": context=[world.route_nodes,world.pending_route_nodes,world.rider_route_request,world.player_district,world.credits,_map_selected,_planned_via,_planned_stops]
 		"gear": context=[world.starter_device,world.modules_owned,world.modules_installed,world.market_stock,world.player_district,world.is_travelling(),SandboxKnowledge.market_open(world.minute),world.credits,world.ar_owned,world.ar_equipped,controller._ar_note]
 		"contacts": context=[world.meetings,controller._selected_meeting_id,controller._meeting_text.text,controller._meeting_info.text,controller._meeting_accept.disabled,controller._meeting_decline.disabled,controller._meeting_attend.disabled]
@@ -193,6 +194,17 @@ func sync() -> void:
 			if not world.active_offer_id.is_empty():
 				var fare: Dictionary=world.offer_by_id(world.active_offer_id)
 				_label("%s  ·  %d cr"%[place(str(fare["destination"])),fare["fare"]])
+				var prompt: Dictionary=world.rider_initiative
+				if prompt.get("status","")=="pending":
+					_label(trp("Your passenger speaks first","الراكب يبدأ الحديث"),true)
+					_label(SandboxRiderInitiative.question(world,locale))
+					if SandboxRiderInitiative.understood(world):
+						_button("reply_brief",trp("Answer briefly","أجب باختصار"),
+								controller._on_rider_initiative_answer.bind("brief"))
+						_button("reply_deflect",trp("Deflect the question","تهرّب من السؤال"),
+								controller._on_rider_initiative_answer.bind("deflect"))
+					_button("reply_silent",trp("Stay quiet","التزم الصمت"),
+							controller._on_rider_initiative_answer.bind("silent"))
 				_button("talk",trp("Talk to your passenger","تحدث مع الراكب"),_call.bind("_on_talk"))
 		else:
 			_label(trp("Street requests","طلبات الشارع"),true)
