@@ -112,14 +112,21 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if world == null: return
 	if not _heading_initialized: restore_taxi_heading()
-	var taxi: Vector2 = project(world.player_position(visual_fraction))
+	var taxi: Vector2 = SandboxDirectedLanes.taxi_screen(world,visual_fraction)
 	var ahead: Vector2 = taxi
 	if world.is_travelling():
 		_last_parked_stop = ""
 		var a: String = world.route_nodes[world.route_segment]
 		var b: String = world.route_nodes[world.route_segment+1]
 		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
-		var tangent: Vector2 = project(SandboxRoads.sample_edge(a,b,minf(.999,t+.003)))-project(SandboxRoads.sample_edge(a,b,maxf(0,t-.003)))
+		# Heading and camera lookahead must follow the SAME lane/turn spline
+		# the car is visually driving; otherwise it points at the road centre
+		# as the body rounds a junction.
+		var behind: Vector3=SandboxDirectedLanes.route_point(
+				world.route_nodes,world.route_segment,maxf(0.0,t-.003))
+		var in_front: Vector3=SandboxDirectedLanes.route_point(
+				world.route_nodes,world.route_segment,minf(1.0,t+.003))
+		var tangent: Vector2=project(in_front)-project(behind)
 		if tangent.length() > .001:
 			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
