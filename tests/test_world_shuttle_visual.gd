@@ -41,6 +41,14 @@ func _run() -> void:
 	assert(pose["position"].y>=0.0)
 	assert(pose["ahead"].distance_to(pose["position"])>0.001)
 	assert(pose["source_offer"]==passenger["transit_from_offer"])
+	var nodes: Array[String]=[]
+	for stop in passenger["transit_nodes"]: nodes.append(str(stop))
+	var elapsed: float=float(selected.minute-int(passenger["transit_started"])
+			-int(passenger.get("transit_pause_minutes",0)))
+	assert(pose["visual_position"].is_equal_approx(
+			SandboxDirectedLanes.path_lane_point(nodes,elapsed)),
+			"Real shuttle must be on the same authored directed lane as a taxi")
+	assert(pose["visual_position"].is_finite() and is_finite(float(pose["visual_heading"])))
 	# Presentation interpolation is the real deterministic world path, not
 	# a physically integrated speed or a second route clock.
 	var interpolated: Dictionary=SandboxWorldTraffic.shuttle_pose(selected,passenger,0.5)
@@ -51,6 +59,10 @@ func _run() -> void:
 	var copied: Dictionary=SandboxWorldTraffic.shuttle_pose(restored,
 			restored.resident(passenger_id),0.5)
 	assert(copied["position"].is_equal_approx(interpolated["position"]))
+	assert(copied["visual_position"].is_equal_approx(interpolated["visual_position"]))
+	assert(is_equal_approx(float(copied["visual_heading"]),
+			float(interpolated["visual_heading"])),
+			"Shuttle facing may not drift across identical world Save/Load")
 	# A normal walking alternative is NOT drawn as a shuttle.
 	var walking: Dictionary=passenger.duplicate(true)
 	walking["transit_method"]="walking"

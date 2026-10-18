@@ -21,6 +21,8 @@ func _run() -> void:
 	var original_arrival: int=int(npc["transit_until"])
 	var original_pose: Vector3=world.npc_position(npc)
 	assert(npc["transit_method"]=="shuttle")
+	var held_before: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,0.5)
+	assert(not held_before.is_empty())
 	assert(world.begin_shuttle_crossing_yield(shuttle_id))
 	assert(not world.begin_shuttle_crossing_yield(shuttle_id))
 	assert(world.advance(3))
@@ -29,6 +31,11 @@ func _run() -> void:
 	assert(int(npc["transit_pause_minutes"])==3)
 	assert(world.npc_position(npc).is_equal_approx(original_pose))
 	assert(SandboxWorldTraffic.shuttle_pose(world,npc,0.8)["position"].is_equal_approx(original_pose))
+	var held_after: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,0.8)
+	assert(held_after["visual_position"].is_equal_approx(held_before["visual_position"]),
+			"Waiting at a pedestrian zebra must also freeze the rendered lane vehicle")
+	assert(is_equal_approx(float(held_after["visual_heading"]),
+			float(held_before["visual_heading"])))
 	var copy: SandboxWorld=SandboxWorld.new()
 	assert(copy.restore_snapshot(world.snapshot()))
 	var forged: Dictionary=world.snapshot()

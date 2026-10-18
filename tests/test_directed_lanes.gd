@@ -66,6 +66,25 @@ func _run() -> void:
 	var out_heading: float=SandboxDirectedLanes.route_screen_heading(corridor,1,.0001)
 	assert(absf(angle_difference(in_heading,out_heading))<.06,
 			"Visual taxi steering must not snap when crossing a profiled junction")
+	# A real shuttle shares the taxi's road-metric lane geometry, including
+	# the continuous existing junction turn; never changes world time.
+	var minutes_before_turn: float=float(SandboxRoads.edge_minutes("docks","clinic"))
+	var total_minutes: float=float(SandboxRoads.path_minutes(corridor))
+	var before_shuttle: Vector3=SandboxDirectedLanes.path_lane_point(
+			corridor,minutes_before_turn-.01,total_minutes)
+	var after_shuttle: Vector3=SandboxDirectedLanes.path_lane_point(
+			corridor,minutes_before_turn+.01,total_minutes)
+	assert(before_shuttle.is_finite() and after_shuttle.is_finite()
+			and before_shuttle.distance_to(after_shuttle)<10.0,
+			"World-owned shuttle must cross the same connected lane without teleporting")
+	var heading_before: float=SandboxDirectedLanes.path_screen_heading(
+			corridor,minutes_before_turn-.01,total_minutes)
+	var heading_after: float=SandboxDirectedLanes.path_screen_heading(
+			corridor,minutes_before_turn+.01,total_minutes)
+	assert(absf(angle_difference(heading_before,heading_after))<.1,
+			"Shuttle heading must not snap at profiled junction boundaries")
+	assert(SandboxDirectedLanes.path_lane_point(corridor,INF,total_minutes)==Vector3.INF)
+	assert(SandboxDirectedLanes.path_lane_point(corridor,2.0,0.0)==Vector3.INF)
 	var single: Array[String]=["clinic","docks"]
 	assert(SandboxDirectedLanes.route_lane_point(single,0,.5).distance_to(
 			SandboxDirectedLanes.lane_point("clinic","docks",.5))<.001)
