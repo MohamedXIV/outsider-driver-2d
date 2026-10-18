@@ -145,6 +145,8 @@ func sync() -> void:
 	if root.theme.default_font!=font: root.theme.default_font=font
 	for child in _tabs.get_children():
 		child.text={"requests":trp("Street","الشارع"),"map":trp("Map","الخريطة"),"gear":trp("Gear","الأجهزة"),"contacts":trp("Contacts","المعارف"),"settings":trp("Options","الخيارات")}[child.name]
+		if child.name=="requests" and world.rider_initiative.get("status","")=="pending":
+			child.text+=" •"
 	_header.text=trp("OUTSIDER / ","غريب / ")+SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["ar" if locale=="ar" else "name"]+"   ·   %d cr"%world.credits
 	_hint.text="%02d:%02d  ·  %s  ·  %s"%[(world.minute%1440)/60,world.minute%60,place(world.player_district),trp("On the road · %dm remaining","على الطريق · المتبقي %d د")%world.remaining_minutes if world.is_travelling() else trp("Parked · look for a fare","متوقف · ابحث عن راكب")]
 	if world.risk>0: _hint.text+=trp(" · Attention %d"," · الانتباه %d")%world.risk
@@ -197,7 +199,14 @@ func sync() -> void:
 				var prompt: Dictionary=world.rider_initiative
 				if prompt.get("status","")=="pending":
 					_label(trp("Your passenger speaks first","الراكب يبدأ الحديث"),true)
-					_label(SandboxRiderInitiative.question(world,locale))
+					var question_label: Label=_label(SandboxRiderInitiative.question(world,locale))
+					if not SandboxRiderInitiative.understood(world):
+						var speaker: Dictionary=world.resident(str(prompt.get("npc_id","")))
+						var font_path: String=SandboxLanguagePresentation.native_font_path(
+								str(speaker.get("language","")))
+						if not font_path.is_empty():
+							question_label.add_theme_font_override("font",load(font_path))
+						question_label.text_direction=Control.TEXT_DIRECTION_LTR
 					if SandboxRiderInitiative.understood(world):
 						_button("reply_brief",trp("Answer briefly","أجب باختصار"),
 								controller._on_rider_initiative_answer.bind("brief"))
@@ -318,7 +327,9 @@ func _publish() -> void:
 			"clipTop":_scroll.get_global_rect().position.y,"clipBottom":_scroll.get_global_rect().end.y}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
-	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower(),
+			"playerRiderStatus":str(controller._world.rider_initiative.get("status","")),
+			"playerRiderQuestion":SandboxRiderInitiative.question(controller._world,controller._ui_locale)}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size

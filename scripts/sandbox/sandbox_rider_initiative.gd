@@ -123,7 +123,7 @@ static func valid_history(snapshot: Dictionary) -> bool:
 	for evt in events:
 		var kind: String = str(evt.get("kind", ""))
 		var offer_id: String = str(evt.get("subject",""))
-		if kind == "offer_accepted": settled[offer_id] = true
+		if kind == "offer_accepted": settled[offer_id] = evt
 		if not kind.begins_with("rider_initiative_"): continue
 		var detail: Dictionary=evt.get("detail",{})
 		var status: String=str(attempts.get(offer_id,{}).get("status",""))
@@ -134,8 +134,16 @@ static func valid_history(snapshot: Dictionary) -> bool:
 				or detail.get("npc_id","")!=matching.get("npc_id",""): return false
 		match kind:
 			"rider_initiative_scheduled":
+				var acceptance: Dictionary=settled[offer_id]
+				var minutes: int=int(acceptance.get("detail",{}).get("minutes",0))
+				var rider_number: int=int(str(detail["npc_id"]).trim_prefix("npc:"))
+				var seed_bucket: int=posmod(int(snapshot.get("seed",0))*19 + rider_number*7 \
+						+ int(matching.get("created_at",0))*3,10)
+				var delay: int=maxi(2,mini(6,minutes / 4))
 				if status!="" or not TOPICS.has(detail.get("topic","")) \
-						or int(detail.get("due",-1))<=int(evt.get("minute",-1)): return false
+						or minutes<8 or seed_bucket==0 \
+						or int(detail.get("due",-1)) != int(evt.get("minute",-1))+delay:
+					return false
 				attempts[offer_id]={"status":"scheduled","offer_id":offer_id,
 					"npc_id":detail["npc_id"],"topic":detail["topic"],"due":detail["due"]}
 			"rider_initiative_started":
@@ -145,9 +153,15 @@ static func valid_history(snapshot: Dictionary) -> bool:
 			"rider_initiative_answered":
 				var response: String=str(detail.get("answer",""))
 				var trust: int=1 if response=="brief" else (-1 if response=="silent" else 0)
+				var temperament: String=""
+				for npc in snapshot.get("residents",[]):
+					if npc.get("id","")==detail["npc_id"]:
+						temperament=str(npc.get("temperament",""))
+						break
+				var scrutiny: int=1 if response=="deflect" and temperament=="cautious" else 0
 				if status!="pending" or not ANSWERS.has(response) \
 						or int(detail.get("trust_delta",999))!=trust \
-						or not [0,1].has(detail.get("scrutiny_delta",-1)): return false
+						or int(detail.get("scrutiny_delta",-1))!=scrutiny: return false
 				attempts[offer_id]["status"]="answered"
 				attempts[offer_id]["answer"]=response
 				recorded_scrutiny[str(detail["npc_id"])]=int(recorded_scrutiny.get(str(detail["npc_id"]),0))+int(detail["scrutiny_delta"])
