@@ -201,9 +201,9 @@ func sync() -> void:
 					_label(trp("Your passenger speaks first","الراكب يبدأ الحديث"),true)
 					var question_label: Label=_label(SandboxRiderInitiative.question(world,locale))
 					if not SandboxRiderInitiative.understood(world):
-						var speaker: Dictionary=world.resident(str(prompt.get("npc_id","")))
+						var rider_speaker: Dictionary=world.resident(str(prompt.get("npc_id","")))
 						var font_path: String=SandboxLanguagePresentation.native_font_path(
-								str(speaker.get("language","")))
+								str(rider_speaker.get("language","")))
 						if not font_path.is_empty():
 							question_label.add_theme_font_override("font",load(font_path))
 						question_label.text_direction=Control.TEXT_DIRECTION_LTR
