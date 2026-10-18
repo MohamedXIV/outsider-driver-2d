@@ -1,0 +1,52 @@
+name: R05 local vehicle motion
+on:
+  push:
+    branches: [feat/r05-street-motion]
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/r05-street-motion.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  godot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.7.2 and virtual display
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+      - name: Targeted kinematics and native motion before full suite
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p work/r05-motion
+          /tmp/godot --headless --path . --editor --import --quit > work/r05-motion/import.log 2>&1
+          timeout 40s /tmp/godot --headless --path . --script res://tests/test_vehicle_kinematics.gd 2>&1 | tee work/r05-motion/domain.log
+          grep -q VEHICLE_KINEMATICS_PASS work/r05-motion/domain.log
+          timeout 75s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_vehicle_motion_scene.gd 2>&1 | tee work/r05-motion/scene.log
+          grep -q VEHICLE_MOTION_SCENE_PASS work/r05-motion/scene.log
+      - name: Full Godot domain and native regression gates
+        env:
+          GODOT_BIN: /tmp/godot
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          OD2D_LOGS=work/r05-motion/domain-suite python3 tests/run_city_gate.py | tee work/r05-motion/domain-summary.log
+          OD2D_LOGS=work/r05-motion/native-suite xvfb-run -a -s '-screen 0 1280x1400x24' python3 tests/run_city_gate.py --native | tee work/r05-motion/native-summary.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r05-motion-evidence
+          path: work/r05-motion/
+          retention-days: 7

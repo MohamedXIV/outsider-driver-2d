@@ -12,8 +12,8 @@ var pedestrians: Dictionary={}
 var pedestrian: SandboxPedestrianActor
 var walking_npc_id: String=""
 var world_reported_arrival: bool=false
-var car: CharacterBody2D
-var follower: CharacterBody2D
+var car: SandboxTrafficVehicle
+var follower: SandboxTrafficVehicle
 var car_yielded: bool=false
 var embedded: bool=false
 var resume_state: Dictionary={}
@@ -29,7 +29,8 @@ func visual_snapshot() -> Dictionary:
 	if car==null or follower==null: return {}
 	var state: Dictionary=_actor_snapshot(pedestrian) if pedestrian!=null else {}
 	state.merge({"car_x":car.position.x,"car_y":car.position.y,
-		"follower_x":follower.position.x,"follower_y":follower.position.y,"actors":{},
+		"follower_x":follower.position.x,"follower_y":follower.position.y,
+		"car_speed":car.current_speed,"follower_speed":follower.current_speed,"actors":{},
 		"junction":junction.snapshot() if junction!=null else {}})
 	for id in pedestrians: state["actors"][id]=_actor_snapshot(pedestrians[id])
 	return state
@@ -53,6 +54,8 @@ func _ready() -> void:
 	for id in ids: _spawn_resident(id)
 	car.position=Vector2(clampf(float(resume_state.get("car_x",180.0)),100.0,570.0),350.0)
 	follower.position=Vector2(minf(float(resume_state.get("follower_x",110.0)),car.position.x-SandboxStreetPriority.FOLLOW_SPACING),350.0)
+	car.current_speed=clampf(float(resume_state.get("car_speed",0.0)),0.0,SandboxVehicleKinematics.CRUISE)
+	follower.current_speed=clampf(float(resume_state.get("follower_speed",0.0)),0.0,SandboxVehicleKinematics.CRUISE)
 	reconcile_reservations()
 	if not embedded:
 		var camera: Camera2D=Camera2D.new()
@@ -164,7 +167,7 @@ func handoff_all() -> void:
 		var phase: float=minf(.999999,SandboxStreetModule.progress_of(actor.position,slot))
 		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position)
 
-func _make_lane_car(label: String,start: Vector2) -> CharacterBody2D:
+func _make_lane_car(label: String,start: Vector2) -> SandboxTrafficVehicle:
 	var vehicle: SandboxTrafficVehicle=SandboxTrafficVehicle.new()
 	vehicle.name=label;vehicle.position=start;vehicle.collision_layer=4;vehicle.collision_mask=2
 	var hitbox: CollisionShape2D=CollisionShape2D.new()
@@ -183,12 +186,30 @@ func _physics_process(delta: float) -> void:
 		if actor.crossing_reserved and not actor.crossing_completed and SandboxStreetModule.ROAD.has_point(actor.position):
 			walker_ahead_of_leader=walker_ahead_of_leader or actor.position.x>car.position.x
 			walker_ahead_of_follower=walker_ahead_of_follower or actor.position.x>follower.position.x
-	var speed: float=SandboxStreetPriority.vehicle_velocity(
+	# The exact right-of-way rules still own hard barriers. A bounded motion
+	# profile approaches the stop gradually instead of snapping from cruise
+	# to zero in the final frame; a real walker ahead overrides comfort.
+	var leader_limit: float=SandboxStreetPriority.vehicle_velocity(
 			car.position.x,occupied,false,delta,walker_ahead_of_leader)
+	if occupied and car.position.x<=SandboxStreetPriority.stop_line() and not walker_ahead_of_leader:
+		leader_limit=minf(leader_limit,SandboxVehicleKinematics.braking_speed(
+				SandboxStreetPriority.stop_line()-car.position.x))
+	car.current_speed=SandboxVehicleKinematics.next_speed(car.current_speed,leader_limit,delta)
+	# Never advance beyond a protected stop line even under a long frame.
+	car.current_speed=minf(car.current_speed,leader_limit)
 	if occupied and car.position.x<=SandboxStreetPriority.stop_line()+.1: car_yielded=true
-	car.velocity=global_transform.x.normalized()*speed;car.move_and_slide()
-	follower.velocity=global_transform.x.normalized()*SandboxStreetPriority.follower_velocity(
+	car.velocity=global_transform.x.normalized()*car.current_speed
+	car.move_and_slide()
+	var follower_limit: float=SandboxStreetPriority.follower_velocity(
 			follower.position.x,car.position.x,occupied,false,delta,walker_ahead_of_follower)
+	var gap_left: float=car.position.x-SandboxStreetPriority.FOLLOW_SPACING-follower.position.x
+	follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(gap_left))
+	if occupied and follower.position.x<=SandboxStreetPriority.stop_line() and not walker_ahead_of_follower:
+		follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(
+				SandboxStreetPriority.stop_line()-follower.position.x))
+	follower.current_speed=SandboxVehicleKinematics.next_speed(follower.current_speed,follower_limit,delta)
+	follower.current_speed=minf(follower.current_speed,follower_limit)
+	follower.velocity=global_transform.x.normalized()*follower.current_speed
 	follower.move_and_slide();queue_redraw()
 
 func _on_resident_arrived(id: String) -> void:

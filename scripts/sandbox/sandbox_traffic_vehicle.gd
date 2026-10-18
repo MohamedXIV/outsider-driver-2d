@@ -1,6 +1,9 @@
 class_name SandboxTrafficVehicle
 extends CharacterBody2D
 
+# Local physical kinematic speed; never a world-owned second scheduler.
+var current_speed: float = 0.0
+
 func _ready() -> void:
 	collision_layer = 4
 	collision_mask = 2
