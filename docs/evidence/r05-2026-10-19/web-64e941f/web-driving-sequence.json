@@ -1,0 +1,164 @@
+[
+  {
+    "elapsed": 4,
+    "fraction": 0.683333333333335,
+    "heading": -0.824168860912323,
+    "hold": "",
+    "id": "player",
+    "minute": 497,
+    "render": [
+      221.221466064453,
+      778.48291015625
+    ],
+    "route": [
+      "garage",
+      "margin_gate",
+      "bridge_east",
+      "bridge_west",
+      "worker_gate",
+      "depot",
+      "belt_arcade",
+      "civic_arcade",
+      "civic_gate",
+      "old_square",
+      "market"
+    ],
+    "segment": 0,
+    "visible": true,
+    "world": [
+      8489.3095703125,
+      0,
+      6353.21044921875
+    ],
+    "actors": [
+      {
+        "authority": "native_pedestrian",
+        "fraction": 0.683333333333335,
+        "id": "npc:02",
+        "minute": 497,
+        "render": [
+          305.202178955078,
+          656.596923828125
+        ],
+        "viewport": [
+          992.217712402344,
+          214.104614257812
+        ],
+        "visible": true,
+        "world": [
+          9300,
+          0,
+          7300
+        ]
+      }
+    ]
+  },
+  {
+    "elapsed": 6,
+    "fraction": 0.500000000000002,
+    "heading": -0.499257326126099,
+    "hold": "",
+    "id": "player",
+    "minute": 499,
+    "render": [
+      263.790649414062,
+      748.229309082031
+    ],
+    "route": [
+      "garage",
+      "margin_gate",
+      "bridge_east",
+      "bridge_west",
+      "worker_gate",
+      "depot",
+      "belt_arcade",
+      "civic_arcade",
+      "civic_gate",
+      "old_square",
+      "market"
+    ],
+    "segment": 0,
+    "visible": true,
+    "world": [
+      8405.1337890625,
+      0,
+      5869.328125
+    ],
+    "actors": [
+      {
+        "authority": "world_local_pedestrian",
+        "fraction": 0.500000000000002,
+        "id": "npc:02",
+        "minute": 499,
+        "render": [
+          306.220855712891,
+          654.069580078125
+        ],
+        "viewport": [
+          873.159606933594,
+          265.368041992188
+        ],
+        "visible": true,
+        "world": [
+          9300,
+          0,
+          7300
+        ]
+      }
+    ]
+  },
+  {
+    "elapsed": 8,
+    "fraction": 0.351300000000001,
+    "heading": -0.316148489713669,
+    "hold": "",
+    "id": "player",
+    "minute": 501,
+    "render": [
+      322.205932617188,
+      724.510009765625
+    ],
+    "route": [
+      "garage",
+      "margin_gate",
+      "bridge_east",
+      "bridge_west",
+      "worker_gate",
+      "depot",
+      "belt_arcade",
+      "civic_arcade",
+      "civic_gate",
+      "old_square",
+      "market"
+    ],
+    "segment": 0,
+    "visible": true,
+    "world": [
+      8456.779296875,
+      0,
+      5370.66748046875
+    ],
+    "actors": [
+      {
+        "authority": "world_local_pedestrian",
+        "fraction": 0.351300000000001,
+        "id": "npc:02",
+        "minute": 501,
+        "render": [
+          306.220855712891,
+          654.069580078125
+        ],
+        "viewport": [
+          717.500427246094,
+          314.944458007812
+        ],
+        "visible": true,
+        "world": [
+          9300,
+          0,
+          7300
+        ]
+      }
+    ]
+  }
+]
