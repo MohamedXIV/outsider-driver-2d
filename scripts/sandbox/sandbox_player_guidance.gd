@@ -12,6 +12,8 @@ func _ready() -> void:
 	# Never steal canvas wheel/mouse hover when the card covers part of the
 	# scenery; only its explicit 44px action owns pointer input.
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
+	custom_minimum_size.x=282
+	size_flags_vertical=Control.SIZE_SHRINK_BEGIN
 	var panel: StyleBoxFlat=StyleBoxFlat.new()
 	panel.bg_color=Color(0.09,0.17,0.19,0.95)
 	panel.border_color=Color("718b7c")

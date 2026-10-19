@@ -65,3 +65,26 @@ refresh, and asserts the original widget remains alive until selection or
 closure. This does not change route data, selected waypoint semantics, or
 relax `web_city_routes` assertions. A specific upstream Chromium failure
 at its `selectedVia` assertion remains under exact-head verification.
+
+## RTL modal-overlap diagnosis and fix
+
+The exact-head `e60fc962` native/domain suites passed, but its Web
+`web_city_playability` timed out at the genuine English language click
+immediately following Arabic. Inspection of the **actual** CI artifact
+`web-player-arabic.png` showed an RTL layout problem: Settings moved to
+screen right, while the guidance card remained at its LTR screen-right
+location, directly above Settings controls. This was a UI hit-testing bug,
+not a simulation or Web-test defect.
+
+The card now follows the opposite side of the real Player panel: **left in
+Arabic/RTL, right in English/LTR**, and is visible only when its one-button
+next-step navigation leads to a *different* tab. It takes only its content
+minimum height, no longer a tall decorative overlay. The new native regression
+checks real RTL Settings/card rectangles, no overlap, card height and a
+physical Godot mouse press/release on English after switching into Arabic.
+The original real-language-switch browser assertions are unchanged.
+
+Synced onto the exact green rider-initiative parent `a272a0a2` including
+its repaired `web_city_routes` via-selection test, with no modification to
+World, traffic, actor lifecycle or the browser helper. Exact-head CI remains
+required before marking the UI accepted.

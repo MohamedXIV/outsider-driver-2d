@@ -9,8 +9,16 @@ func _run() -> void:
 	for frame in range(4): await process_frame
 	var ui: SandboxPlayerUI=scene._player_ui
 	var guide: SandboxPlayerGuidance=ui._guide
-	assert(guide!=null and guide.visible)
+	assert(guide!=null)
+	# The initial real fare is on Street already. The guidance panel should
+	# not obscure a large section of the city when its target tab is current.
+	assert(not guide.visible)
 	assert(guide.title_label.text.length()>0)
+	ui._tab("settings")
+	for frame in range(3): await process_frame
+	assert(guide.visible,"Guide should reappear when its action opens a different tab")
+	assert(guide.size.y<250,"Context card must shrink to its own text and controls")
+	ui._tab("requests")
 	assert(guide.action_button.custom_minimum_size.y>=44)
 	assert(guide.mouse_filter==Control.MOUSE_FILTER_IGNORE)
 	assert(guide.get_child(0).mouse_filter==Control.MOUSE_FILTER_IGNORE)
@@ -41,6 +49,7 @@ func _run() -> void:
 	assert(scene._world.snapshot()==before)
 	var target: String=str(objective["tab"])
 	assert(guide.action_button.visible==(ui.tab!=target))
+	assert(guide.visible==(ui.tab!=target))
 	if guide.action_button.visible:
 		guide.action_button.pressed.emit()
 		assert(ui.tab==target,"Quick action must switch the actual Player Mode tab")
@@ -67,6 +76,36 @@ func _run() -> void:
 	assert(cue["tab"]=="requests" and not str(cue["detail"]).contains("accent"))
 	scene._on_language_locale("ar");ui.sync()
 	assert(ui.root.layout_direction==Control.LAYOUT_DIRECTION_RTL)
+	ui._tab("settings")
+	for frame in range(4): await process_frame
+	assert(guide.visible,"A request or passenger remains actionable from Settings")
+	var guide_bounds: Rect2=guide.get_global_rect()
+	var sheet_bounds: Rect2=ui._panel.get_global_rect()
+	assert(not guide_bounds.intersects(sheet_bounds),
+		"Arabic RTL guidance must not obscure Settings controls")
+	assert(guide_bounds.end.x+8<sheet_bounds.position.x,
+		"Arabic cross-tab guidance must be opposite the real RTL panel")
+	assert(guide.size.y<250,"Guide must not blanket the Arabic city view")
+	# Regress the real Web failure: after pressing Arabic, a physical click on
+	# the rendered English button must be received, not blocked by guidance.
+	var english: Button=ui._actions["english"]
+	var point: Vector2=english.get_global_rect().get_center()
+	assert(not guide_bounds.has_point(point))
+	var move_english: InputEventMouseMotion=InputEventMouseMotion.new()
+	move_english.position=point;move_english.global_position=point
+	Input.parse_input_event(move_english)
+	var pressed_english: InputEventMouseButton=InputEventMouseButton.new()
+	pressed_english.button_index=MOUSE_BUTTON_LEFT;pressed_english.pressed=true
+	pressed_english.position=point;pressed_english.global_position=point
+	Input.parse_input_event(pressed_english)
+	await process_frame
+	var released_english: InputEventMouseButton=InputEventMouseButton.new()
+	released_english.button_index=MOUSE_BUTTON_LEFT;released_english.pressed=false
+	released_english.position=point;released_english.global_position=point
+	Input.parse_input_event(released_english)
+	for frame in range(3): await process_frame
+	assert(scene._ui_locale=="en","Real English button must work after Arabic RTL")
+	scene._on_language_locale("ar");ui._tab("requests")
 	root.size=Vector2i(480,760)
 	for frame in range(6): await process_frame
 	assert(not guide.visible,"No floating panel over compact touch controls")

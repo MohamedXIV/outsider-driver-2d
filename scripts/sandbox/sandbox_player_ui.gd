@@ -91,9 +91,10 @@ func _layout() -> void:
 	_body.custom_minimum_size.x=_panel.size.x-40
 	_portrait.position=Vector2(area.x-230,120);_portrait.size=Vector2(200,190)
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
-	_guide.position=Vector2(area.x-306,365 if _portrait.visible else 120)
-	_guide.size=Vector2(282,0)
-	_guide.visible=not debug_mode and area.x>=820 and area.y>=570
+	_guide.position=Vector2(24 if controller._ui_locale=="ar" else area.x-306,
+			365 if _portrait.visible else 120)
+	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
+	_guide.visible=false # sync() decides if cross-tab guidance is actionable
 	_header.add_theme_font_size_override("font_size",20 if area.x<600 else 23)
 	_header.size.x=area.x-48 if area.x<600 else area.x-200
 	_hint.size.x=_header.size.x
@@ -169,8 +170,14 @@ func sync() -> void:
 	var objective: Dictionary=SandboxPlayerGuidance.describe(world,locale,controller._selected_id,conversation!=null)
 	_guide.present(objective,tab)
 	var area: Vector2=get_viewport().get_visible_rect().size
-	_guide.visible=not debug_mode and area.x>=820 and area.y>=570
-	_guide.position=Vector2(area.x-306,365 if _portrait.visible else 120)
+	# Only show guidance when it offers real navigation to a different tab.
+	# RTL moves the actual Settings/Street panels to the right, so our card
+	# must be on the opposite side rather than covering their hit targets.
+	var relevant_tab: String=str(objective.get("tab","requests"))
+	_guide.visible=not debug_mode and area.x>=820 and area.y>=570 and relevant_tab!=tab
+	_guide.position=Vector2(24 if locale=="ar" else area.x-306,
+			365 if _portrait.visible else 120)
+	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
 	var context: Array=[]
 	match tab:
 		"requests":
