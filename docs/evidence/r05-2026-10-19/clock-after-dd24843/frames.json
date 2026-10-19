@@ -1,0 +1,137 @@
+[
+  {
+    "fraction": 0.6,
+    "id": "npc:02",
+    "minute": 485,
+    "native_anchor": [
+      123.763793945312,
+      921.020751953125
+    ],
+    "offset": 0.0,
+    "population": 9,
+    "render": [
+      123.763793945312,
+      921.020751953125
+    ],
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_fraction": 0.6,
+      "handoff_minute": 485,
+      "handoff_progress": 0.073763,
+      "handoff_x": 186.201599121094,
+      "handoff_y": 312.999450683594,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    }
+  },
+  {
+    "fraction": 0.65,
+    "id": "npc:02",
+    "minute": 485,
+    "native_anchor": [
+      123.763793945312,
+      921.020751953125
+    ],
+    "offset": 2.64373755455017,
+    "population": 9,
+    "render": [
+      124.68505859375,
+      918.542724609375
+    ],
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_fraction": 0.6,
+      "handoff_minute": 485,
+      "handoff_progress": 0.073763,
+      "handoff_x": 186.201599121094,
+      "handoff_y": 312.999450683594,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    }
+  },
+  {
+    "fraction": 0.7,
+    "id": "npc:02",
+    "minute": 485,
+    "native_anchor": [
+      123.763793945312,
+      921.020751953125
+    ],
+    "offset": 5.28753232955933,
+    "population": 9,
+    "render": [
+      125.606323242188,
+      916.064636230469
+    ],
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_fraction": 0.6,
+      "handoff_minute": 485,
+      "handoff_progress": 0.073763,
+      "handoff_x": 186.201599121094,
+      "handoff_y": 312.999450683594,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    }
+  },
+  {
+    "fraction": 0.75,
+    "id": "npc:02",
+    "minute": 485,
+    "native_anchor": [
+      123.763793945312,
+      921.020751953125
+    ],
+    "offset": 7.93125915527344,
+    "population": 9,
+    "render": [
+      126.527557373047,
+      913.586608886719
+    ],
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_fraction": 0.6,
+      "handoff_minute": 485,
+      "handoff_progress": 0.073763,
+      "handoff_x": 186.201599121094,
+      "handoff_y": 312.999450683594,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    }
+  },
+  {
+    "fraction": 0.8,
+    "id": "npc:02",
+    "minute": 485,
+    "native_anchor": [
+      123.763793945312,
+      921.020751953125
+    ],
+    "offset": 10.5750541687012,
+    "population": 9,
+    "render": [
+      127.448822021484,
+      911.108520507812
+    ],
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_fraction": 0.6,
+      "handoff_minute": 485,
+      "handoff_progress": 0.073763,
+      "handoff_x": 186.201599121094,
+      "handoff_y": 312.999450683594,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    }
+  }
+]
