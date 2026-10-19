@@ -34,6 +34,8 @@ jobs:
           /tmp/godot --headless --path . --editor --import --quit > work/r05-player-ui/import.log 2>&1
           timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_player_guidance_scene.gd 2>&1 | tee work/r05-player-ui/focused.log
           grep -q PLAYER_GUIDANCE_SCENE_PASS work/r05-player-ui/focused.log
+          timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_passenger_speech_scene.gd 2>&1 | tee work/r05-player-ui/speech.log
+          grep -q PASSENGER_SPEECH_SCENE_PASS work/r05-player-ui/speech.log
       - name: Complete Godot domain and native regressions
         env:
           GODOT_BIN: /tmp/godot

@@ -1,0 +1,48 @@
+extends SceneTree
+
+# Real Ink and rider-initiated dialogue share the same passenger-first
+# presentation. No alternate scripted NPC/fare or World mutation is needed.
+func _initialize() -> void: call_deferred("_run")
+
+func _run() -> void:
+	root.size=Vector2i(1280,720)
+	var scene: Node=load("res://scenes/sandbox.tscn").instantiate()
+	root.add_child(scene)
+	scene.set_process(false)
+	for frame in range(4): await process_frame
+	var ui: SandboxPlayerUI=scene._player_ui
+	assert(ui._actions.has("talk"))
+	(ui._actions["talk"] as Button).pressed.emit()
+	for frame in range(4): await process_frame
+	assert(scene._conversation!=null)
+	assert(ui._speech.visible,"Wide viewport uses passenger-owned speech surface")
+	assert(ui._speech.speech_label.text==scene._dialogue_text.text)
+	assert(ui._speech.portrait.npc==scene._world.resident(
+		str(scene._world.offer_by_id(scene._conversation.offer_id).get("npc_id",""))))
+	assert(ui._body.get_children().any(func(c: Node)->bool: return c.name=="RepliesSection"))
+	assert(ui._body.get_children().any(func(c: Node)->bool: return c.name=="ActionsSection"))
+	assert(not ui._body.get_children().any(func(c: Node)->bool:
+		return c is Label and c.text==scene._dialogue_text.text))
+	assert(ui._actions.has("choice_0") and ui._actions.has("common"))
+	assert(ui._speech.mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	assert(ui._speech.speech_label.mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	root.size=Vector2i(480,760)
+	for frame in range(6): await process_frame
+	assert(not ui._speech.visible,"No floating passenger panel over compact city")
+	var embedded: Array=ui._body.get_children().filter(
+		func(c: Node)->bool: return c is SandboxPassengerSpeech)
+	assert(embedded.size()==1 and embedded[0].speech_label.text==scene._dialogue_text.text)
+	assert(embedded[0].portrait.npc==ui._speech.portrait.npc)
+	assert(ui._actions.has("choice_0") and ui._actions["choice_0"].custom_minimum_size.y>=44)
+	scene._on_language_locale("ar")
+	ui.sync()
+	for frame in range(3): await process_frame
+	var translated: Array=ui._body.get_children().filter(
+		func(c: Node)->bool: return c is SandboxPassengerSpeech)
+	assert(translated.size()==1)
+	assert(translated[0].speech_label.text_direction==Control.TEXT_DIRECTION_LTR,
+		"Untranslated alien glyphs must keep native direction in Arabic UI")
+	ui.toggle_debug()
+	assert(not ui._speech.visible)
+	print("PASSENGER_SPEECH_SCENE_PASS portrait+speech, Replies/Actions, compact, RTL, Debug")
+	quit()

@@ -13,6 +13,8 @@ var _panel: PanelContainer
 var _scroll: ScrollContainer
 var _portrait: SandboxPassengerView
 var _portrait_title: Label
+var _speech: SandboxPassengerSpeech
+var _button_group: VBoxContainer
 var _guide: SandboxPlayerGuidance
 var _tabs: GridContainer
 var _mode: Button
@@ -67,6 +69,7 @@ func bind(host: Node) -> void:
 	_body=VBoxContainer.new();_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;_body.add_theme_constant_override("separation",10);_scroll.add_child(_body)
 	_portrait=SandboxPassengerView.new();root.add_child(_portrait);_portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	_portrait_title=Label.new();root.add_child(_portrait_title);_portrait_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_speech=SandboxPassengerSpeech.new();_speech.name="PassengerSpeech";root.add_child(_speech)
 	_guide=SandboxPlayerGuidance.new();_guide.name="PlayerGuidance";root.add_child(_guide)
 	_guide.tab_requested.connect(_tab)
 	get_viewport().size_changed.connect(_layout)
@@ -91,6 +94,9 @@ func _layout() -> void:
 	_body.custom_minimum_size.x=_panel.size.x-40
 	_portrait.position=Vector2(area.x-230,120);_portrait.size=Vector2(200,190)
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
+	_speech.position=Vector2(area.x-542,120)
+	_speech.size=Vector2(512,184)
+	_speech.visible=false
 	_guide.position=Vector2(24 if controller._ui_locale=="ar" else area.x-306,
 			365 if _portrait.visible else 120)
 	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
@@ -120,11 +126,38 @@ func _label(text: String, heading: bool=false) -> Label:
 	if heading: label.add_theme_font_size_override("font_size",22)
 	_body.add_child(label);return label
 
+func _begin_button_group(label: String, section_name: String) -> void:
+	var section: PanelContainer=PanelContainer.new()
+	section.name=section_name
+	section.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	_body.add_child(section)
+	var contents: VBoxContainer=VBoxContainer.new()
+	contents.name="Items"
+	contents.add_theme_constant_override("separation",8)
+	section.add_child(contents)
+	var heading: Label=Label.new()
+	heading.text=label
+	heading.add_theme_font_size_override("font_size",18)
+	contents.add_child(heading)
+	_button_group=contents
+
+func _end_button_group() -> void:
+	_button_group=null
+
+func _inline_passenger(speaker: Dictionary, words: String, locale: String,
+		font_path: String) -> void:
+	var speech: SandboxPassengerSpeech=SandboxPassengerSpeech.new()
+	speech.name="PassengerSpeechInline"
+	speech.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	speech.custom_minimum_size.y=150.0
+	_body.add_child(speech)
+	speech.present(speaker,words,locale,font_path,controller._reduced_motion)
+
 func _button(id: String, text: String, action: Callable, disabled: bool=false) -> Button:
 	var button: Button=Button.new();button.name=id;button.text=text;button.custom_minimum_size=Vector2(0,44)
 	button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.disabled=disabled;button.pressed.connect(func(): action.call();_ack())
-	_body.add_child(button);_actions[id]=button;return button
+	(_button_group if _button_group!=null else _body).add_child(button);_actions[id]=button;return button
 
 func _call(method: String) -> void:
 	controller.call(method);_last_signature="";sync()
@@ -163,18 +196,37 @@ func sync() -> void:
 	var speaker: Dictionary={}
 	if conversation!=null: speaker=world.resident(str(world.offer_by_id(conversation.offer_id).get("npc_id","")))
 	elif not world.active_offer_id.is_empty(): speaker=world.resident(str(world.offer_by_id(world.active_offer_id).get("npc_id","")))
+	var area: Vector2=get_viewport().get_visible_rect().size
+	var utterance: String=""
+	var script_font: String=""
+	if conversation!=null:
+		utterance=controller._dialogue_text.text
+		if not conversation.understood() or controller._reveal_pending:
+			script_font=SandboxLanguagePresentation.native_font_path(conversation.spoken_language(world))
+	elif world.is_travelling() and world.rider_initiative.get("status","")=="pending":
+		var request: Dictionary=world.rider_initiative
+		speaker=world.resident(str(request.get("npc_id","")))
+		utterance=SandboxRiderInitiative.question(world,locale)
+		if not SandboxRiderInitiative.understood(world):
+			script_font=SandboxLanguagePresentation.native_font_path(str(speaker.get("language","")))
+	var speaking: bool=not utterance.is_empty() and not speaker.is_empty()
+	var wide_speech: bool=area.x>=980.0
 	_portrait.npc=speaker;_portrait.reduced_motion=controller._reduced_motion
-	_portrait.visible=not debug_mode and not speaker.is_empty() and get_viewport().get_visible_rect().size.x>=600
+	_portrait.visible=not debug_mode and not speaker.is_empty() and not speaking and area.x>=600
 	_portrait_title.visible=_portrait.visible
-	_portrait_title.text=trp("Passenger · ","الراكب · ")+str(speaker.get("language","")).capitalize()
+	_portrait_title.text=trp("Passenger","الراكب")
+	_speech.visible=not debug_mode and tab=="requests" and speaking and wide_speech
+	_speech.position=Vector2(area.x-542.0,120.0)
+	_speech.size=Vector2(512.0,184.0)
+	if _speech.visible:
+		_speech.present(speaker,utterance,locale,script_font,controller._reduced_motion)
 	var objective: Dictionary=SandboxPlayerGuidance.describe(world,locale,controller._selected_id,conversation!=null)
 	_guide.present(objective,tab)
-	var area: Vector2=get_viewport().get_visible_rect().size
 	# Only show guidance when it offers real navigation to a different tab.
 	# RTL moves the actual Settings/Street panels to the right, so our card
 	# must be on the opposite side rather than covering their hit targets.
 	var relevant_tab: String=str(objective.get("tab","requests"))
-	_guide.visible=not debug_mode and area.x>=820 and area.y>=570 and relevant_tab!=tab
+	_guide.visible=not debug_mode and area.x>=820 and area.y>=570 and relevant_tab!=tab and not _speech.visible
 	_guide.position=Vector2(24 if locale=="ar" else area.x-306,
 			365 if _portrait.visible else 120)
 	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
@@ -202,20 +254,26 @@ func sync() -> void:
 	var scroll_position: int=_scroll.scroll_vertical
 	for child in _body.get_children(): _body.remove_child(child);child.queue_free()
 	_actions.clear()
+	_button_group=null
 	if debug_mode:
 		call_deferred("_publish")
 		return
 	if conversation!=null and tab=="requests":
-		_label(trp("Passenger","الراكب"),true)
-		var line: Label=_label(controller._dialogue_text.text)
-		if not conversation.understood() or controller._reveal_pending:
-			line.add_theme_font_override("font",load(SandboxLanguagePresentation.native_font_path(conversation.spoken_language(world))))
-		# A full-width conversation line takes precedence over ambient filler
-		# in the compact bottom sheet: keep response controls close to speech.
+		if not wide_speech:
+			_inline_passenger(speaker,utterance,locale,script_font)
 		var choices: Array=conversation.current_frame().get("choices",[])
-		for i in range(choices.size()): _button("choice_%d"%i,SandboxLanguagePresentation.localized_choice(str(choices[i]),locale),_choose.bind(i))
-		if conversation.phase=="pickup" and not controller._request_common.disabled: _button("common",trp("Ask for Common","اطلب اللغة المشتركة"),_call.bind("_on_ask_common"))
-		if controller._ask_rumor.visible: _button("rumor",trp("Ask about local news","اسأل عن أخبار الحي"),_call.bind("_on_ask_rumor"))
+		if not choices.is_empty():
+			_begin_button_group(trp("Replies","الردود"),"RepliesSection")
+			for i in range(choices.size()):
+				_button("choice_%d"%i,SandboxLanguagePresentation.localized_choice(str(choices[i]),locale),_choose.bind(i))
+			_end_button_group()
+		if (conversation.phase=="pickup" and not controller._request_common.disabled) or controller._ask_rumor.visible:
+			_begin_button_group(trp("Actions","إجراءات"),"ActionsSection")
+			if conversation.phase=="pickup" and not controller._request_common.disabled:
+				_button("common",trp("Ask for Common","اطلب اللغة المشتركة"),_call.bind("_on_ask_common"))
+			if controller._ask_rumor.visible:
+				_button("rumor",trp("Ask about local news","اسأل عن أخبار الحي"),_call.bind("_on_ask_rumor"))
+			_end_button_group()
 	elif tab=="requests":
 		if world.is_travelling():
 			if not world.active_offer_id.is_empty():
@@ -223,15 +281,9 @@ func sync() -> void:
 				_label("%s  ·  %d cr"%[place(str(fare["destination"])),fare["fare"]])
 				var prompt: Dictionary=world.rider_initiative
 				if prompt.get("status","")=="pending":
-					_label(trp("Passenger message","رسالة الراكب"),true)
-					var question_label: Label=_label(SandboxRiderInitiative.question(world,locale))
-					if not SandboxRiderInitiative.understood(world):
-						var rider_speaker: Dictionary=world.resident(str(prompt.get("npc_id","")))
-						var font_path: String=SandboxLanguagePresentation.native_font_path(
-								str(rider_speaker.get("language","")))
-						if not font_path.is_empty():
-							question_label.add_theme_font_override("font",load(font_path))
-						question_label.text_direction=Control.TEXT_DIRECTION_LTR
+					if not wide_speech:
+						_inline_passenger(speaker,utterance,locale,script_font)
+					_begin_button_group(trp("Replies","الردود"),"RepliesSection")
 					if SandboxRiderInitiative.understood(world):
 						_button("reply_brief",trp("Answer briefly","أجب باختصار"),
 								controller._on_rider_initiative_answer.bind("brief"))
@@ -239,7 +291,10 @@ func sync() -> void:
 								controller._on_rider_initiative_answer.bind("deflect"))
 					_button("reply_silent",trp("Stay quiet","التزم الصمت"),
 							controller._on_rider_initiative_answer.bind("silent"))
-				_button("talk",trp("Talk to your passenger","تحدث مع الراكب"),_call.bind("_on_talk"))
+					_end_button_group()
+				_begin_button_group(trp("Actions","إجراءات"),"ActionsSection")
+				_button("talk",trp("Talk","تحدث"),_call.bind("_on_talk"))
+				_end_button_group()
 		else:
 			_label(trp("Street requests","طلبات الشارع"),true)
 			# Keep the time control above the autonomous offer list. Offers can

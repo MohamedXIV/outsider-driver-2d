@@ -43,3 +43,22 @@ P2 proposed: semantics-linked response coding, culture-specific icons, currency 
 Accept with actual native Godot and exported Chromium screenshots across conversation, unknown language, Arabic translation, rider-initiated question, road scene, market/gear, arrival and Debug; include real choice click, Save/Load, genuine two-route settlements, pointer scrolling, motion accessibility and mobile layout. Human design review remains required.
 
 **Do not merge #77 or close #50 based on automated acceptance alone.**
+
+## P1 implementation slice — portrait speech composition (2026-10-20)
+
+Player Mode now uses a dedicated read-only `SandboxPassengerSpeech` view for **both**
+Ink passenger turns and World-owned rider-initiated speech. The real utterance
+is beside the matching portrait on wide desktop, or beside a small version of
+that same portrait inside the narrow scroll region. The scroll region contains
+only player `RepliesSection` and optional `ActionsSection` controls during
+conversation; the line is no longer mixed into a single undifferentiated list.
+The native direction of untranslated alien glyphs is preserved even in Arabic
+UI. The portrait does not reveal character identity, context or hidden facts.
+Nothing here changes Ink commands, rider scheduling, NPC knowledge or save
+state. This is an initial *layout* correction only: full art polish, custom
+icons, semantic intent colors and a canonical currency name remain deferred.
+
+`tests/test_passenger_speech_scene.gd` exercises a genuine opening Ink turn,
+actual portrait/line identity, distinct button grouping, compact layout,
+unknown-language direction and Debug isolation. Existing in-game Player Mode
+and genuine exported Web regression suites remain required at exact head.
