@@ -41,7 +41,8 @@ const { openCity } = require('./city_browser.cjs');
     await page.keyboard.press('Home');
     for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(250);
+    // OptionButton selection is published on a deferred Godot frame.
+    await page.waitForFunction(() => Boolean(document.documentElement.dataset.playerPlannedVia));
     const selectedVia = (await data()).playerPlannedVia;
     assert.ok(selectedVia);
     await click('plan_fare');
