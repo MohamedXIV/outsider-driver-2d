@@ -125,7 +125,14 @@ static func offscreen_position(world: SandboxWorld, npc_id: String, fraction: fl
 			clampf(fraction,0.0,1.0)/SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
 	var origin: Vector2=SandboxStreetModule.position_at(old_phase,slot)
 	var anchor: Vector2=Vector2(float(trip.get("handoff_x",origin.x)),float(trip.get("handoff_y",origin.y)))
-	return SandboxStreetModule.position_at(phase,slot)+(anchor-origin)*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
+	var result: Vector2=SandboxStreetModule.position_at(phase,slot)+(anchor-origin)*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
+	# A fractional visual preview cannot assert physical clearance ahead of
+	# World's coarse crossing transition. Reentry starts on the same safe
+	# side; subsequent genuine native movement may clear the reservation.
+	if not SandboxStreetModule.crossing_finished(offscreen_progress(world,npc_id),slot) \
+			and SandboxStreetModule.crossing_clear(result):
+		result.y=SandboxStreetModule.crossing_clear_y()-.01
+	return result
 
 # Used only when no native pedestrian actor is available. A missing scene
 # object is NOT evidence that the zebra is empty: live walkers fail closed,
