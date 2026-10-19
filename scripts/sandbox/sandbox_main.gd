@@ -69,6 +69,7 @@ var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
 var _notice_text: String = "Patchworks Garage, Outer Margin. Your shift begins at home."
 var _elapsed: float = 0.0
+var _vehicle_corridor: SandboxWorldVehicleCorridor
 var _conversation: SandboxConversation
 var _last_intent: String = ""
 var _last_outcome: String = ""
@@ -92,6 +93,9 @@ var _debug_action_serial: int=0
 
 func _ready() -> void:
 	_city.world = _world
+	_vehicle_corridor=SandboxWorldVehicleCorridor.new()
+	_city.add_child(_vehicle_corridor)
+	_vehicle_corridor.attach(_world)
 	for district in SandboxRoads.DISTRICTS:
 		_districts.add_item(district.capitalize())
 	_districts.select(0)
@@ -160,6 +164,7 @@ func _process(delta: float) -> void:
 		if _reveal_elapsed >= REVEAL_SECONDS:
 			_finish_language_reveal()
 	if _world.meeting_in_progress():
+		_world.vehicle_fraction=0.0
 		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
 		_city.visual_fraction = 0.0
 		_city.queue_redraw()
@@ -171,14 +176,23 @@ func _process(delta: float) -> void:
 	_sync_passenger_alight()
 	_update_player_crossing_yield()
 	_update_shuttle_crossing_yields()
-	_elapsed += maxf(delta, 0.0)
-	while _elapsed >= REAL_SECONDS_PER_STEP:
-		_elapsed -= REAL_SECONDS_PER_STEP
-		_update_player_crossing_yield()
-		_update_shuttle_crossing_yields()
-		_world.advance(1)
-		_sync_passenger_alight()
-		_render()
+	_vehicle_corridor.attach(_world)
+	var physical_left: float=maxf(delta,0.0)
+	while physical_left>.0000001:
+		var slice: float=minf(physical_left,REAL_SECONDS_PER_STEP-_elapsed)
+		_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+		_vehicle_corridor.step(slice)
+		_elapsed+=slice
+		physical_left-=slice
+		if _elapsed>=REAL_SECONDS_PER_STEP-.0000001:
+			_elapsed=0.0
+			_update_player_crossing_yield()
+			_update_shuttle_crossing_yields()
+			_world.advance_elapsed(1)
+			_sync_passenger_alight()
+			_render()
+	_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+	_vehicle_corridor.reconcile()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
 	# fraction belongs to presentation time, NOT the player's travel state.
 	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
@@ -648,6 +662,7 @@ func _on_new_seed() -> void:
 	_reset_passenger_alight()
 	_reset_local_pedestrian()
 	_world = SandboxWorld.new(_world.seed + 1)
+	_vehicle_corridor.attach(_world)
 	_conversation = null
 	_last_intent = ""
 	_last_outcome = ""
@@ -706,6 +721,8 @@ func _on_load() -> void:
 	_meeting_dialogue = null
 	_route_waypoint = ""
 	_elapsed = float(bundle.get("presentation",{}).get("clock_fraction",0.0))
+	_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+	_vehicle_corridor.attach(_world)
 	_city.visual_fraction=_elapsed
 	_ui_locale=str(bundle.get("presentation",{}).get("locale",_ui_locale))
 	_reduced_motion=bool(bundle.get("presentation",{}).get("reduced_motion",_reduced_motion))

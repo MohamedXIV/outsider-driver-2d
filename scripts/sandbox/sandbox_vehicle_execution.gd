@@ -140,7 +140,7 @@ static func report(world: SandboxWorld,id: String,at: float,speed: float,heading
 	var state: Dictionary=world.vehicle_execution.get(id,{})
 	if travel.is_empty() or state.is_empty() or not bool(state["native"]) \
 			or not is_finite(at) or not is_finite(speed) or not is_finite(heading) \
-			or at<float(state["progress"])-EPSILON or at>float(travel["base"])+LOOKAHEAD_MINUTES+EPSILON \
+			or at<float(state["progress"])-EPSILON or at>float(travel["base"])+world.vehicle_fraction+LOOKAHEAD_MINUTES+EPSILON \
 			or speed<0.0 or speed>SandboxVehicleKinematics.CRUISE+EPSILON \
 			or not ["","motion","vehicle","pedestrian","junction","world_crossing","arrival"].has(reason): return false
 	if bool(travel["held"]) and (absf(at-float(state["progress"]))>EPSILON or absf(angle_difference(float(state["heading"]),heading))>EPSILON): return false
@@ -151,7 +151,7 @@ static func report(world: SandboxWorld,id: String,at: float,speed: float,heading
 	if not where.is_finite(): where=point(travel,at)
 	if where.distance_to(point(travel,at))>.5: return false
 	state["x"]=where.x;state["y"]=where.y
-	state["progress"]=minf(at,float(travel["base"])+LOOKAHEAD_MINUTES)
+	state["progress"]=minf(at,float(travel["base"])+world.vehicle_fraction+LOOKAHEAD_MINUTES)
 	state["speed"]=speed
 	state["heading"]=wrapf(heading,-PI,PI)
 	state["reason"]=reason
@@ -171,7 +171,7 @@ static func before_tick(world: SandboxWorld) -> bool:
 			world.vehicle_execution.erase(id);continue
 		if travel["held"]: continue # existing validated zebra wait owns this minute
 		if not bool(state["native"]):
-			state["progress"]=progress(world,str(id),world.vehicle_fraction,1)
+			state["progress"]=progress(world,str(id),0.0,1)
 			var here: Vector2=point(travel,float(state["progress"]))
 			state["x"]=here.x;state["y"]=here.y
 		if float(state["progress"])+EPSILON>=float(travel["base"])+1.0: continue
@@ -230,7 +230,7 @@ static func valid_snapshot(value: Dictionary) -> bool:
 					or nodes!=npc.get("transit_nodes",[]) \
 					or state["source"]!=str(npc.get("transit_from_offer",""))+":"+str(npc.get("transit_started",0)): return false
 			base=float(int(value["minute"])-int(npc["transit_started"])-int(npc.get("transit_pause_minutes",0)))
-		if float(state["progress"])<base-EPSILON or float(state["progress"])>base+LOOKAHEAD_MINUTES+EPSILON: return false
+		if float(state["progress"])<base-EPSILON or float(state["progress"])>base+float(value.get("vehicle_fraction",0.0))+LOOKAHEAD_MINUTES+EPSILON: return false
 		var entered: bool=false
 		for event in value["events"]:
 			if event.get("kind","")=="vehicle_execution_entered" and event.get("subject","")==id \

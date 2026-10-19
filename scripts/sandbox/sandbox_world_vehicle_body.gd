@@ -28,7 +28,7 @@ func release(fraction: float=0.0) -> void:
 func _at_distance(travel: Dictionary,start: float,distance: float) -> float:
 	var origin: Vector2=SandboxVehicleExecution.point(travel,start)
 	var low: float=start
-	var high: float=minf(float(travel["base"])+SandboxVehicleExecution.LOOKAHEAD_MINUTES,
+	var high: float=minf(float(travel["base"])+world.vehicle_fraction+SandboxVehicleExecution.LOOKAHEAD_MINUTES,
 		float(SandboxRoads.path_minutes(SandboxVehicleExecution.nodes_of(travel))))
 	for iteration in range(24):
 		var middle: float=(low+high)*.5

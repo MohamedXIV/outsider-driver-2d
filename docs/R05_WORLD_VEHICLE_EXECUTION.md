@@ -31,3 +31,24 @@ No HUD presentation files are changed. This branch is isolated from the canonica
 A real medical fare reproduced a terminal-body bug: reaching the physical goal still reported speed 36. The body now reserves braking distance to its actual final point. A new native regression checks gradual deceleration, a stopped saved goal, exactly one real settlement, canonical/render parked-position continuity and departure from the same pose/heading. Forged or deleted parking records are rejected against the actual journey completion and preceding execution ledger.
 
 `vehicle_parking` is optional for older version-12 saves. A completed physically executed player trip records its final pose in World rather than reverting the canonical position to the graph-node centre. Execution tangents include the real departure anchor, and a reversed new journey starts with the saved parked heading; the bounded steering/acceleration layer then aligns the car. Automatic corridor coordination remains in progress.
+
+## Automatic bounded corridor follow-up
+
+The follow-up corridor branch instantiates `SandboxWorldVehicleCorridor` under
+CityView. It maps only the genuine player and existing shuttle passenger IDs to
+invisible collision bodies on the four authored ground road profiles. Entry is
+420 projected units from the player; exit is 540, giving hysteresis. Unloaded
+native cursors hand off at the World fractional clock, including after Load.
+Bodies are removed with collision disabled immediately when replacing World.
+
+Main supplies elapsed physical slices before `advance_elapsed()` commits each
+World minute. Manual `advance()` uses the same executor, splitting at the saved
+fraction and preserving it afterward. Snapshots validate and retain that fraction;
+older v12 snapshots default to zero. Near-horizon reentry includes the fraction in
+the execution bound. World alone records waits and settles actual fares.
+
+This enables automatic execution, but full-game regression and lifecycle visual
+acceptance are pending on this follow-up. The PR78 results above describe its
+foundation head and must not be represented as testing the integrated follow-up.
+Parked collision occupancy, public vehicle arrival ownership and angular clearance
+still require focused validation before claiming the milestone complete.

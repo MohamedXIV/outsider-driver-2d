@@ -242,8 +242,11 @@ func advance_elapsed(minutes: int) -> bool:
 func _advance_minutes(minutes: int, physical_elapsed: bool) -> bool:
 	if meeting_in_progress() or minutes <= 0 or minutes % STEP_MINUTES != 0:
 		return false
+	var origin_fraction: float=vehicle_fraction
 	for i in range(minutes / STEP_MINUTES):
-		if not physical_elapsed and vehicle_executor.is_valid(): vehicle_executor.call(1.0)
+		if not physical_elapsed and vehicle_executor.is_valid():
+			vehicle_executor.call(1.0-vehicle_fraction)
+		vehicle_fraction=0.0
 		var execution_ready: bool=SandboxVehicleExecution.before_tick(self)
 		minute += STEP_MINUTES
 		for npc in residents:
@@ -267,6 +270,9 @@ func _advance_minutes(minutes: int, physical_elapsed: bool) -> bool:
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 		SandboxVehicleExecution.prune(self)
 		SandboxVehicleJunctions.release_cleared(self)
+	if not physical_elapsed:
+		if vehicle_executor.is_valid() and origin_fraction>0.0: vehicle_executor.call(origin_fraction)
+		vehicle_fraction=origin_fraction
 	return true
 
 
@@ -614,6 +620,7 @@ func snapshot() -> Dictionary:
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
 		"route_hold_id": route_hold_id,
+		"vehicle_fraction":vehicle_fraction,
 		"vehicle_execution":vehicle_execution.duplicate(true),
 		"vehicle_parking":vehicle_parking.duplicate(true),
 		"vehicle_junctions":vehicle_junctions.duplicate(true),
@@ -943,6 +950,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 				valid_engagement=true
 		if not valid_engagement or not active.is_empty() or not relocation.is_empty(): return false
 
+	var saved_fraction: Variant=value.get("vehicle_fraction",0.0)
+	if not (saved_fraction is float or saved_fraction is int) or not is_finite(float(saved_fraction)) or float(saved_fraction)<0.0 or float(saved_fraction)>=1.0: return false
 	if not SandboxVehicleParking.valid_snapshot(value) or not SandboxVehicleExecution.valid_snapshot(value) or not SandboxVehicleJunctions.valid_snapshot(value): return false
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
@@ -976,6 +985,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	pending_route_nodes = pending.duplicate()
 	rider_route_request = request.duplicate(true)
 	route_hold_id=held
+	vehicle_fraction=float(saved_fraction)
 	vehicle_execution=value.get("vehicle_execution",{}).duplicate(true)
 	vehicle_parking=value.get("vehicle_parking",{}).duplicate(true)
 	vehicle_junctions=value.get("vehicle_junctions",{}).duplicate(true)

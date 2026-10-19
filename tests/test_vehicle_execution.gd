@@ -1,6 +1,7 @@
 extends SceneTree
 
 func _initialize() -> void:
+	_fractional_clock()
 	var world: SandboxWorld=SandboxWorld.new(9)
 	var offer: Dictionary={}
 	for item in world.open_offers():
@@ -56,3 +57,38 @@ func _initialize() -> void:
 	assert(SandboxWorld.new().restore_snapshot(municipal.snapshot()))
 	print("VEHICLE_EXECUTION_PASS genuine fare, bounded reports, held city ticks, source validation, continuous handoff, once-only settlement")
 	quit()
+
+func _fractional_clock() -> void:
+	var world: SandboxWorld=SandboxWorld.new(9)
+	assert(world.reposition("clinic"))
+	world.vehicle_fraction=.6
+	var slices: Array[float]=[]
+	world.vehicle_executor=func(seconds: float)->void: slices.append(seconds)
+	assert(world.advance(2))
+	assert(slices.size()==3 and is_equal_approx(slices[0],.4) and is_equal_approx(slices[1],1.0) and is_equal_approx(slices[2],.6))
+	assert(is_equal_approx(world.vehicle_fraction,.6))
+	var restored: SandboxWorld=SandboxWorld.new()
+	assert(restored.restore_snapshot(world.snapshot()))
+	assert(is_equal_approx(restored.vehicle_fraction,.6))
+	for invalid in [-.1,1.0,INF,NAN,"0.5"]:
+		var corrupt: Dictionary=world.snapshot()
+		corrupt["vehicle_fraction"]=invalid
+		assert(not SandboxWorld.new().restore_snapshot(corrupt))
+	# A legal near-horizon handoff can return beyond base+2 at a late fraction.
+	var moving: SandboxWorld=SandboxWorld.new(8)
+	assert(moving.reposition("market","margin_gate"))
+	assert(SandboxVehicleExecution.bind(moving,"player"))
+	assert(SandboxVehicleExecution.report(moving,"player",1.9,1.0,0.0,"motion"))
+	SandboxVehicleExecution.unbind(moving,"player",.1)
+	assert(moving.advance(1))
+	moving.vehicle_fraction=.9
+	var before: Vector2=SandboxVehicleExecution.screen(moving,"player",.9)
+	assert(SandboxVehicleExecution.bind(moving,"player",.9))
+	var cursor: float=float(moving.vehicle_execution["player"]["progress"])
+	assert(cursor>3.0)
+	assert(SandboxVehicleExecution.report(moving,"player",cursor,1.0,0.0,"motion"))
+	assert(SandboxVehicleExecution.screen(moving,"player",.9).distance_to(before)<.001)
+	assert(SandboxWorld.new().restore_snapshot(moving.snapshot()))
+	var legacy: Dictionary=world.snapshot()
+	legacy.erase("vehicle_fraction")
+	assert(restored.restore_snapshot(legacy) and restored.vehicle_fraction==0.0)
