@@ -77,6 +77,17 @@ func _run() -> void:
 	assert(before_join.distance_to(at_join)<1.0 and after_join.distance_to(at_join)<1.0,
 			"World-minute shuttle presentation must not jump at a directed junction")
 	assert(at_join.distance_to(incoming)<0.001)
+	# Boundary-aware facing uses samples on BOTH real edges, not a tangent
+	# that freezes at the old segment endpoint or jumps after World ticks.
+	var turn_before: Vector2=SandboxDirectedLanes.route_screen_tangent_at_minutes(
+			corridor,join_minute-0.001)
+	var turn_after: Vector2=SandboxDirectedLanes.route_screen_tangent_at_minutes(
+			corridor,join_minute+0.001)
+	assert(turn_before.length_squared()>0.000001 and turn_after.length_squared()>0.000001)
+	assert(absf(angle_difference(turn_before.angle(),turn_after.angle()))<0.06,
+			"Player and shuttle facing must remain continuous across the actual road junction")
+	assert(SandboxDirectedLanes.route_screen_tangent_at_minutes(
+			corridor,join_minute,0.0)==Vector2.ZERO)
 	var full_duration: float=float(SandboxRoads.path_minutes(corridor))
 	assert(SandboxDirectedLanes.route_point_at_minutes(corridor,join_minute,
 			full_duration).distance_to(at_join)<0.001)
