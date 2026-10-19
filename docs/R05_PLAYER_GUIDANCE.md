@@ -30,3 +30,26 @@ The native scene test asserts this exact unobstructed canvas wheel point and
 that the camera zoom actually changes, in addition to UI affordance rules.
 This stack now includes Codex's latest #75 actor-lifecycle dependency changes
 without editing or altering any of those World/actor/physical files.
+
+## Compact Street and dialogue follow-up
+
+- Below 600px width, the scrollable Street panel becomes a fixed-height
+  **bottom sheet** capped at 46% of viewport height. It leaves a meaningful
+  exposed region of the real city between the tabs and controls, including
+  during dialogue, and never changes height as NPC offers appear or expire.
+- The real Wait action stays first in the requests sheet with a stable
+  hit target; a selected resident's genuine Talk/Accept/Decline controls
+  now appear before the potentially long autonomous offer list.
+- During compact dialogue, omit redundant driving filler so source-owned
+  Ink text and actual response buttons remain nearer each other.
+- Compact current-fare prompts also skip verbose ambient route explanation;
+  the existing Map remains available for route inspection.
+- Native guidance regression checks bottom-sheet bounds, viewport and
+  input stability; the existing two-fare Web gate and player layout gate
+  remain authoritative integration regressions.
+
+The current baseline's full native gate encountered a 90-second timeout
+in Codex-owned `test_taxi_crossing_unload_scene` after the focused UI and
+complete domain gates had passed. This separate actor-lifecycle issue must
+be diagnosed through the owner track, not worked around by relaxing the UI
+or modifying World-owned physical code here.

@@ -198,22 +198,24 @@ func sync() -> void:
 	if debug_mode:
 		call_deferred("_publish")
 		return
-	if tab=="requests" and area.x<820 and conversation==null:
-		_label(str(objective["title"])+" · "+str(objective["detail"]))
 	if conversation!=null and tab=="requests":
 		_label(trp("In the passenger seat","في مقعد الراكب"),true)
 		var line: Label=_label(controller._dialogue_text.text)
 		if not conversation.understood() or controller._reveal_pending:
 			line.add_theme_font_override("font",load(SandboxLanguagePresentation.native_font_path(conversation.spoken_language(world))))
-		_label(trp("The city keeps moving while you read.","تستمر المدينة في الحركة أثناء القراءة."))
+		# A full-width conversation line takes precedence over ambient filler
+		# in the compact bottom sheet: keep response controls close to speech.
+		if area.x>=600:
+			_label(trp("The city keeps moving while you read.","تستمر المدينة في الحركة أثناء القراءة."))
 		var choices: Array=conversation.current_frame().get("choices",[])
 		for i in range(choices.size()): _button("choice_%d"%i,SandboxLanguagePresentation.localized_choice(str(choices[i]),locale),_choose.bind(i))
 		if conversation.phase=="pickup" and not controller._request_common.disabled: _button("common",trp("Ask for Common","اطلب اللغة المشتركة"),_call.bind("_on_ask_common"))
 		if controller._ask_rumor.visible: _button("rumor",trp("Ask about local news","اسأل عن أخبار الحي"),_call.bind("_on_ask_rumor"))
 	elif tab=="requests":
 		if world.is_travelling():
-			_label(trp("A city between destinations","مدينة بين وجهتين"),true)
-			_label(trp("Your taxi is following the selected roads. Open the map to inspect your route.","تتبع سيارتك الطرق المختارة. افتح الخريطة لمراجعة المسار."))
+			if area.x>=600:
+				_label(trp("A city between destinations","مدينة بين وجهتين"),true)
+				_label(trp("Your taxi is following the selected roads. Open the map to inspect your route.","تتبع سيارتك الطرق المختارة. افتح الخريطة لمراجعة المسار."))
 			if not world.active_offer_id.is_empty():
 				var fare: Dictionary=world.offer_by_id(world.active_offer_id)
 				_label("%s  ·  %d cr"%[place(str(fare["destination"])),fare["fare"]])
@@ -242,18 +244,22 @@ func sync() -> void:
 			# expire between pointer-down and delivery; moving Wait underneath
 			# those rows made a legitimate click hit empty space instead.
 			_button("wait",trp("Wait 20 minutes","انتظر ٢٠ دقيقة"),_call.bind("_on_wait"))
-			var count: int=0
-			for offer in world.open_offers():
-				if offer["origin"]!=world.player_district: continue
-				count+=1
-				_button("fare_"+str(offer["id"]),"%s · %d cr%s"%[place(str(offer["destination"])),offer["fare"],trp(" · licensed"," · مرخص") if offer["channel"]=="official" else ""],_local_select.bind(str(offer["id"])))
-			if count==0: _label(trp("No one is hailing here. Wait a little or use the map to find another rank.","لا أحد يطلب توصيلة هنا. انتظر قليلًا أو اتجه إلى موقف آخر على الخريطة."))
+			# Do not put dynamic offer-dependent guidance above Wait: its
+			# physical hit target must stay stable while autonomous offers expire.
+			if area.x<820:
+				_label(str(objective["title"])+" · "+str(objective["detail"]))
 			var chosen: Dictionary=world.offer_by_id(controller._selected_id)
 			if not chosen.is_empty() and chosen["origin"]==world.player_district:
 				_label(trp("Selected: ","المحدد: ")+place(str(chosen["destination"])))
 				_button("talk",trp("Speak to the resident","تحدث مع المقيم"),_call.bind("_on_talk"))
 				_button("accept",trp("Take this fare","اقبل التوصيلة"),_call.bind("_on_accept"),chosen["channel"]=="official")
 				_button("decline",trp("Decline","ارفض"),_call.bind("_on_decline"))
+			var count: int=0
+			for offer in world.open_offers():
+				if offer["origin"]!=world.player_district: continue
+				count+=1
+				_button("fare_"+str(offer["id"]),"%s · %d cr%s"%[place(str(offer["destination"])),offer["fare"],trp(" · licensed"," · مرخص") if offer["channel"]=="official" else ""],_local_select.bind(str(offer["id"])))
+			if count==0: _label(trp("No one is hailing here. Wait a little or use the map to find another rank.","لا أحد يطلب توصيلة هنا. انتظر قليلًا أو اتجه إلى موقف آخر على الخريطة."))
 		_label(controller._notice_text)
 	elif tab=="map":
 		_label(trp("The charter port","مدينة الميناء"),true)
@@ -370,7 +376,15 @@ func _publish() -> void:
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size
 	var panel_top: float=194.0 if area.x<600 else 140.0
-	var height: float=minf(area.y-panel_top-24,maxf(180,_body.get_combined_minimum_size().y+32))
+	var available: float=maxf(80.0,area.y-panel_top-24)
+	if area.x<600:
+		# Fixed-height compact bottom sheet leaves the living city readable.
+		# Do not resize/reposition Wait as autonomous offers change height.
+		var height: float=minf(available,maxf(180.0,area.y*0.46))
+		_panel.size.y=height
+		_panel.position.y=maxf(panel_top,area.y-height-24)
+		return
+	var height: float=minf(available,maxf(180,_body.get_combined_minimum_size().y+32))
 	_panel.size.y=height
 	_panel.position.y=maxf(panel_top,area.y-height-24) if controller._conversation!=null and tab=="requests" else panel_top
 
