@@ -22,6 +22,8 @@ func _run() -> void:
 	var original_pose: Vector3=world.npc_position(npc)
 	assert(npc["transit_method"]=="shuttle")
 	assert(world.begin_shuttle_crossing_yield(shuttle_id))
+	var held_before: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,0.5)
+	assert(not held_before.is_empty() and held_before["render_position"].is_finite())
 	assert(not world.begin_shuttle_crossing_yield(shuttle_id))
 	assert(world.advance(3))
 	npc=world.resident(shuttle_id)
@@ -29,8 +31,16 @@ func _run() -> void:
 	assert(int(npc["transit_pause_minutes"])==3)
 	assert(world.npc_position(npc).is_equal_approx(original_pose))
 	assert(SandboxWorldTraffic.shuttle_pose(world,npc,0.8)["position"].is_equal_approx(original_pose))
+	var held_after: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,0.8)
+	assert(held_after["render_position"].is_equal_approx(held_before["render_position"]),
+			"Waiting at the zebra must freeze the directed-lane shuttle position")
+	assert(is_equal_approx(float(held_after["render_heading"]),float(held_before["render_heading"])),
+			"Waiting at the zebra must not rotate the displayed shuttle")
 	var copy: SandboxWorld=SandboxWorld.new()
 	assert(copy.restore_snapshot(world.snapshot()))
+	var held_copy: Dictionary=SandboxWorldTraffic.shuttle_pose(copy,copy.resident(shuttle_id),0.8)
+	assert(held_copy["render_position"].is_equal_approx(held_after["render_position"]))
+	assert(is_equal_approx(float(held_copy["render_heading"]),float(held_after["render_heading"])))
 	var forged: Dictionary=world.snapshot()
 	for resident in forged["residents"]:
 		if resident.get("id","")==shuttle_id:

@@ -48,6 +48,7 @@ func _run() -> void:
 	var elapsed: float=float(selected.minute-int(passenger["transit_started"])-
 			int(passenger.get("transit_pause_minutes",0)))
 	assert(pose["render_position"].is_finite() and pose["render_ahead"].is_finite())
+	assert(is_finite(float(pose["render_heading"])))
 	assert(pose["render_position"].is_equal_approx(
 			SandboxDirectedLanes.route_point_at_minutes(route,elapsed,route_duration)))
 	assert(pose["render_ahead"].distance_to(pose["render_position"])>0.001,
@@ -67,6 +68,8 @@ func _run() -> void:
 	assert(copied["position"].is_equal_approx(interpolated["position"]))
 	assert(copied["render_position"].is_equal_approx(interpolated["render_position"]))
 	assert(copied["render_ahead"].is_equal_approx(interpolated["render_ahead"]))
+	assert(is_equal_approx(float(copied["render_heading"]),float(interpolated["render_heading"])),
+			"Shuttle directed-lane facing must survive Save/Load")
 	# A normal walking alternative is NOT drawn as a shuttle.
 	var walking: Dictionary=passenger.duplicate(true)
 	walking["transit_method"]="walking"
