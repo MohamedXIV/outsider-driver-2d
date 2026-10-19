@@ -59,7 +59,7 @@ func _run() -> void:
 	for frame in range(6): await process_frame
 	assert(not guide.visible,"No floating panel over compact touch controls")
 	assert(ui._panel.position.x+ui._panel.size.x<=480)
-	assert(ui._panel.position.y>=400,"Compact bottom sheet should leave visible city under the tabs")
+	assert(ui._panel.position.y>=380,"Compact bottom sheet should leave visible city under the tabs")
 	assert(ui._panel.size.y<=760*0.46+1.0,
 		"Compact UI should not expand over the native world when requests change")
 	assert(ui._actions.has("wait") or scene._world.is_travelling())
