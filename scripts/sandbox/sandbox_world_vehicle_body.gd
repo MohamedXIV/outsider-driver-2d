@@ -46,6 +46,11 @@ func step(delta: float) -> bool:
 	var target: float=SandboxVehicleKinematics.CRUISE
 	var reason: String="motion"
 	var available: float=36.0
+	var junction_stop: float=SandboxVehicleJunctions.stop_progress(world,vehicle_id)
+	if is_finite(junction_stop):
+		available=maxf(0.0,position.distance_to(SandboxVehicleExecution.point(travel,junction_stop))-BODY_SIZE.x*.5-CLEARANCE)
+		available=minf(36.0,available)
+		reason="junction"
 	if travel["held"]:
 		target=0.0;available=0.0;reason="world_crossing"
 	else:
@@ -53,6 +58,7 @@ func step(delta: float) -> bool:
 		# treating an unobstructed tangent as permission to cross a junction.
 		for sample in range(1,19):
 			var distance: float=float(sample)*2.0
+			if distance>available: break
 			var cursor: float=_at_distance(travel,at,distance)
 			var point: Vector2=SandboxVehicleExecution.point(travel,cursor)
 			if test_move(global_transform,point-position):
@@ -65,7 +71,7 @@ func step(delta: float) -> bool:
 	var point: Vector2=SandboxVehicleExecution.point(travel,cursor)
 	var desired: float=SandboxDirectedLanes.route_screen_tangent_at_minutes(
 		SandboxVehicleExecution.nodes_of(travel),cursor).angle()
-	var facing: float=SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
+	var facing: float=float(state["heading"]) if travel["held"] else SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
 	# The final sweep fails closed, including obstacles inserted this frame.
 	if test_move(global_transform,point-position):
 		cursor=at;point=position;next=0.0;reason="vehicle"

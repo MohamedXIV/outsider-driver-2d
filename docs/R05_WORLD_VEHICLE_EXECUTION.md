@@ -10,10 +10,12 @@ World snapshots retain source journey, route, progress, physical position, speed
 
 Still required before main-scene activation:
 
-- World-owned, saved exclusive junction admission and validated release.
+- Production coordination/fairness for the saved exclusive connector admission; focused domain ownership/release is now implemented and tested.
 - Sufficient authored opposing-lane clearance for the actual collision footprint.
 - Source-backed departure queues/bays where aggregate services initially overlap.
 - Loaded-corridor coordinator, deterministic manual-time execution and scene reload/reentry.
 - Full genuine two-fare and shuttle native/Web visual verification after activation.
+
+`SandboxVehicleJunctions` grants one World-owned reservation per authored lane connector junction. A second real vehicle cannot report progress into the occupied connector. Entry/release events reconstruct the saved reservation ledger; forged ownership is rejected. A focused test uses seed 1's real `npc:08` municipal service and the actual player reposition route to demonstrate saved exclusion and subsequent admission after clearance. This is a domain test, not a full native multi-car visual acceptance.
 
 No HUD presentation files are changed. This branch is isolated from the canonical PR73/PR75 heads until the integration above is ready.

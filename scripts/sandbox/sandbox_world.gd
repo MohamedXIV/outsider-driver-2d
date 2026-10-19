@@ -37,6 +37,7 @@ var rider_route_request: Dictionary = {}
 var route_hold_id: String = ""
 var meetings: Array[Dictionary] = []
 var vehicle_execution: Dictionary={}
+var vehicle_junctions: Dictionary={}
 var vehicle_executor: Callable=Callable()
 var vehicle_fraction: float=0.0
 
@@ -264,6 +265,7 @@ func _advance_minutes(minutes: int, physical_elapsed: bool) -> bool:
 			_step_player_route()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 		SandboxVehicleExecution.prune(self)
+		SandboxVehicleJunctions.release_cleared(self)
 	return true
 
 
@@ -609,6 +611,7 @@ func snapshot() -> Dictionary:
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
 		"route_hold_id": route_hold_id,
 		"vehicle_execution":vehicle_execution.duplicate(true),
+		"vehicle_junctions":vehicle_junctions.duplicate(true),
 		"pending_route_nodes": pending_route_nodes.duplicate(),
 		"rider_route_request": rider_route_request.duplicate(true),
 		"meetings": meetings.duplicate(true)
@@ -935,7 +938,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 				valid_engagement=true
 		if not valid_engagement or not active.is_empty() or not relocation.is_empty(): return false
 
-	if not SandboxVehicleExecution.valid_snapshot(value): return false
+	if not SandboxVehicleExecution.valid_snapshot(value) or not SandboxVehicleJunctions.valid_snapshot(value): return false
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
 	player_district = district
@@ -969,6 +972,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	rider_route_request = request.duplicate(true)
 	route_hold_id=held
 	vehicle_execution=value.get("vehicle_execution",{}).duplicate(true)
+	vehicle_junctions=value.get("vehicle_junctions",{}).duplicate(true)
 	meetings.clear()
 	for meeting in value["meetings"]:
 		meetings.append((meeting as Dictionary).duplicate(true))

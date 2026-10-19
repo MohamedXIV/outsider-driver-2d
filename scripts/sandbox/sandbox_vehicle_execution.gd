@@ -137,6 +137,11 @@ static func report(world: SandboxWorld,id: String,at: float,speed: float,heading
 			or at<float(state["progress"])-EPSILON or at>float(travel["base"])+LOOKAHEAD_MINUTES+EPSILON \
 			or speed<0.0 or speed>SandboxVehicleKinematics.CRUISE+EPSILON \
 			or not ["","motion","vehicle","pedestrian","junction","world_crossing"].has(reason): return false
+	if bool(travel["held"]) and (absf(at-float(state["progress"]))>EPSILON or absf(angle_difference(float(state["heading"]),heading))>EPSILON): return false
+	var window: Dictionary=SandboxVehicleJunctions.next_window(travel,float(state["progress"]))
+	if not window.is_empty() and at>float(window["entry"]):
+		var reservation: Dictionary=world.vehicle_junctions.get(window["junction"],{})
+		if reservation.get("vehicle","")!=id or reservation.get("source","")!=state["source"]: return false
 	if not where.is_finite(): where=point(travel,at)
 	if where.distance_to(point(travel,at))>.5: return false
 	state["x"]=where.x;state["y"]=where.y
@@ -144,6 +149,7 @@ static func report(world: SandboxWorld,id: String,at: float,speed: float,heading
 	state["speed"]=speed
 	state["heading"]=wrapf(heading,-PI,PI)
 	state["reason"]=reason
+	SandboxVehicleJunctions.release_cleared(world)
 	return true
 
 # Called BEFORE the single World minute commits. A local body still behind
