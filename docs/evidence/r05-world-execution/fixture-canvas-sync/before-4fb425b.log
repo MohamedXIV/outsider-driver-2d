@@ -1,0 +1,7 @@
+HEAD 4fb425b25915237e29531f728dcbe14a7942c256
+COMMAND ['node', '/workspace/outsider-driver-2d/work/world-execution/tests/web_ride_smoke.cjs']
+page.waitForFunction: Timeout 60000ms exceeded.
+    at phase (/workspace/outsider-driver-2d/work/world-execution/tests/web_ride_smoke.cjs:14:37)
+    at /workspace/outsider-driver-2d/work/world-execution/tests/web_ride_smoke.cjs:138:11 {
+  name: 'TimeoutError'
+}

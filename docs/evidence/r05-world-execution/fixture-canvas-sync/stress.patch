@@ -1,0 +1,11 @@
+--- tests/web_ride_smoke.cjs
++++ work/fixture-sync-stress.cjs
+@@ -132,6 +132,8 @@
+     await page.screenshot({ path: '/tmp/od2d-ink-evidence/second-ride.png' });
+     await page.mouse.click(170, 467); // Repeat authored route-information reply.
+     await phase('arrived');
++    const stressSession = await page.context().newCDPSession(page);
++    await stressSession.send('Emulation.setCPUThrottlingRate', {rate: 6});
+     await page.mouse.click(614, 614);
+     await page.waitForFunction(() => {
+       const d = document.documentElement.dataset;
