@@ -84,8 +84,10 @@ func _run() -> void:
 	# The same taxi must keep a valid road-facing tangent at a REAL internal
 	# segment handoff. No fabricated route or modified player clock.
 	world = scene._world
-	assert(world.reposition("basin_turn","",["clinic"]))
-	assert(world.route_nodes == ["docks","clinic","basin_turn"])
+	# Basin Bend is a true junction, not a public service stop. Route a
+	# legitimate reposition to Market THROUGH that real junction.
+	assert(world.reposition("market","",["clinic","basin_turn"]))
+	assert(world.route_nodes.slice(0,3) == ["docks","clinic","basin_turn"])
 	var edge_minutes: int = SandboxRoads.edge_minutes("docks","clinic")
 	assert(world.advance(edge_minutes-1))
 	var road_before: float = SandboxCityView.world_road_heading(world,0.99)
