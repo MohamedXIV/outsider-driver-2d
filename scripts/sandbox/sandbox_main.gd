@@ -586,6 +586,7 @@ func _sync_local_pedestrian() -> void:
 	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty() and not _street_restore_state.has("junction"): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
 	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
+	local.reentry_fraction=_city.visual_fraction
 	local.walking_npc_id=ids[0] if not ids.is_empty() else "";local.resume_state=_street_restore_state.duplicate(true)
 	local.transform=SandboxStreetRouteBinding.street_transform();local.z_index=5
 	_street_pilot=local;add_child(local)
@@ -617,6 +618,7 @@ func _sync_passenger_alight() -> void:
 		var local: SandboxAlightView = SandboxAlightView.new()
 		local.world = _world
 		local.npc_id = str(npc["id"])
+		local.reentry_fraction=_city.visual_fraction
 		local.resume_state = _alight_restore_state.duplicate(true)
 		local.z_index = 6
 		local.name = "NightClinicResidentAlight"
@@ -1281,6 +1283,39 @@ func _observe_street_actors() -> Array:
 	return actors
 
 
+# Identity and visibility diagnostics only. The authority field distinguishes
+# a true native body from its event-owned far projection, never another NPC.
+func _observe_actor_lifecycle() -> Array:
+	var result: Array=[]
+	for npc in _world.residents:
+		var id: String=str(npc["id"])
+		var point: Vector2=Vector2.INF
+		var authority: String=""
+		if _street_pilot!=null and _street_pilot.pedestrians.has(id):
+			point=_street_pilot.pedestrians[id].global_position
+			authority="native_pedestrian"
+		elif _alight_view!=null and _alight_view.npc_id==id and _alight_view.walker!=null:
+			point=_alight_view.walker.global_position
+			authority="native_alight"
+		else:
+			var local: Dictionary=SandboxActorLifecycle.pose(_world,npc,_city.visual_fraction)
+			if not local.is_empty():
+				point=local["position"];authority="world_"+str(local["kind"])
+			else:
+				var shuttle: Dictionary=SandboxWorldTraffic.shuttle_pose(_world,npc,_city.visual_fraction)
+				if not shuttle.is_empty():
+					point=SandboxCityView.project(shuttle["render_position"]);authority="world_shuttle"
+		if not point.is_finite(): continue
+		var canonical: Vector3=_world.npc_position(npc,_city.visual_fraction)
+		var viewport_point: Vector2=_city.get_canvas_transform()*point
+		result.append({"id":id,"authority":authority,"minute":_world.minute,
+			"world":[canonical.x,canonical.y,canonical.z],"render":[point.x,point.y],
+			"viewport":[viewport_point.x,viewport_point.y],
+			"visible":get_viewport().get_visible_rect().has_point(viewport_point),
+			"fraction":_city.visual_fraction})
+	return result
+
+
 func _publish_street_boundary(field: String) -> void:
 	if not OS.has_feature("web"): return
 	# Observe actual bodies at the Save/Load boundary before another physics
@@ -1351,6 +1386,7 @@ func _publish_street_web() -> void:
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
 		"streetTaxiPose":JSON.stringify(taxi_pose),
+		"actorLifecycle":JSON.stringify(_observe_actor_lifecycle()),
 		"alightTrip":JSON.stringify(alight_trip),"alightActor":JSON.stringify(alight_actor),
 		"alightEvents":JSON.stringify(alight_events),
 		"streetSeed":str(_world.seed),"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,
