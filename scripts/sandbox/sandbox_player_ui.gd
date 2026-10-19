@@ -196,6 +196,10 @@ func sync() -> void:
 				_button("talk",trp("Talk to your passenger","تحدث مع الراكب"),_call.bind("_on_talk"))
 		else:
 			_label(trp("Street requests","طلبات الشارع"),true)
+			# Keep the time control above the autonomous offer list. Offers can
+			# expire between pointer-down and delivery; moving Wait underneath
+			# those rows made a legitimate click hit empty space instead.
+			_button("wait",trp("Wait 20 minutes","انتظر ٢٠ دقيقة"),_call.bind("_on_wait"))
 			var count: int=0
 			for offer in world.open_offers():
 				if offer["origin"]!=world.player_district: continue
@@ -208,7 +212,6 @@ func sync() -> void:
 				_button("talk",trp("Speak to the resident","تحدث مع المقيم"),_call.bind("_on_talk"))
 				_button("accept",trp("Take this fare","اقبل التوصيلة"),_call.bind("_on_accept"),chosen["channel"]=="official")
 				_button("decline",trp("Decline","ارفض"),_call.bind("_on_decline"))
-			_button("wait",trp("Wait 20 minutes","انتظر ٢٠ دقيقة"),_call.bind("_on_wait"))
 		_label(controller._notice_text)
 	elif tab=="map":
 		_label(trp("The charter port","مدينة الميناء"),true)
