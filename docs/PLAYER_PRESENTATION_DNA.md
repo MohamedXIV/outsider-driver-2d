@@ -62,3 +62,15 @@ icons, semantic intent colors and a canonical currency name remain deferred.
 actual portrait/line identity, distinct button grouping, compact layout,
 unknown-language direction and Debug isolation. Existing in-game Player Mode
 and genuine exported Web regression suites remain required at exact head.
+
+## Native rider-initiative acceptance correction — 2026-10-20
+
+The original `tests/test_rider_initiative_scene.gd` contained a historical
+assertion requiring a direct `Passenger` heading in the old mixed-content
+player panel. That assertion became obsolete when actual speech moved beside
+the passenger portrait. The revised integration test checks the **real World
+rider question**, the **same resident identity** used by the live portrait,
+separate `RepliesSection`/`ActionsSection`, and preserves the original
+Save/Load and once-only decision/event assertions. It is a UI-specific
+acceptance update on the child #77 branch; do not mistake it for a change to
+the upstream rider-initiative simulation or acceptance of the visual art.
