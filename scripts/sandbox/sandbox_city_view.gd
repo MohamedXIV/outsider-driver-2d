@@ -119,15 +119,12 @@ func _process(delta: float) -> void:
 		var a: String = world.route_nodes[world.route_segment]
 		var b: String = world.route_nodes[world.route_segment+1]
 		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
-		# Heading and camera lookahead must follow the SAME lane/turn spline
-		# the car is visually driving; otherwise it points at the road centre
-		# as the body rounds a junction.
-		var behind: Vector3=SandboxDirectedLanes.route_point(
-				world.route_nodes,world.route_segment,maxf(0.0,t-.003))
-		var in_front: Vector3=SandboxDirectedLanes.route_point(
-				world.route_nodes,world.route_segment,minf(1.0,t+.003))
-		var tangent: Vector2=project(in_front)-project(behind)
-		if tangent.length() > .001:
+		var p: Vector3 = SandboxDirectedLanes.route_lane_point(world.route_nodes,
+				world.route_segment,maxf(0.0,t-.003))
+		var q: Vector3 = SandboxDirectedLanes.route_lane_point(world.route_nodes,
+				world.route_segment,minf(1.0,t+.003))
+		var tangent: Vector2 = project(q)-project(p)
+		if p.is_finite() and q.is_finite() and tangent.length() > .001:
 			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
 	elif _last_parked_stop != world.player_district:
@@ -277,10 +274,8 @@ func _draw_people(canvas: Node2D, elevated: bool) -> void:
 		if not shuttle.is_empty():
 			# Same resident and world trip, shown as transport rather than a
 			# second walking NPC (or an invented municipal driver).
-			var next_pos: Vector2=project(shuttle["ahead"])
-			var here: Vector2=project(pos)
-			var tangent: Vector2=next_pos-here
-			_draw_world_shuttle(canvas,here,tangent.angle() if tangent.length()>0.001 else 0.0)
+			var here: Vector2=project(shuttle["render_position"])
+			_draw_world_shuttle(canvas,here,float(shuttle["render_heading"]))
 			continue
 		var p: Vector2 = project(pos)+Vector2(15,12)
 		canvas.draw_circle(p+Vector2(2,3),4,Color("172a30"))

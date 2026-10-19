@@ -29,9 +29,26 @@ func _run() -> void:
 	assert(SandboxAlightGeometry.valid_position(trip,start))
 	assert(start.distance_to(SandboxCityView.project(SandboxRoads.map_position("clinic"))) >= 29.0,
 			"Resident must exit on the legal curb, not inside the taxi")
-	for frame in range(14): await physics_frame
+	# NavigationServer2D can take more than 14 physics frames to synchronize
+	# its newly instantiated sidewalk region on slower/software-rendered CI.
+	# Wait for *actual motion*, not a fixed frame-count assumption; never
+	# declare an arrival solely because time elapsed.
+	var moved: bool = false
+	for frame in range(120):
+		await physics_frame
+		if scene._alight_view.walker != null and scene._alight_view.walker.position.distance_to(start) > 1.0:
+			moved = true
+			break
+	if not moved:
+		var agent: NavigationAgent2D = scene._alight_view.walker._agent
+		push_error("ALIGHT_NAV_NOT_MOVING: map_iteration=%s target_ready=%s reachable=%s actor=%s start=%s goal=%s" % [
+				NavigationServer2D.map_get_iteration_id(agent.get_navigation_map()),
+				scene._alight_view.walker._target_ready, agent.is_target_reachable(),
+				scene._alight_view.walker.position, start, scene._alight_view.walker.goal_position])
+		quit(1)
+		return
 	var before_save: Vector2 = scene._alight_view.walker.position
-	assert(before_save.distance_to(start) > 1.0, "Native Godot walker must physically move toward clinic intake")
+	assert(moved, "Native Godot walker must physically move toward clinic intake")
 	scene._render()
 	await RenderingServer.frame_post_draw
 	assert(root.get_texture().get_image().save_png("/tmp/od2d-alight-evidence/clinic-walking.png") == OK)

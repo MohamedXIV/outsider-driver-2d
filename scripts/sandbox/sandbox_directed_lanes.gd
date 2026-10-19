@@ -37,79 +37,111 @@ static func lane_point(from_node: String,to_node: String,fraction: float,index: 
 	var centre: Vector3=SandboxRoads.sample_edge(from_node,to_node,t)
 	return Vector3(centre.x+normal.x,centre.y,centre.z+normal.y)
 
-# The same authored directed lanes may meet at a real road junction with
-# different lateral offsets. Interpolating them independently causes a
-# teleport at the minute the World moves between road segments. Bridge the
-# last / first 12% using one shared cubic, split at its exact midpoint.
-# This is a PRESENTATION curve: no extra route time or new driving authority.
-const TURN_FRACTION: float = 0.12
+# Bounded *visual* join between adjacent authored directed road lanes.
+# The authoritative route always remains two original SandboxRoads edges:
+# no extra road, fare minutes, event, or navigation/collision ownership.
+const TURN_FRACTION: float = 0.075
 
-static func junction_controls(previous: String, junction: String, next: String,
-		lane_in: int=0, lane_out: int=0) -> PackedVector3Array:
-	if previous == next or not valid_lane(previous,junction,lane_in) \
-			or not valid_lane(junction,next,lane_out):
-		return PackedVector3Array()
-	var start: Vector3=lane_point(previous,junction,1.0-TURN_FRACTION,lane_in)
-	var end: Vector3=lane_point(junction,next,TURN_FRACTION,lane_out)
-	var before: Vector3=lane_point(previous,junction,1.0-TURN_FRACTION-.003,lane_in)
-	var after: Vector3=lane_point(junction,next,TURN_FRACTION+.003,lane_out)
-	if not start.is_finite() or not end.is_finite() or not before.is_finite() or not after.is_finite():
-		return PackedVector3Array()
-	# Don't connect different height grades as if a new ramp existed.
-	if absf(start.y-end.y)>1.0 or absf(SandboxRoads.map_position(junction).y-start.y)>1.0:
-		return PackedVector3Array()
-	var incoming: Vector2=Vector2(start.x-before.x,start.z-before.z).normalized()
-	var outgoing: Vector2=Vector2(after.x-end.x,after.z-end.z).normalized()
-	if incoming.length_squared()<.5 or outgoing.length_squared()<.5: return PackedVector3Array()
-	var radius: float=clampf(Vector2(start.x-end.x,start.z-end.z).length()*.42,5.0,1000.0)
-	return PackedVector3Array([
-		start,
-		start+Vector3(incoming.x*radius,0.0,incoming.y*radius),
-		end-Vector3(outgoing.x*radius,0.0,outgoing.y*radius),
-		end])
+static func _xz(point: Vector3) -> Vector2:
+	return Vector2(point.x,point.z)
 
-static func junction_point(previous: String, junction: String, next: String,
-		phase: float, lane_in: int=0, lane_out: int=0) -> Vector3:
-	var controls: PackedVector3Array=junction_controls(previous,junction,next,lane_in,lane_out)
-	if controls.is_empty() or not is_finite(phase): return Vector3.INF
-	var t: float=clampf(phase,0.0,1.0)
-	var omt: float=1.0-t
-	return controls[0]*omt*omt*omt+controls[1]*3.0*omt*omt*t \
-			+controls[2]*3.0*omt*t*t+controls[3]*t*t*t
+static func can_turn(previous: String, junction: String, following: String,
+		index: int = 0) -> bool:
+	if previous == following or previous == junction or junction == following:
+		return false
+	if not valid_lane(previous,junction,index) or not valid_lane(junction,following,index):
+		return false
+	# This first pilot only joins roads which meet on the same ground level.
+	# Never draw a shortcut through a ramp/deck or across grade-separated roads.
+	var p: Vector3=SandboxRoads.map_position(previous)
+	var j: Vector3=SandboxRoads.map_position(junction)
+	var n: Vector3=SandboxRoads.map_position(following)
+	return is_equal_approx(p.y,j.y) and is_equal_approx(j.y,n.y)
 
-static func route_point(nodes: Array[String], segment: int, fraction: float) -> Vector3:
-	if segment<0 or segment+1>=nodes.size() or not is_finite(fraction):
+static func turn_connector_point(previous: String, junction: String, following: String,
+		fraction: float, index: int = 0) -> Vector3:
+	if not can_turn(previous,junction,following,index) or not is_finite(fraction):
 		return Vector3.INF
-	var a: String=nodes[segment]
-	var b: String=nodes[segment+1]
-	if not SandboxRoads.connected(a,b): return Vector3.INF
+	var start: Vector3=lane_point(previous,junction,1.0-TURN_FRACTION,index)
+	var finish: Vector3=lane_point(junction,following,TURN_FRACTION,index)
+	if not start.is_finite() or not finish.is_finite(): return Vector3.INF
+	var approach: Vector3=lane_point(previous,junction,1.0-TURN_FRACTION-.002,index)
+	var depart: Vector3=lane_point(junction,following,TURN_FRACTION+.002,index)
+	var forward: Vector2=(_xz(start)-_xz(approach)).normalized()
+	var outward: Vector2=(_xz(depart)-_xz(finish)).normalized()
+	if forward.length_squared()<.5 or outward.length_squared()<.5:
+		return Vector3.INF
+	var span: float=_xz(start).distance_to(_xz(finish))
+	if span<1.0: return Vector3.INF
+	var reach: float=minf(span*.32,180.0)
+	var p0: Vector2=_xz(start)
+	var p1: Vector2=p0+forward*reach
+	var p3: Vector2=_xz(finish)
+	var p2: Vector2=p3-outward*reach
 	var t: float=clampf(fraction,0.0,1.0)
-	if segment>0 and t<=TURN_FRACTION:
-		var before: String=nodes[segment-1]
-		var entering: Vector3=junction_point(before,a,b,.5+.5*t/TURN_FRACTION)
-		if entering.is_finite(): return entering
-	if segment+2<nodes.size() and t>=1.0-TURN_FRACTION:
-		var after: String=nodes[segment+2]
-		var leaving: Vector3=junction_point(a,b,after,.5*(t-(1.0-TURN_FRACTION))/TURN_FRACTION)
-		if leaving.is_finite(): return leaving
-	return lane_point(a,b,t) if has_profile(a,b) else SandboxRoads.sample_edge(a,b,t)
+	var s: float=1.0-t
+	var xy: Vector2=p0*s*s*s+3.0*p1*s*s*t+3.0*p2*s*t*t+p3*t*t*t
+	return Vector3(xy.x,lerpf(start.y,finish.y,t),xy.y)
 
-static func route_heading(nodes: Array[String], segment: int, fraction: float) -> float:
-	var a: Vector3=route_point(nodes,segment,clampf(fraction-.001,0.0,1.0))
-	var b: Vector3=route_point(nodes,segment,clampf(fraction+.001,0.0,1.0))
-	if not a.is_finite() or not b.is_finite(): return 0.0
-	var screen: Vector2=SandboxIsoPresentation.project(b)-SandboxIsoPresentation.project(a)
-	return screen.angle() if screen.length_squared()>.000001 else 0.0
+static func route_lane_point(nodes: Array[String], segment: int,
+		fraction: float, index: int = 0) -> Vector3:
+	if segment<0 or segment>=nodes.size()-1 or not is_finite(fraction):
+		return Vector3.INF
+	var from: String=nodes[segment]
+	var to: String=nodes[segment+1]
+	if not SandboxRoads.connected(from,to): return Vector3.INF
+	var t: float=clampf(fraction,0.0,1.0)
+	if not valid_lane(from,to,index):
+		return SandboxRoads.sample_edge(from,to,t)
+	if t>=1.0-TURN_FRACTION and segment+2<nodes.size():
+		var joined: Vector3=turn_connector_point(from,to,nodes[segment+2],
+				.5*(t-(1.0-TURN_FRACTION))/TURN_FRACTION,index)
+		if joined.is_finite(): return joined
+	if t<=TURN_FRACTION and segment>0:
+		var joined: Vector3=turn_connector_point(nodes[segment-1],from,to,
+				.5+.5*t/TURN_FRACTION,index)
+		if joined.is_finite(): return joined
+	return lane_point(from,to,t,index)
+
+# Pure display sampling for real World-owned journeys. The units/edge times
+# are exactly SandboxRoads' canonical minutes; no independent vehicle clock.
+# Unprofiled roads preserve their existing centerline presentation.
+static func route_point_at_minutes(nodes: Array[String], elapsed: float,
+		duration: float = -1.0, index: int = 0) -> Vector3:
+	if not SandboxRoads.valid_path(nodes) or not is_finite(elapsed) or not is_finite(duration):
+		return Vector3.INF
+	if duration == 0.0 or (duration < 0.0 and duration != -1.0):
+		return Vector3.INF
+	var total: float = float(SandboxRoads.path_minutes(nodes))
+	var progress: float = clampf(elapsed * total / duration if duration > 0.0 else elapsed,
+			0.0, total)
+	for segment in range(nodes.size()-1):
+		var minutes: float = float(SandboxRoads.edge_minutes(nodes[segment], nodes[segment+1]))
+		if progress <= minutes:
+			return route_lane_point(nodes, segment, progress / minutes, index)
+		progress -= minutes
+	return route_lane_point(nodes, nodes.size()-2, 1.0, index)
+
+static func route_screen_heading(nodes: Array[String], segment: int,
+		fraction: float) -> float:
+	if segment<0 or segment>=nodes.size()-1: return 0.0
+	var t: float=clampf(fraction,0.0,1.0)
+	var p: Vector3=route_lane_point(nodes,segment,maxf(0.0,t-.001))
+	var q: Vector3=route_lane_point(nodes,segment,minf(1.0,t+.001))
+	if not p.is_finite() or not q.is_finite(): return 0.0
+	var projected: Vector2=SandboxIsoPresentation.project(q)-SandboxIsoPresentation.project(p)
+	return projected.angle() if projected.length_squared()>.000001 else 0.0
 
 static func taxi_screen(world: SandboxWorld,fraction: float) -> Vector2:
 	var centre: Vector3=world.player_position(fraction)
 	if world.is_travelling():
 		var a: String=world.route_nodes[world.route_segment]
 		var b: String=world.route_nodes[world.route_segment+1]
-		var progress: float=(float(world.route_edge_elapsed)+clampf(fraction,0,1)) / \
-				float(SandboxRoads.edge_minutes(a,b))
-		var physical: Vector3=route_point(world.route_nodes,world.route_segment,progress)
-		if physical.is_finite(): return SandboxIsoPresentation.project(physical)
+		if has_profile(a,b):
+			var progress: float=(float(world.route_edge_elapsed)+clampf(fraction,0,1)) / \
+					float(SandboxRoads.edge_minutes(a,b))
+			var physical: Vector3=route_lane_point(world.route_nodes,world.route_segment,progress)
+			if physical.is_finite(): return SandboxIsoPresentation.project(physical)
 	elif world.player_district == "clinic":
 		# The active route may already be cleared, but settled arrivals
 		# preserve their actual inbound edge in immutable World events.

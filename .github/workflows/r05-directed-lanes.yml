@@ -34,6 +34,8 @@ jobs:
           /tmp/godot --headless --path . --editor --import --quit > work/r05-directed/import.log 2>&1
           timeout 45s /tmp/godot --headless --path . --script res://tests/test_directed_lanes.gd 2>&1 | tee work/r05-directed/focused.log
           grep -q DIRECTED_LANES_PASS work/r05-directed/focused.log
+          timeout 75s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_passenger_alight_scene.gd 2>&1 | tee work/r05-directed/alight-focused.log
+          grep -q PASSENGER_ALIGHT_SCENE_PASS work/r05-directed/alight-focused.log
       - name: Complete Godot domain and native regressions
         env:
           GODOT_BIN: /tmp/godot
