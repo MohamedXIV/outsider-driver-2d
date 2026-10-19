@@ -13,6 +13,10 @@ func _run() -> void:
 	var previous_count: int=0
 	for offer in scene._world.open_offers():
 		if offer["origin"]==scene._world.player_district: previous_count+=1
+	var down: InputEventMouseButton=InputEventMouseButton.new()
+	down.position=anchor;down.button_index=MOUSE_BUTTON_LEFT;down.pressed=true
+	Input.parse_input_event(down);await process_frame
+	assert(ui._actions["wait"].is_pressed())
 	var changed: bool=false
 	for tick in range(200):
 		scene._process(1.0)
@@ -28,7 +32,7 @@ func _run() -> void:
 				"Autonomous offers must not move Wait out from under a real player click")
 		var serial: int=ui._action_serial
 		var minute: int=scene._world.minute
-		for pressed in [true,false]:
+		for pressed in [false]:
 			var event: InputEventMouseButton=InputEventMouseButton.new()
 			event.position=anchor;event.button_index=MOUSE_BUTTON_LEFT;event.pressed=pressed
 			Input.parse_input_event(event);await process_frame
