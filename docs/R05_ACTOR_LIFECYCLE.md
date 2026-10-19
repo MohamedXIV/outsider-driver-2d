@@ -18,6 +18,15 @@ again rendered. No fade, replacement resident or settlement is introduced.
 Alight handoffs now retain x/y in the World trip and handoff event. Restore
 validates the anchor against the authored sidewalk, progress and event history.
 Older version-12 handoffs without x/y retain their previous center-path fallback.
+Within-minute handoff, resume and arrival timestamps are also paired with their
+World events. Far movement measures elapsed time from the actual handoff
+fraction; it does not reapply time already included in the native anchor. A
+nonzero-fraction native reproduction failed the original position assertion
+before this correction. The strengthened scene now uses fraction 0.6 and also
+checks immediate real Save/Load, while a domain case covers fractional arrival
+and timestamp forgery. Version-12 saves without stamps keep fraction zero.
+These spatial timestamps use the existing presentation fraction and leave the
+integer city/fare clock and planned route duration unchanged.
 The native reentry samples the same fractional pose as the far renderer before
 resuming the existing World trip. Native positions still determine genuine
 local arrival; distant completion still uses the existing World minute policy.

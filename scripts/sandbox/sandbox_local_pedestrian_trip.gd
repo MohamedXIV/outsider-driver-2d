@@ -88,29 +88,33 @@ static func cancel(world: SandboxWorld,npc_id: String,where: Vector2) -> bool:
 # When the player leaves a loaded neighborhood, the native actor is removed.
 # The world keeps the resident's one real trip and a timestamped progress
 # anchor; distant travel requires no per-frame physics or extra NPC instance.
-static func handoff(world: SandboxWorld, npc_id: String, progress: float, where: Vector2=Vector2.INF) -> bool:
+static func handoff(world: SandboxWorld, npc_id: String, progress: float, where: Vector2=Vector2.INF, clock_fraction: float=0.0) -> bool:
 	var npc: Dictionary=world.resident(npc_id)
 	var trip: Dictionary=npc.get("local_pedestrian_trip",{})
 	if trip.get("status","")!="walking" or not is_finite(progress) \
-			or progress<0.0 or progress>=1.0:
+			or progress<0.0 or progress>=1.0 or not is_finite(clock_fraction) \
+			or clock_fraction<0.0 or clock_fraction>=1.0:
 		return false
+	clock_fraction=minf(clock_fraction,.999999999999)
 	if not where.is_finite(): where=SandboxStreetModule.position_at(progress,int(trip.get("slot",0)))
 	if where.distance_to(SandboxStreetModule.position_at(progress,int(trip.get("slot",0))))>24.0: return false
 	trip["handoff_x"]=where.x
 	trip["handoff_y"]=where.y
 	trip["status"]="offscreen"
 	trip["handoff_minute"]=world.minute
+	trip["handoff_fraction"]=clock_fraction
 	trip["handoff_progress"]=snappedf(progress,0.000001)
 	npc["local_pedestrian_trip"]=trip
 	world._record("local_pedestrian_handoff",npc_id,{"site":PATCHWORKS_PARTS,
-			"progress":trip["handoff_progress"],"x":where.x,"y":where.y})
+			"progress":trip["handoff_progress"],"x":where.x,"y":where.y,"fraction":clock_fraction})
 	return true
 
-static func offscreen_progress(world: SandboxWorld, npc_id: String) -> float:
+static func offscreen_progress(world: SandboxWorld, npc_id: String, clock_fraction: float=0.0) -> float:
 	var trip: Dictionary=world.resident(npc_id).get("local_pedestrian_trip",{})
 	if trip.get("status","")!="offscreen":
 		return -1.0
-	var seconds_as_minutes: float=float(world.minute-int(trip["handoff_minute"]))
+	var seconds_as_minutes: float=maxf(0.0,float(world.minute-int(trip["handoff_minute"]))+
+			clampf(clock_fraction,0.0,1.0)-float(trip.get("handoff_fraction",0.0)))
 	return clampf(float(trip["handoff_progress"]) + seconds_as_minutes / \
 			SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
 
@@ -121,8 +125,7 @@ static func offscreen_position(world: SandboxWorld, npc_id: String, fraction: fl
 	if trip.get("status","")!="offscreen": return Vector2.INF
 	var slot: int=int(trip.get("slot",0))
 	var old_phase: float=float(trip["handoff_progress"])
-	var phase: float=clampf(offscreen_progress(world,npc_id)+
-			clampf(fraction,0.0,1.0)/SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
+	var phase: float=offscreen_progress(world,npc_id,fraction)
 	var origin: Vector2=SandboxStreetModule.position_at(old_phase,slot)
 	var anchor: Vector2=Vector2(float(trip.get("handoff_x",origin.x)),float(trip.get("handoff_y",origin.y)))
 	var result: Vector2=SandboxStreetModule.position_at(phase,slot)+(anchor-origin)*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
@@ -154,19 +157,22 @@ static func crossing_cleared_without_actor(world: SandboxWorld, loaded_ids: Arra
 	return true
 
 
-static func resume(world: SandboxWorld, npc_id: String) -> float:
+static func resume(world: SandboxWorld, npc_id: String, clock_fraction: float=0.0) -> float:
 	var npc: Dictionary=world.resident(npc_id)
 	var trip: Dictionary=npc.get("local_pedestrian_trip",{})
 	if trip.get("status","")!="offscreen":
 		return -1.0
-	var progress: float=offscreen_progress(world,npc_id)
+	if not is_finite(clock_fraction) or clock_fraction<0.0 or clock_fraction>=1.0: return -1.0
+	clock_fraction=minf(clock_fraction,.999999999999)
+	if world.minute==int(trip["handoff_minute"]): clock_fraction=maxf(clock_fraction,float(trip.get("handoff_fraction",0.0)))
+	var progress: float=offscreen_progress(world,npc_id,clock_fraction)
 	if progress>=1.0:
-		arrive(world,npc_id,PATCHWORKS_PARTS)
+		arrive(world,npc_id,PATCHWORKS_PARTS,clock_fraction)
 		return -1.0
 	trip["status"]="walking"
 	npc["local_pedestrian_trip"]=trip
 	world._record("local_pedestrian_resumed",npc_id,{"site":PATCHWORKS_PARTS,
-			"progress":snappedf(progress,0.000001)})
+			"progress":snappedf(progress,0.000001),"fraction":clock_fraction})
 	return progress
 
 static func advance_offscreen(world: SandboxWorld) -> void:
@@ -178,20 +184,24 @@ static func advance_offscreen(world: SandboxWorld) -> void:
 		if SandboxStreetModule.crossing_finished(progress,int(trip.get("slot",0))): clear(world,str(npc["id"]))
 		if progress>=1.0: arrive(world,str(npc["id"]),PATCHWORKS_PARTS)
 
-static func arrive(world: SandboxWorld, npc_id: String, site: String) -> bool:
+static func arrive(world: SandboxWorld, npc_id: String, site: String, clock_fraction: float=0.0) -> bool:
 	var npc: Dictionary = world.resident(npc_id)
-	if npc.is_empty():
+	if npc.is_empty() or not is_finite(clock_fraction) or clock_fraction<0.0 or clock_fraction>=1.0:
 		return false
+	clock_fraction=minf(clock_fraction,.999999999999)
 	var trip: Dictionary = npc.get("local_pedestrian_trip", {})
 	if trip.get("site", "") != site or not ["walking", "offscreen"].has(trip.get("status", "")):
 		return false
-	if trip.get("status","")=="offscreen" and offscreen_progress(world,npc_id)<1.0: return false
+	if trip.get("status","")=="offscreen":
+		if offscreen_progress(world,npc_id,clock_fraction)<1.0: return false
+		clear(world,npc_id)
 	# This counter is a local site inside the garage's coarse world location.
 	# It does not teleport an NPC between dispatch/region graph nodes.
 	trip["status"] = "arrived"
 	trip["arrived"] = world.minute
+	trip["arrived_fraction"]=clock_fraction
 	npc["local_pedestrian_trip"] = trip
-	world._record("local_pedestrian_arrived", npc_id, {"site": site})
+	world._record("local_pedestrian_arrived", npc_id, {"site": site,"fraction":clock_fraction})
 	return true
 
 static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
@@ -201,6 +211,8 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 	var state: String=""
 	var began: int=-1
 	var handed_off: int=-1
+	var handed_fraction: float=0.0
+	var arrival_fraction: float=0.0
 	var last_progress: float=0.0
 	var arrival_at: int=-1
 	var cancelled_at: int=-1
@@ -231,15 +243,20 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 				if state!="walking" or not (phase is float or phase is int) \
 						or not is_finite(float(phase)) or float(phase)<0.0 or float(phase)>=1.0:
 					return false
+				var stamp: Variant=evt["detail"].get("fraction",0.0)
+				if not (stamp is float or stamp is int) or not is_finite(float(stamp)) or float(stamp)<0.0 or float(stamp)>=1.0: return false
 				state="offscreen"
 				handed_off=when
+				handed_fraction=float(stamp)
 				last_progress=float(phase)
 				anchor=Vector2(float(evt["detail"].get("x",SandboxStreetModule.position_at(last_progress,slot).x)),
 						float(evt["detail"].get("y",SandboxStreetModule.position_at(last_progress,slot).y)))
 				if not anchor.is_finite() or anchor.distance_to(SandboxStreetModule.position_at(last_progress,slot))>24.0: return false
 			"local_pedestrian_resumed":
 				var resumed: Variant=evt.get("detail",{}).get("progress",null)
-				var expected: float=snappedf(clampf(last_progress+float(when-handed_off)/SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0),.000001)
+				var stamp: Variant=evt["detail"].get("fraction",0.0)
+				if not (stamp is float or stamp is int) or not is_finite(float(stamp)) or float(stamp)<0.0 or float(stamp)>=1.0: return false
+				var expected: float=snappedf(clampf(last_progress+maxf(0.0,float(when-handed_off)+float(stamp)-handed_fraction)/SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0),.000001)
 				if state!="offscreen" or not (resumed is float or resumed is int) \
 						or not is_finite(float(resumed)) or not is_equal_approx(float(resumed),expected) or float(resumed)>=1.0:
 					return false
@@ -266,7 +283,10 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 			"local_pedestrian_arrived":
 				if not ["walking","offscreen"].has(state) or arrival_at>=0:
 					return false
-				if state=="offscreen" and last_progress+float(when-handed_off)/SandboxStreetModule.OFFSCREEN_MINUTES<1.0: return false
+				var stamp: Variant=evt["detail"].get("fraction",0.0)
+				if not (stamp is float or stamp is int) or not is_finite(float(stamp)) or float(stamp)<0.0 or float(stamp)>=1.0: return false
+				arrival_fraction=float(stamp)
+				if state=="offscreen" and last_progress+maxf(0.0,float(when-handed_off)+arrival_fraction-handed_fraction)/SandboxStreetModule.OFFSCREEN_MINUTES<1.0: return false
 				state="arrived"
 				arrival_at=when
 			_:
@@ -279,6 +299,8 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 	# The last recorded spatial anchor is immutable even after resuming or
 	# arriving. Otherwise a saved world could silently rewrite an offscreen trip.
 	if handed_off>=0:
+		var stored_stamp: Variant=trip.get("handoff_fraction",0.0)
+		if not (stored_stamp is float or stored_stamp is int) or not is_equal_approx(float(stored_stamp),handed_fraction): return false
 		if handed_off!=int(trip.get("handoff_minute",-1)) or handed_off<began:
 			return false
 		if not Vector2(float(trip.get("handoff_x",anchor.x)),float(trip.get("handoff_y",anchor.y))).is_equal_approx(anchor): return false
@@ -289,6 +311,9 @@ static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:
 	if state=="walking" and (npc.get("location","")!="garage" \
 			or not str(npc.get("taxi_offer","")).is_empty()):
 		return false
+	if state=="arrived":
+		var stored_stamp: Variant=trip.get("arrived_fraction",0.0)
+		if not (stored_stamp is float or stored_stamp is int) or not is_equal_approx(float(stored_stamp),arrival_fraction): return false
 	if state=="cancelled": return cancelled_at==int(trip.get("cancelled",-1)) and arrival_at<0
 	return (state!="arrived" and arrival_at<0) or (state=="arrived" \
 			and arrival_at==int(trip.get("arrived",-1)) and arrival_at>=began)
