@@ -216,7 +216,7 @@ func sync() -> void:
 	_portrait_title.visible=_portrait.visible
 	_portrait_title.text=trp("Passenger","الراكب")
 	_speech.visible=not debug_mode and tab=="requests" and speaking and wide_speech
-	_speech.position=Vector2(area.x-542.0,120.0)
+	_speech.position=Vector2(24.0 if locale=="ar" else area.x-542.0,120.0)
 	_speech.size=Vector2(512.0,184.0)
 	if _speech.visible:
 		_speech.present(speaker,utterance,locale,script_font,controller._reduced_motion)

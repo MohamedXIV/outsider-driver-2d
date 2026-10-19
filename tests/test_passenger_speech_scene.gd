@@ -42,6 +42,12 @@ func _run() -> void:
 	assert(translated.size()==1)
 	assert(translated[0].speech_label.text_direction==Control.TEXT_DIRECTION_LTR,
 		"Untranslated alien glyphs must keep native direction in Arabic UI")
+	root.size=Vector2i(1280,720)
+	for frame in range(5): await process_frame
+	assert(ui._speech.visible,"Arabic desktop must keep actual passenger speech")
+	assert(not ui._speech.get_global_rect().intersects(ui._panel.get_global_rect()),
+		"RTL passenger panel must stand opposite the player reply panel")
+	assert(ui._speech.position.x<=30.0,"RTL passenger surface stays on scene's left")
 	ui.toggle_debug()
 	assert(not ui._speech.visible)
 	print("PASSENGER_SPEECH_SCENE_PASS portrait+speech, Replies/Actions, compact, RTL, Debug")
