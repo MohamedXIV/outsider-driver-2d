@@ -21,6 +21,7 @@ var _planned_via: String = ""
 var _map_selected: String = "market"
 var _last_signature: String = ""
 var _action_serial: int = 0
+var _sync_pending: bool = false
 var _arabic_font: Font
 
 func bind(host: Node) -> void:
@@ -169,6 +170,12 @@ func sync() -> void:
 		"settings": context=[controller._notice_text,controller._city.zoom_preference]
 	var signature: String=JSON.stringify([tab,debug_mode,locale,controller._reduced_motion,context])
 	if signature==_last_signature: return
+	# Preserve the actual pressed Control until pointer-up. A stable target
+	# position alone does not preserve Godot's pointer capture when the old
+	# button is freed between the browser's down/up input deliveries.
+	if _controls_pressed():
+		_sync_after_release()
+		return
 	_last_signature=signature
 	var scroll_position: int=_scroll.scroll_vertical
 	for child in _body.get_children(): _body.remove_child(child);child.queue_free()
@@ -289,6 +296,18 @@ func sync() -> void:
 	_scroll.set_deferred("scroll_vertical",scroll_position)
 	call_deferred("_fit_panel")
 	call_deferred("_publish")
+
+func _controls_pressed() -> bool:
+	for action in _actions.values():
+		if is_instance_valid(action) and action.is_pressed(): return true
+	return false
+
+func _sync_after_release() -> void:
+	if _sync_pending: return
+	_sync_pending=true
+	while is_inside_tree() and _controls_pressed(): await get_tree().process_frame
+	_sync_pending=false
+	if is_inside_tree(): sync()
 
 func _map_pick(stop: String) -> void:
 	_map_selected=stop;_last_signature="";sync()

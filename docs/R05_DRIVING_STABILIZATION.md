@@ -8,8 +8,11 @@ unchanged. #75's rider initiative remains a downstream dependency.
 
 - Wait sits above autonomous street requests. A legitimate offer expiry no
   longer moves its click target between observing the UI and delivering input.
-  The native regression exercises real mouse input and exactly one 20-minute
-  World command across a real autonomous offer transition.
+  The panel also preserves the actual pressed Control until pointer-up;
+  otherwise rebuilding it discards Godot pointer capture even at a fixed
+  coordinate. World continues to advance during the gesture. The native
+  regression holds real mouse-down across autonomous offer expiry and checks
+  exactly one 20-minute World command after mouse-up.
 - Native street/junction cars predict stopping distance with a whole-frame
   reserve. The junction predicts leader clearance and its terminal queue,
   rather than braking abruptly only when movement hits a hard boundary.
