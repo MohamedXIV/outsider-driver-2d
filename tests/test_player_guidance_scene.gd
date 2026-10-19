@@ -45,6 +45,18 @@ func _run() -> void:
 		guide.action_button.pressed.emit()
 		assert(ui.tab==target,"Quick action must switch the actual Player Mode tab")
 		assert(scene._world.snapshot()==before)
+	ui._tab("map")
+	for frame in range(3): await process_frame
+	var waypoint_picker: OptionButton=ui._actions["via"]
+	waypoint_picker.get_popup().popup()
+	await process_frame
+	assert(waypoint_picker.get_popup().visible)
+	ui._last_signature=""
+	ui.sync()
+	assert(is_instance_valid(waypoint_picker) and ui._actions["via"]==waypoint_picker,
+		"Open native waypoint dropdown must survive an autonomous UI refresh")
+	waypoint_picker.get_popup().hide()
+	for frame in range(3): await process_frame
 	ui._tab("requests")
 	var en: Dictionary=SandboxPlayerGuidance.describe(scene._world,"en","",false)
 	var ar: Dictionary=SandboxPlayerGuidance.describe(scene._world,"ar","",false)

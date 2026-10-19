@@ -340,7 +340,12 @@ func sync() -> void:
 
 func _controls_pressed() -> bool:
 	for action in _actions.values():
-		if is_instance_valid(action) and action.is_pressed(): return true
+		if not is_instance_valid(action): continue
+		# OptionButton may release the trigger while its native PopupMenu
+		# still owns the keyboard. A World/offer refresh must not free the
+		# actual open destination/via selector before the player's Enter.
+		if action is OptionButton and action.get_popup().visible: return true
+		if action.is_pressed(): return true
 	return false
 
 func _sync_after_release() -> void:

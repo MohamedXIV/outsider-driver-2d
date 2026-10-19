@@ -53,3 +53,15 @@ in Codex-owned `test_taxi_crossing_unload_scene` after the focused UI and
 complete domain gates had passed. This separate actor-lifecycle issue must
 be diagnosed through the owner track, not worked around by relaxing the UI
 or modifying World-owned physical code here.
+
+## Option popup lifecycle guard
+
+For Map destination and waypoint selection, an open Godot `OptionButton`
+popup retains its native input/focus ownership during an asynchronous
+World-driven UI refresh. Existing `_sync_after_release` rebuilds only after
+the native popup closes, avoiding loss of keyboard selection in Web. A new
+Xvfb native regression opens the real via PopupMenu, triggers a forced UI
+refresh, and asserts the original widget remains alive until selection or
+closure. This does not change route data, selected waypoint semantics, or
+relax `web_city_routes` assertions. A specific upstream Chromium failure
+at its `selectedVia` assertion remains under exact-head verification.
