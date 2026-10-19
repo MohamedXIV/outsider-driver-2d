@@ -13,7 +13,7 @@ Still required before main-scene activation:
 - Production coordination/fairness for the saved exclusive connector admission; focused domain ownership/release is now implemented and tested.
 - Native multi-vehicle and Web visual acceptance of the corrected metric widths/road envelopes.
 - Source-backed departure queues/bays where aggregate services initially overlap.
-- Loaded-corridor coordinator, deterministic manual-time execution and scene reload/reentry.
+- Loaded-corridor coordinator, deterministic manual-time execution, reroute rebasing and scene reload/reentry.
 - Full genuine two-fare and shuttle native/Web visual verification after activation.
 
 `SandboxVehicleJunctions` grants one World-owned reservation per authored lane connector junction. A second real vehicle cannot report progress into the occupied connector. Entry/release events reconstruct the saved reservation ledger; forged ownership is rejected. A focused test uses seed 1's real `npc:08` municipal service and the actual player reposition route to demonstrate saved exclusion and subsequent admission after clearance. This is a domain test, not a full native multi-car visual acceptance.
@@ -22,6 +22,6 @@ The read-only `docs/evidence/r05-world-execution/lane_clearance_audit.gd` measur
 
 Evidence includes the before/after numerical audit, a native screenshot and its reproducible observer. That image is a controlled actual garage→clinic→docks reposition at World minute 521, with nine real residents; it verifies road presentation, not enabled physical-corridor gameplay. The observer pauses the scene's automatic clock and advances the real World route. No native collision acceptance is inferred from a single image.
 
-Verification at `6614e3d`: all 45 domain tests and all 41 native tests passed under Godot 4.7.2. Subsequent heading/handoff changes require their own final-head verification; no Web or human acceptance is inferred from these results.
+Verification at `6614e3d`: all 45 domain tests and all 41 native tests passed under Godot 4.7.2. At runtime head `1b9cd57`, all 46 domain tests and all 42 native tests passed after the heading/handoff and clearance changes. The additional variable-delta native regression passed locally at that runtime and adds one native case. No Web or human acceptance is inferred from these results. Five controlled native collision samples with canonical World/render/body traces are in `docs/evidence/r05-world-execution/native-collision/`.
 
 No HUD presentation files are changed. This branch is isolated from the canonical PR73/PR75 heads until the integration above is ready.
