@@ -26,6 +26,9 @@ func _initialize() -> void:
 	assert(not SandboxWorld.new().restore_snapshot(forged))
 	SandboxVehicleExecution.unbind(world,"player",.6)
 	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
+	var bad_handoff: Dictionary=world.snapshot()
+	bad_handoff["vehicle_execution"]["player"]["handoff_x"]+=100.0
+	assert(not SandboxWorld.new().restore_snapshot(bad_handoff))
 	assert(world.advance(planned+2))
 	assert(not world.is_travelling())
 	assert(world.events.filter(func(e: Dictionary)->bool:return e["kind"]=="fare_settled" and e["subject"]==offer["id"]).size()==1)

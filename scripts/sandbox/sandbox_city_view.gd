@@ -35,6 +35,7 @@ static func edge_heading(from: String, to: String, fraction: float) -> float:
 	return (q - p).angle() if p.distance_squared_to(q) > .000001 else 0.0
 
 static func world_road_heading(state: SandboxWorld, fraction: float = 0.0) -> float:
+	if state.vehicle_execution.has("player"): return SandboxVehicleExecution.heading(state,"player",fraction)
 	if state.is_travelling():
 		var elapsed: float = SandboxDirectedLanes.taxi_elapsed_minutes(state,fraction)
 		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(
@@ -123,7 +124,7 @@ func _process(delta: float) -> void:
 		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(
 				world.route_nodes,elapsed)
 		if tangent.length_squared() > .000001:
-			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
+			_heading = SandboxVehicleExecution.heading(world,"player",visual_fraction) if world.vehicle_execution.has("player") else SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
 	elif _last_parked_stop != world.player_district:
 		# A just-finished route has no active nodes. Face its last legal edge,

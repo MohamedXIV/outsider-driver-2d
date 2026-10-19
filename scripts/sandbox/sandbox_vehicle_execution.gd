@@ -92,7 +92,7 @@ static func unbind(world: SandboxWorld,id: String,clock_fraction: float=0.0) -> 
 	state["handoff_x"]=state["x"];state["handoff_y"]=state["y"]
 	state["handoff_heading"]=state["heading"]
 	state["reason"]="motion"
-	world._record("vehicle_execution_handoff",id,{"source":state["source"],"progress":state["progress"],"fraction":state["handoff_fraction"]})
+	world._record("vehicle_execution_handoff",id,{"source":state["source"],"progress":state["progress"],"fraction":state["handoff_fraction"],"x":state["handoff_x"],"y":state["handoff_y"],"heading":state["handoff_heading"]})
 
 static func progress(world: SandboxWorld,id: String,fraction: float=0.0,minute_offset: int=0) -> float:
 	var travel: Dictionary=trip(world,id)
@@ -237,10 +237,12 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		if not bool(state["native"]):
 			for key in ["handoff_minute","handoff_fraction","handoff_progress","handoff_x","handoff_y","handoff_heading"]:
 				if not (state.get(key) is int or state.get(key) is float) or not is_finite(float(state[key])): return false
-			if int(state["handoff_minute"])>int(value["minute"]) or float(state["handoff_fraction"])<0.0 or float(state["handoff_fraction"])>=1.0: return false
+			if int(state["handoff_minute"])<SandboxWorld.START_MINUTE or int(state["handoff_minute"])>int(value["minute"]) or float(state["handoff_fraction"])<0.0 or float(state["handoff_fraction"])>=1.0: return false
+			if float(state["handoff_progress"])<0.0 or float(state["handoff_progress"])>float(state["progress"])+EPSILON or absf(float(state["handoff_heading"]))>PI: return false
+			if Vector2(float(state["handoff_x"]),float(state["handoff_y"])).distance_to(point(travel,float(state["handoff_progress"])))>.5: return false
 			var sourced: bool=false
 			for event in value["events"]:
 				var detail: Dictionary=event.get("detail",{})
-				if event.get("kind","")=="vehicle_execution_handoff" and event.get("subject","")==id and event.get("minute",-1)==state["handoff_minute"] and detail.get("source","")==state["source"] and detail.get("progress",-1)==state["handoff_progress"] and detail.get("fraction",-1)==state["handoff_fraction"]: sourced=true
+				if event.get("kind","")=="vehicle_execution_handoff" and event.get("subject","")==id and event.get("minute",-1)==state["handoff_minute"] and detail.get("source","")==state["source"] and detail.get("progress",-1)==state["handoff_progress"] and detail.get("fraction",-1)==state["handoff_fraction"] and detail.get("x",INF)==state["handoff_x"] and detail.get("y",INF)==state["handoff_y"] and detail.get("heading",INF)==state["handoff_heading"]: sourced=true
 			if not sourced: return false
 	return true

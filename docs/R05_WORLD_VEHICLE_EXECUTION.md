@@ -18,4 +18,8 @@ Still required before main-scene activation:
 
 `SandboxVehicleJunctions` grants one World-owned reservation per authored lane connector junction. A second real vehicle cannot report progress into the occupied connector. Entry/release events reconstruct the saved reservation ledger; forged ownership is rejected. A focused test uses seed 1's real `npc:08` municipal service and the actual player reposition route to demonstrate saved exclusion and subsequent admission after clearance. This is a domain test, not a full native multi-car visual acceptance.
 
+The read-only `docs/evidence/r05-world-execution/lane_clearance_audit.gd` measures the current opposing-lane clearance perpendicular to the projected road. At the current authored widths its minima are 6.44 px (basin–clinic), 5.46 px (clinic–docks), 4.14 px (freight) and 3.77 px (garage feeder), below the 13 px visible body width. These measurements reproduce an integration blocker; they are **not** passing physical lane acceptance. Do not enable the bodies in the main scene before correcting and visually checking the road envelopes.
+
+Verification at `6614e3d`: all 45 domain tests and all 41 native tests passed under Godot 4.7.2. Subsequent heading/handoff changes require their own final-head verification; no Web or human acceptance is inferred from these results.
+
 No HUD presentation files are changed. This branch is isolated from the canonical PR73/PR75 heads until the integration above is ready.
