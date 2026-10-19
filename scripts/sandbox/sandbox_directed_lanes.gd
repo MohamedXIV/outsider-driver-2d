@@ -5,11 +5,32 @@ extends RefCounted
 # It does not decide NPC trips, lane admission, junction priority or duration.
 # Lane physics/occupancy of the full city is a separate future contract.
 const ROAD_PROFILES: Dictionary={
-	"basin_turn|clinic":{"per_direction":1,"lane_width":62.0},
-	"clinic|docks":{"per_direction":1,"lane_width":62.0},
-	"freight_cross|quay_gate":{"per_direction":2,"lane_width":55.0},
-	"garage|margin_gate":{"per_direction":1,"lane_width":46.0}
+	"basin_turn|clinic":{"per_direction":1,"lane_width":240.0},
+	"clinic|docks":{"per_direction":1,"lane_width":240.0},
+	"freight_cross|quay_gate":{"per_direction":2,"lane_width":240.0},
+	"garage|margin_gate":{"per_direction":1,"lane_width":240.0}
 }
+
+# The 25×13 projected vehicle footprint needs at least 17 screen units
+# between neighbouring flows, including four units of clearance. Widths
+# remain metric; the painted envelope follows their projected extrema.
+static var _screen_widths: Dictionary={}
+
+static func screen_road_width(a: String,b: String) -> float:
+	if not has_profile(a,b): return 23.0
+	var key: String=SandboxRoads.edge_key(a,b)
+	if _screen_widths.has(key): return float(_screen_widths[key])
+	var extent: float=0.0
+	for sample in range(1,100):
+		var t: float=float(sample)/100.0
+		var centre: Vector2=SandboxIsoPresentation.project(SandboxRoads.sample_edge(a,b,t))
+		var tangent: Vector2=SandboxIsoPresentation.project(SandboxRoads.sample_edge(a,b,t+.001))-SandboxIsoPresentation.project(SandboxRoads.sample_edge(a,b,t-.001))
+		for side in [false,true]:
+			var lane: Vector3=lane_point(b,a,1.0-t,lane_count(a,b)-1) if side else lane_point(a,b,t,lane_count(a,b)-1)
+			extent=maxf(extent,absf((SandboxIsoPresentation.project(lane)-centre).dot(tangent.normalized().orthogonal())))
+	var width: float=ceilf(2.0*(extent+10.5))
+	_screen_widths[key]=width
+	return width
 
 static func profile(from_node: String, to_node: String) -> Dictionary:
 	if not SandboxRoads.connected(from_node,to_node): return {}

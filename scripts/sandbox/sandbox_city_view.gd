@@ -86,13 +86,14 @@ func _ready() -> void:
 			var b: Vector3 = SandboxRoads.sample_edge(ends[0], ends[1], minf(t + .01,1))
 			var tangent: Vector2 = (project(b)-project(a)).normalized()
 			for side in [-1,1]:
-				var at: Vector2 = project(a) + tangent.orthogonal()*float(side)*rng.randf_range(45,75)
+				var verge: float=maxf(45.0,SandboxDirectedLanes.screen_road_width(ends[0],ends[1])*.5+22.0)
+				var at: Vector2 = project(a) + tangent.orthogonal()*float(side)*rng.randf_range(verge,verge+30.0)
 				var valid: bool = true
 				for other in SandboxCityData.EDGES:
 					var pair: PackedStringArray = str(other).split("|")
 					for j in range(21):
 						var road: Vector3=SandboxRoads.sample_edge(pair[0],pair[1],float(j)/20)
-						if at.distance_to(project(road)) < 32:
+						if Rect2(at,Vector2(42,45)).grow(SandboxDirectedLanes.screen_road_width(pair[0],pair[1])*.5+8.0).has_point(project(road)):
 							valid = false
 						if road.y>0.0:
 							road.y=0.0
@@ -158,9 +159,10 @@ func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int
 			var p: Vector3=SandboxRoads.sample_edge(a,b,float(i)/48.0)
 			underside.append(points[i]+Vector2(0,SandboxBridgePresentation.thickness(p.y)))
 		canvas.draw_polyline(underside,Color("4d605a"),33.0,true)
-	if pass_index in [-1,0]: canvas.draw_polyline(points,Color("202e32"),34,true)
-	if pass_index in [-1,1]: canvas.draw_polyline(points,Color("8c9d91") if elevated else Color("667773"),28,true)
-	if pass_index in [-1,2]: canvas.draw_polyline(points,Color("374b50"),23,true)
+	var asphalt: float=SandboxDirectedLanes.screen_road_width(a,b)
+	if pass_index in [-1,0]: canvas.draw_polyline(points,Color("202e32"),asphalt+11.0,true)
+	if pass_index in [-1,1]: canvas.draw_polyline(points,Color("8c9d91") if elevated else Color("667773"),asphalt+5.0,true)
+	if pass_index in [-1,2]: canvas.draw_polyline(points,Color("374b50"),asphalt,true)
 	if pass_index not in [-1,3]: return
 	for i in range(0,47,3):
 		canvas.draw_line(points[i],points[i+1],Color("d2bc7d"),1.1,true)
@@ -236,10 +238,23 @@ func paint(canvas: Node2D, role: String) -> void:
 			canvas.draw_rect(Rect2(at+Vector2(3,4),Vector2(12,8)),Color("62796e"))
 		elif block["region"] == "upper_terraces":
 			canvas.draw_circle(at+Vector2(10,10),8,Color("658a79"))
-	for key in SandboxCityData.EDGES:
-		var pair: PackedStringArray = str(key).split("|")
-		if SandboxRoads.map_position(pair[0]).y == 0 and SandboxRoads.map_position(pair[1]).y == 0:
-			_road(canvas,pair[0],pair[1],false)
+	for pass_index in range(4):
+		for key in SandboxCityData.EDGES:
+			var pair: PackedStringArray = str(key).split("|")
+			if SandboxRoads.map_position(pair[0]).y == 0 and SandboxRoads.map_position(pair[1]).y == 0:
+				_road(canvas,pair[0],pair[1],false,pass_index)
+		if pass_index==3: continue
+		for node in SandboxCityData.NODES:
+			if SandboxRoads.map_position(node).y!=0.0: continue
+			var count: int=0
+			var width: float=23.0
+			for neighbor in SandboxRoads.LINKS[node]:
+				if SandboxRoads.map_position(neighbor).y!=0.0: continue
+				count+=1
+				width=maxf(width,SandboxDirectedLanes.screen_road_width(node,neighbor))
+			if count<2: continue
+			canvas.draw_circle(project(SandboxRoads.map_position(node)),(width+[11.0,5.0,0.0][pass_index])*.5,
+				[Color("202e32"),Color("8d9d8c"),Color("374b50")][pass_index])
 	# Patchworks is an inhabited repair court with a shutter, shelter and stall.
 	var home: Vector2=project(SandboxRoads.map_position("garage"))+Vector2(38,-32)
 	canvas.draw_colored_polygon(PackedVector2Array([home,home+Vector2(48,-12),home+Vector2(58,20),home+Vector2(10,32)]),Color("b78b62"))

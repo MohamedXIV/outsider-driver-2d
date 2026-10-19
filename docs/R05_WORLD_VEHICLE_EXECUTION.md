@@ -11,14 +11,16 @@ World snapshots retain source journey, route, progress, physical position, speed
 Still required before main-scene activation:
 
 - Production coordination/fairness for the saved exclusive connector admission; focused domain ownership/release is now implemented and tested.
-- Sufficient authored opposing-lane clearance for the actual collision footprint.
+- Native multi-vehicle and Web visual acceptance of the corrected metric widths/road envelopes.
 - Source-backed departure queues/bays where aggregate services initially overlap.
 - Loaded-corridor coordinator, deterministic manual-time execution and scene reload/reentry.
 - Full genuine two-fare and shuttle native/Web visual verification after activation.
 
 `SandboxVehicleJunctions` grants one World-owned reservation per authored lane connector junction. A second real vehicle cannot report progress into the occupied connector. Entry/release events reconstruct the saved reservation ledger; forged ownership is rejected. A focused test uses seed 1's real `npc:08` municipal service and the actual player reposition route to demonstrate saved exclusion and subsequent admission after clearance. This is a domain test, not a full native multi-car visual acceptance.
 
-The read-only `docs/evidence/r05-world-execution/lane_clearance_audit.gd` measures the current opposing-lane clearance perpendicular to the projected road. At the current authored widths its minima are 6.44 px (basin–clinic), 5.46 px (clinic–docks), 4.14 px (freight) and 3.77 px (garage feeder), below the 13 px visible body width. These measurements reproduce an integration blocker; they are **not** passing physical lane acceptance. Do not enable the bodies in the main scene before correcting and visually checking the road envelopes.
+The read-only `docs/evidence/r05-world-execution/lane_clearance_audit.gd` measured minima of 6.44 px (basin–clinic), 5.46 px (clinic–docks), 4.14 px (freight) and 3.77 px (garage feeder) before the correction, below the 13 px visible body width. Authored widths are now 240 metric units; every sampled opposing/same-direction lane pair has at least 17 px separation, including four units of clearance. Asphalt widths follow the projected outer lanes and full body width. Ground roads paint in separate passes with joined ground junction caps; decorative lots reserve the wider road envelopes. The focused clearance test checks all authored profiles independently of the drawing implementation.
+
+Evidence includes the before/after numerical audit, a native screenshot and its reproducible observer. That image is a controlled actual garage→clinic→docks reposition at World minute 521, with nine real residents; it verifies road presentation, not enabled physical-corridor gameplay. The observer pauses the scene's automatic clock and advances the real World route. No native collision acceptance is inferred from a single image.
 
 Verification at `6614e3d`: all 45 domain tests and all 41 native tests passed under Godot 4.7.2. Subsequent heading/handoff changes require their own final-head verification; no Web or human acceptance is inferred from these results.
 
