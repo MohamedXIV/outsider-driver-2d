@@ -9,7 +9,9 @@ var action_button: Button
 var _target: String=""
 
 func _ready() -> void:
-	mouse_filter=Control.MOUSE_FILTER_STOP
+	# Never steal canvas wheel/mouse hover when the card covers part of the
+	# scenery; only its explicit 44px action owns pointer input.
+	mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var panel: StyleBoxFlat=StyleBoxFlat.new()
 	panel.bg_color=Color(0.09,0.17,0.19,0.95)
 	panel.border_color=Color("718b7c")
@@ -19,18 +21,22 @@ func _ready() -> void:
 	panel.content_margin_top=12;panel.content_margin_bottom=12
 	add_theme_stylebox_override("panel",panel)
 	var content: VBoxContainer=VBoxContainer.new()
+	content.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	content.add_theme_constant_override("separation",8)
 	add_child(content)
 	title_label=Label.new();title_label.name="ObjectiveTitle"
+	title_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	title_label.add_theme_font_size_override("font_size",19)
 	title_label.add_theme_color_override("font_color",Color("f3e5c2"))
 	content.add_child(title_label)
 	detail_label=Label.new();detail_label.name="ObjectiveDetail"
+	detail_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	detail_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	detail_label.add_theme_font_size_override("font_size",15)
 	detail_label.add_theme_color_override("font_color",Color("c1d6c9"))
 	content.add_child(detail_label)
 	action_button=Button.new();action_button.name="OpenContext"
+	action_button.mouse_filter=Control.MOUSE_FILTER_STOP
 	action_button.custom_minimum_size.y=44
 	action_button.pressed.connect(func(): tab_requested.emit(_target))
 	content.add_child(action_button)

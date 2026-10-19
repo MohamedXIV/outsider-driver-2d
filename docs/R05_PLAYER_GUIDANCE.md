@@ -18,3 +18,15 @@ This is only a first design-and-implementation slice; full issue #50 requires
 additional human visual review. Parallel Codex work remains exclusively in
 #67/#68 driving and actor presentation. Do not merge until integrated gates
 and human acceptance.
+
+## Canvas input and parent-stack sync
+
+The initial UI commit passed all 42 domain and 40 native tests but failed
+exported Chromium `web_camera_zoom` at the **first world-space mouse wheel**
+(`tests/web_camera_zoom.cjs:11`) even though the earlier base head passed.
+The guidance frame and its descriptive VBox/Labels now ignore pointer hover
+and wheel input, while the actual 44px navigation button remains interactive.
+The native scene test asserts this exact unobstructed canvas wheel point and
+that the camera zoom actually changes, in addition to UI affordance rules.
+This stack now includes Codex's latest #75 actor-lifecycle dependency changes
+without editing or altering any of those World/actor/physical files.

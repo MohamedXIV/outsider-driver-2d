@@ -20,7 +20,13 @@ const { openCity } = require('./city_browser.cjs');
         assert.ok(Math.hypot(...pose.render.map((value, i) => value - previous.render[i])) < .01,
           'A World-owned crossing hold must freeze the exported lane pose');
       }
-      frames.push(pose);
+      const actors = JSON.parse(d.actorLifecycle);
+      assert.equal(new Set(actors.map(actor => actor.id)).size, actors.length);
+      for (const actor of actors) {
+        assert.ok([...actor.world, ...actor.render, ...actor.viewport].every(Number.isFinite));
+        assert.equal(typeof actor.visible, 'boolean');
+      }
+      frames.push({ ...pose, actors });
       await shot(`${name}-${frame}`);
       await page.waitForTimeout(100);
     }

@@ -12,6 +12,28 @@ func _run() -> void:
 	assert(guide!=null and guide.visible)
 	assert(guide.title_label.text.length()>0)
 	assert(guide.action_button.custom_minimum_size.y>=44)
+	assert(guide.mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	assert(guide.get_child(0).mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	assert(guide.title_label.mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	assert(guide.detail_label.mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	assert(guide.action_button.mouse_filter==Control.MOUSE_FILTER_STOP)
+	# Chromium camera regression wheels at (1100,650). In desktop mode
+	# that canvas point must not be swallowed by non-action HUD controls.
+	var where: Vector2=Vector2(1100,650)
+	var move: InputEventMouseMotion=InputEventMouseMotion.new()
+	move.position=where;move.global_position=where
+	Input.parse_input_event(move)
+	await process_frame
+	assert(root.gui_get_hovered_control()==null,
+			"Non-interactive guidance must leave the world wheel target unobstructed")
+	var wheel: InputEventMouseButton=InputEventMouseButton.new()
+	wheel.position=where;wheel.global_position=where
+	wheel.button_index=MOUSE_BUTTON_WHEEL_DOWN;wheel.pressed=true
+	var prior_zoom: float=scene._city.zoom_preference
+	Input.parse_input_event(wheel)
+	await process_frame
+	assert(is_equal_approx(scene._city.zoom_preference,prior_zoom-0.2),
+			"Mouse wheel on the scenery must still zoom the native camera")
 	var before: Dictionary=scene._world.snapshot()
 	var objective: Dictionary=SandboxPlayerGuidance.describe(
 			scene._world,"en",scene._selected_id,false)
