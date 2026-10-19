@@ -122,6 +122,32 @@ static func route_point_at_minutes(nodes: Array[String], elapsed: float,
 		progress -= minutes
 	return route_lane_point(nodes, nodes.size()-2, 1.0, index)
 
+# A single projected tangent straddles REAL authored edge boundaries.
+# Both player taxi and world-owned shuttle use this same pure source;
+# a junction never falls back to an isolated edge's terminal derivative.
+static func route_screen_tangent_at_minutes(nodes: Array[String], elapsed: float,
+		duration: float = -1.0, index: int = 0) -> Vector2:
+	if not SandboxRoads.valid_path(nodes) or not is_finite(elapsed) \
+			or not is_finite(duration) or (duration <= 0.0 and duration != -1.0):
+		return Vector2.ZERO
+	var finish: float = duration if duration>0.0 else float(SandboxRoads.path_minutes(nodes))
+	if finish<=0.0: return Vector2.ZERO
+	var at: float = clampf(elapsed,0.0,finish)
+	var before: Vector3 = route_point_at_minutes(nodes,maxf(0.0,at-0.15),duration,index)
+	var after: Vector3 = route_point_at_minutes(nodes,minf(finish,at+0.15),duration,index)
+	if not before.is_finite() or not after.is_finite(): return Vector2.ZERO
+	return SandboxIsoPresentation.project(after)-SandboxIsoPresentation.project(before)
+
+# The player World stores one elapsed count per segment. Map it onto the
+# original complete route, without introducing any parallel simulation clock.
+static func taxi_elapsed_minutes(world: SandboxWorld, fraction: float = 0.0) -> float:
+	if not world.is_travelling() or not is_finite(fraction): return -1.0
+	var elapsed: float = float(world.route_edge_elapsed)+clampf(fraction,0.0,1.0)
+	for segment in range(world.route_segment):
+		elapsed += float(SandboxRoads.edge_minutes(
+				world.route_nodes[segment],world.route_nodes[segment+1]))
+	return elapsed
+
 static func route_screen_heading(nodes: Array[String], segment: int,
 		fraction: float) -> float:
 	if segment<0 or segment>=nodes.size()-1: return 0.0

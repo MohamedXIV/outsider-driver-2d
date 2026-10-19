@@ -36,10 +36,13 @@ static func edge_heading(from: String, to: String, fraction: float) -> float:
 
 static func world_road_heading(state: SandboxWorld, fraction: float = 0.0) -> float:
 	if state.is_travelling():
+		var elapsed: float = SandboxDirectedLanes.taxi_elapsed_minutes(state,fraction)
+		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(
+				state.route_nodes,elapsed)
+		if tangent.length_squared() > 0.000001: return tangent.angle()
 		var a: String = state.route_nodes[state.route_segment]
-		var b: String = state.route_nodes[state.route_segment + 1]
-		var progress: float = (float(state.route_edge_elapsed) + fraction) / float(SandboxRoads.edge_minutes(a, b))
-		return edge_heading(a, b, progress)
+		var b: String = state.route_nodes[state.route_segment+1]
+		return edge_heading(a,b,float(state.route_edge_elapsed)/float(SandboxRoads.edge_minutes(a,b)))
 	for i in range(state.events.size() - 1, -1, -1):
 		var event: Dictionary = state.events[i]
 		if event.get("kind", "") != "route_segment_completed": continue
@@ -116,15 +119,10 @@ func _process(delta: float) -> void:
 	var ahead: Vector2 = taxi
 	if world.is_travelling():
 		_last_parked_stop = ""
-		var a: String = world.route_nodes[world.route_segment]
-		var b: String = world.route_nodes[world.route_segment+1]
-		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
-		var p: Vector3 = SandboxDirectedLanes.route_lane_point(world.route_nodes,
-				world.route_segment,maxf(0.0,t-.003))
-		var q: Vector3 = SandboxDirectedLanes.route_lane_point(world.route_nodes,
-				world.route_segment,minf(1.0,t+.003))
-		var tangent: Vector2 = project(q)-project(p)
-		if p.is_finite() and q.is_finite() and tangent.length() > .001:
+		var elapsed: float = SandboxDirectedLanes.taxi_elapsed_minutes(world,visual_fraction)
+		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(
+				world.route_nodes,elapsed)
+		if tangent.length_squared() > .000001:
 			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
 	elif _last_parked_stop != world.player_district:

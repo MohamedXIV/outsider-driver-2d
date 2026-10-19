@@ -42,20 +42,15 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 			nodes,elapsed,route_duration)
 	var render_ahead: Vector3=SandboxDirectedLanes.route_point_at_minutes(
 			nodes,minf(route_duration,elapsed+0.15),route_duration)
-	var render_behind: Vector3=SandboxDirectedLanes.route_point_at_minutes(
-			nodes,maxf(0.0,elapsed-0.15),route_duration)
-	if not render_position.is_finite() or not render_ahead.is_finite() \
-			or not render_behind.is_finite(): return {}
-	# A centered tangent keeps vehicle facing stable through authored turns,
-	# including a world-owned pedestrian hold and an exact Save/Load replay.
-	var direction: Vector2=SandboxIsoPresentation.project(render_ahead)-\
-			SandboxIsoPresentation.project(render_behind)
-	if direction.length_squared()<0.000001:
-		direction=SandboxIsoPresentation.project(render_position)-\
-				SandboxIsoPresentation.project(render_behind)
+	if not render_position.is_finite() or not render_ahead.is_finite(): return {}
+	# Exactly the same contiguous road tangent as the player taxi. The
+	# vehicle does not rotate during a World-owned zebra hold.
+	var direction: Vector2=SandboxDirectedLanes.route_screen_tangent_at_minutes(
+			nodes,elapsed,route_duration)
 	var render_heading: float=direction.angle() if direction.length_squared()>0.000001 else 0.0
 	if render_ahead.distance_to(render_position)<0.0001:
-		render_ahead=render_behind
+		render_ahead=SandboxDirectedLanes.route_point_at_minutes(
+				nodes,maxf(0.0,elapsed-0.15),route_duration)
 	return {
 		"resident_id":str(npc["id"]),
 		"source_offer":str(npc["transit_from_offer"]),

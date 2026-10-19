@@ -81,6 +81,33 @@ func _run() -> void:
 	scene._on_load()
 	assert(absf(angle_difference(back_facing, city._heading)) < .001)
 
+	# The same taxi must keep a valid road-facing tangent at a REAL internal
+	# segment handoff. No fabricated route or modified player clock.
+	world = scene._world
+	assert(world.reposition("basin_turn","",["clinic"]))
+	assert(world.route_nodes == ["docks","clinic","basin_turn"])
+	var edge_minutes: int = SandboxRoads.edge_minutes("docks","clinic")
+	assert(world.advance(edge_minutes-1))
+	var road_before: float = SandboxCityView.world_road_heading(world,0.99)
+	city.visual_fraction=0.99
+	city._process(0.016)
+	var facing_before: float=city.saved_taxi_heading()
+	assert(world.advance(1))
+	var road_after: float = SandboxCityView.world_road_heading(world,0.01)
+	assert(absf(angle_difference(road_before,road_after))<0.08,
+			"World's edge switch may not snap the taxi road-facing target")
+	city.visual_fraction=0.01
+	city._process(0.016)
+	var facing_after: float=city.saved_taxi_heading()
+	assert(absf(angle_difference(facing_before,facing_after)) <= \
+			SandboxVehicleKinematics.TURN_RATE*.016+.001,
+			"Native view heading must honor the angular steering cap at lane junction")
+	scene._on_save()
+	var saved_turn: float=city.saved_taxi_heading()
+	city._heading=0.0
+	scene._on_load()
+	assert(absf(angle_difference(saved_turn,city.saved_taxi_heading()))<.001,
+			"Save/Load at a REAL two-edge lane turn must restore the exact pose")
 	var tampered: Dictionary = {"taxi_heading": INF}
 	assert(not SandboxSave.save_world(scene._world,"user://r05-tamper.json",{},tampered),
 			"Non-finite heading must not enter a save")
