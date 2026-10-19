@@ -5,7 +5,9 @@ extends Node2D
 # Routes lie on the existing east block / T branch and end before the next
 # junction. This is deliberately bounded; it does not invent city graph edges.
 const IDS: Array[String]=["main","branch","following"]
-const SPEED: float=36.0
+# Native kit kinematics share the real vehicle motion profile. No additional
+# city tick, NPC or physical entitlement is created for these ambient cars.
+const SPEED: float=SandboxVehicleKinematics.CRUISE
 const STOP_DISTANCE: float=50.0
 const EXIT_X: float=890.0
 # Three stopped bodies must fit beyond the east zebra and before the next
@@ -42,6 +44,8 @@ func _ready() -> void:
 		hitbox.shape=shape;vehicle.add_child(hitbox);add_child(vehicle)
 		vehicle.collision_mask=2|4
 		actors[id]=vehicle;_place(id)
+		vehicle.current_speed=clampf(float(resume_state.get("speeds",{}).get(id,0.0)),
+				0.0,SPEED)
 		# Occupancy is reconstructed from physical route progress, never from a
 		# saved token that could strand a queue with no body in the box.
 		if _in_conflict(id): priority.owner=id
@@ -78,12 +82,25 @@ func _exit_clear() -> bool:
 	return true
 
 func snapshot() -> Dictionary:
-	return {"distances":distances.duplicate(),"queue":priority.queue.duplicate(),"owner":priority.owner}
+	var speeds: Dictionary={}
+	for id in IDS: speeds[id]=actors[id].current_speed
+	return {"distances":distances.duplicate(),"queue":priority.queue.duplicate(),
+			"owner":priority.owner,"speeds":speeds}
 
 static func valid_snapshot(state: Variant) -> bool:
 	if not state is Dictionary: return false
 	if state.is_empty(): return true
 	if not state.get("distances") is Dictionary or not state.get("queue") is Array: return false
+	# Older native presenter snapshots may omit speed; they safely restart at
+	# rest, but any provided speed must be finite, bounded and complete.
+	var speeds: Variant=state.get("speeds",{})
+	if not speeds is Dictionary: return false
+	if not speeds.is_empty():
+		if speeds.size()!=IDS.size(): return false
+		for id in IDS:
+			var speed: Variant=speeds.get(id,null)
+			if not (speed is float or speed is int) or not is_finite(float(speed)) \
+					or float(speed)<0.0 or float(speed)>SPEED+0.001: return false
 	var owner: Variant=state.get("owner","")
 	if not owner is String or (not owner.is_empty() and not IDS.has(owner)): return false
 	var seen: Array[String]=[]
@@ -132,8 +149,18 @@ func step(delta: float) -> void:
 	for id in order:
 		var body: CharacterBody2D=actors[id]
 		var current: float=float(distances[id])
-		var next: float=minf(current+SPEED*delta,routes[id].get_baked_length())
-		if id!=priority.owner and current<=STOP_DISTANCE: next=minf(next,STOP_DISTANCE)
+		# Predictive service braking before a FIFO-owned stop line. Vehicle
+		# admission never overrides a blocked downstream or the real body.
+		var limit: float=SPEED
+		if id!=priority.owner and current<=STOP_DISTANCE:
+			limit=minf(limit,SandboxVehicleKinematics.braking_speed(
+					STOP_DISTANCE-current))
+		body.current_speed=minf(SandboxVehicleKinematics.next_speed(
+				body.current_speed,limit,delta),limit)
+		var next: float=minf(current+body.current_speed*delta,
+				routes[id].get_baked_length())
+		if id!=priority.owner and current<=STOP_DISTANCE:
+			next=minf(next,STOP_DISTANCE)
 		var goal: Vector2=_point(id,next)
 		if goal.y>=349.9:
 			for other in IDS:
@@ -142,8 +169,12 @@ func step(delta: float) -> void:
 				if ahead.y>=349.9 and ahead.x>body.position.x:
 					next=maxf(current,next-maxf(0.0,goal.x-(ahead.x-SandboxStreetPriority.FOLLOW_SPACING)))
 					goal=_point(id,next)
+		var start_position: Vector2=body.position
 		body.velocity=global_transform.basis_xform(goal-body.position)/delta
 		body.move_and_slide()
+		# A hit body cannot keep accelerating against a wall. Its *actual*
+		# Godot displacement, not an imagined route tick, owns kinetic speed.
+		body.current_speed=clampf(body.position.distance_to(start_position)/delta,0.0,SPEED)
 		# Advance only by actual physical displacement; a collider blocking the
 		# owner cannot time out its token or teleport through the obstruction.
 		if id!="branch": distances[id]=body.position.x-730.0
