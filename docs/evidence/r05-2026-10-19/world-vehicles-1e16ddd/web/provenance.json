@@ -1,0 +1,18 @@
+{
+  "runtime_head": "1e16dddfd4f267eaead6d24af6812ea1ed39e0e8",
+  "overrides": [
+    "project.godot main_scene",
+    "scenes/diagnostic_world_vehicles.tscn",
+    "scripts/sandbox/diagnostic_world_vehicles.gd"
+  ],
+  "scope": "controlled component observer; automatic main-scene corridor not enabled",
+  "changed_original_files": [
+    "project.godot"
+  ],
+  "pck_sha256": "e3df2e884e3948da312092ff64e62b118399d976d15519f02f8ad94c7a782bea",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "observer_sha256": "de766afde85e4c130af8248adad10eb25243cf3603a805c0ac6c0abfb0eac418",
+  "capture": "Godot WebGL viewport readback at RenderingServer.frame_post_draw; unmodified PNG bytes",
+  "checks": "always-on _require; not editor-only assert",
+  "browser": "141.0.7390.37"
+}

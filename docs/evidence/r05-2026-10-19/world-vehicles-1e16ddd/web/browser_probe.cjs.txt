@@ -1,0 +1,35 @@
+const {chromium}=require('playwright');
+const fs=require('node:fs/promises');
+(async()=>{
+ const out='work/web-component-frames';await fs.mkdir(out,{recursive:true});
+ const browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
+ const page=await browser.newPage({viewport:{width:1280,height:720}});const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ try {
+  await page.goto('http://127.0.0.1:8769/index.html',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.documentElement.dataset.trafficProbeDone==='true',null,{timeout:90000});
+  const images=await page.evaluate(()=>window.od2dTrafficProbeImages);
+  for(const phase of ['queued','turning','restored','cleared']){
+   const png=Buffer.from(images[phase]||'','base64');
+   if(png.length<1000||png.readUInt32BE(0)!==0x89504e47)throw Error('Invalid WebGL frame '+phase);
+   await fs.writeFile(`${out}/${phase}.png`,png);
+  }
+  const records=await page.evaluate(()=>window.od2dTrafficProbeRecords);
+  for(const record of records)for(const vehicle of record.vehicles){
+   if(!['player','npc:08'].includes(vehicle.id)||!vehicle.source)throw Error('Invalid genuine vehicle identity');
+   if(Math.hypot(vehicle.body.x-vehicle.render.x,vehicle.body.y-vehicle.render.y)>.001)throw Error('Render/native divergence');
+   const w=vehicle.world;const x=(w.x-w.z)*.105,y=(w.x+w.z)*.0525-w.y*.36;
+   if(Math.hypot(vehicle.body.x-x,vehicle.body.y-y)>.001)throw Error('Canonical/native divergence');
+  }
+  const a=records.find(r=>r.phase==='turning'),b=records.find(r=>r.phase==='restored');
+  for(let i=0;i<a.vehicles.length;i++){
+   if(Math.hypot(a.vehicles[i].body.x-b.vehicles[i].body.x,a.vehicles[i].body.y-b.vehicles[i].body.y)>.001)throw Error('Restore moved a vehicle');
+  }
+  if(Object.keys(records.at(-1).reservations).length)throw Error('Connector did not clear');
+  const failure=await page.evaluate(()=>document.documentElement.dataset.trafficProbeFailure);
+  if(failure)throw Error(failure);
+  if(errors.length)throw Error(errors.join('\n'));
+  await fs.writeFile(`${out}/frames.json`,JSON.stringify({browser:browser.version(),records,errors},null,2));
+  console.log('TWO_WORLD_VEHICLES_WEB_PASS real IDs, source poses, saved queue/turn, exclusive connector, no errors');
+ }catch(error){ console.error('GAME_ERRORS',errors); console.error('LAST_STATE',await page.evaluate(()=>({...document.documentElement.dataset}))); await page.screenshot({path:out+'/failure.png'}); throw error; }finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

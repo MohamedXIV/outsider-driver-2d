@@ -1,0 +1,98 @@
+extends Node2D
+var root: Window:
+	get: return get_tree().root
+var view: SandboxCityView
+var label: Label
+var records: Array[Dictionary]=[]
+var output: String="res://work/two-world-vehicle-frames"
+func _require(condition: bool,message: String="World vehicle component assertion") -> void:
+	if condition: return
+	push_error(message)
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("document.documentElement.dataset.trafficProbeFailure="+JSON.stringify(message),true)
+
+func capture(world: SandboxWorld,taxi: SandboxWorldVehicleBody,shuttle: SandboxWorldVehicleBody,phase: String) -> void:
+	label.text="Controlled native component probe — real player / npc:08\n"+phase+" | World minute "+str(world.minute)+" | 9 residents | main-scene coordinator not enabled"
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	if not OS.has_feature("web"): root.get_texture().get_image().save_png(ProjectSettings.globalize_path(output+"/%02d-%s.png"%[records.size(),phase]))
+	var states: Array[Dictionary]=[]
+	for body in [taxi,shuttle]:
+		var entry: Dictionary=world.vehicle_execution[body.vehicle_id]
+		var canonical: Vector3=world.player_position() if body.vehicle_id=="player" else world.npc_position(world.resident(body.vehicle_id))
+		var rendered: Vector2=SandboxDirectedLanes.taxi_screen(world,0.0) if body.vehicle_id=="player" else SandboxCityView.project(SandboxWorldTraffic.shuttle_pose(world,world.resident(body.vehicle_id))["render_position"])
+		_require(rendered.distance_to(body.position)<.001)
+		states.append({"id":body.vehicle_id,"source":entry["source"],"progress":entry["progress"],"speed":entry["speed"],"heading":entry["heading"],"reason":entry["reason"],"body":{"x":body.position.x,"y":body.position.y},"render":{"x":rendered.x,"y":rendered.y},"world":{"x":canonical.x,"y":canonical.y,"z":canonical.z}})
+	records.append({"phase":phase,"minute":world.minute,"population":world.residents.size(),"reservations":world.vehicle_junctions.duplicate(true),"vehicles":states})
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.od2dTrafficProbe="+JSON.stringify(records.back())+";document.documentElement.dataset.trafficProbePhase="+JSON.stringify(phase),true)
+		var image: Image=root.get_texture().get_image()
+		_require(image!=null,"Web viewport readback")
+		var png: PackedByteArray=image.save_png_to_buffer()
+		_require(png.size()>1000,"Web viewport PNG capture")
+		JavaScriptBridge.eval("window.od2dTrafficProbeImages=window.od2dTrafficProbeImages||{};window.od2dTrafficProbeImages["+JSON.stringify(phase)+"]="+JSON.stringify(Marshalls.raw_to_base64(png)),true)
+	else:
+		var file: FileAccess=FileAccess.open(ProjectSettings.globalize_path(output+"/"+phase+"-world.json"),FileAccess.WRITE)
+		file.store_string(JSON.stringify(world.snapshot(),"  "));file.close()
+
+func _ready() -> void: call_deferred("_run")
+func _quad(body: SandboxWorldVehicleBody) -> PackedVector2Array:
+	var points: PackedVector2Array=[]
+	for corner in [Vector2(-12.5,-6.5),Vector2(12.5,-6.5),Vector2(12.5,6.5),Vector2(-12.5,6.5)]:
+		points.append(body.global_transform*corner)
+	return points
+func _run() -> void:
+	if not OS.has_feature("web"): DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(output))
+	var world: SandboxWorld=SandboxWorld.new(1)
+	_require(world.reposition("docks","clinic"))
+	_require(world.advance(41))
+	_require(SandboxVehicleExecution.bind(world,"player"))
+	_require(world.advance(10))
+	_require(world.resident("npc:08").get("transit_method","")=="shuttle")
+	var taxi: SandboxWorldVehicleBody=SandboxWorldVehicleBody.new()
+	var shuttle: SandboxWorldVehicleBody=SandboxWorldVehicleBody.new()
+	root.add_child(taxi);root.add_child(shuttle)
+	_require(taxi.bind(world,"player") and shuttle.bind(world,"npc:08"))
+	await get_tree().physics_frame
+	var container: Node2D=Node2D.new();root.add_child(container)
+	var camera: Camera2D=Camera2D.new();camera.name="Camera2D";container.add_child(camera)
+	view=SandboxCityView.new();view.world=world;view.reduced_motion=true;container.add_child(view)
+	var overlay: CanvasLayer=CanvasLayer.new();root.add_child(overlay)
+	label=Label.new();label.position=Vector2(14,14);label.add_theme_font_size_override("font_size",18);overlay.add_child(label)
+	var queued: bool=false
+	var restored: bool=false
+	var finished: bool=false
+	for frame in range(1200):
+		_require(shuttle.step(1.0/60.0))
+		_require(taxi.step(1.0/60.0))
+		for overlap in Geometry2D.intersect_polygons(_quad(taxi),_quad(shuttle)):
+			_require(SandboxIsoPresentation.polygon_area(overlap)<.001,"Genuine native vehicles physically overlap")
+		if not queued and world.vehicle_execution["player"]["reason"]=="junction":
+			queued=true;await capture(world,taxi,shuttle,"queued")
+		if not restored and float(world.vehicle_execution["npc:08"]["progress"])>9.8:
+			await capture(world,taxi,shuttle,"turning")
+			var saved: SandboxWorld=SandboxWorld.new();_require(saved.restore_snapshot(world.snapshot()))
+			var taxi_at: Vector2=taxi.position;var shuttle_at: Vector2=shuttle.position
+			taxi.queue_free();shuttle.queue_free();await get_tree().physics_frame
+			world=saved;view.world=world
+			taxi=SandboxWorldVehicleBody.new();shuttle=SandboxWorldVehicleBody.new()
+			root.add_child(taxi);root.add_child(shuttle)
+			_require(taxi.bind(world,"player") and shuttle.bind(world,"npc:08"))
+			_require(taxi.position.distance_to(taxi_at)<.001 and shuttle.position.distance_to(shuttle_at)<.001)
+			restored=true;await get_tree().physics_frame
+			await capture(world,taxi,shuttle,"restored")
+		if frame%40==0: _require(SandboxWorld.new().restore_snapshot(world.snapshot()))
+		if float(world.vehicle_execution["player"]["progress"])>45.0 and float(world.vehicle_execution["npc:08"]["progress"])>11.0:
+			finished=true;break
+		if (frame+1)%60==0: _require(world.advance_elapsed(1))
+		await get_tree().physics_frame
+	_require(queued and finished,"Both genuine vehicles must drain the exclusive connector")
+	_require(restored and world.residents.size()==9)
+	await capture(world,taxi,shuttle,"cleared")
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.od2dTrafficProbeRecords="+JSON.stringify(records)+";document.documentElement.dataset.trafficProbeDone='true'",true)
+	else:
+		var file: FileAccess=FileAccess.open(ProjectSettings.globalize_path(output+"/frames.json"),FileAccess.WRITE)
+		file.store_string(JSON.stringify(records,"  "));file.close()
+	print("TWO_WORLD_VEHICLES_PASS real player/npc:08 bodies, no polygon overlap, saved queue, both vehicles drain")
+	if not OS.has_feature("web"): get_tree().quit()

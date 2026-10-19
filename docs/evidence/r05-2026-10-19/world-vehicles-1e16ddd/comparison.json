@@ -1,0 +1,30 @@
+[
+  {
+    "phase": "queued",
+    "native_minute": 531,
+    "web_minute": 531,
+    "max_body_position_delta": 0.0,
+    "max_heading_delta": 0.0
+  },
+  {
+    "phase": "turning",
+    "native_minute": 532,
+    "web_minute": 532,
+    "max_body_position_delta": 0.0,
+    "max_heading_delta": 0.0
+  },
+  {
+    "phase": "restored",
+    "native_minute": 532,
+    "web_minute": 532,
+    "max_body_position_delta": 0.0,
+    "max_heading_delta": 0.0
+  },
+  {
+    "phase": "cleared",
+    "native_minute": 536,
+    "web_minute": 536,
+    "max_body_position_delta": 0.0,
+    "max_heading_delta": 0.0
+  }
+]
