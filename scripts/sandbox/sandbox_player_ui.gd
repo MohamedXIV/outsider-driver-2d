@@ -206,29 +206,24 @@ func sync() -> void:
 		call_deferred("_publish")
 		return
 	if conversation!=null and tab=="requests":
-		_label(trp("In the passenger seat","في مقعد الراكب"),true)
+		_label(trp("Passenger","الراكب"),true)
 		var line: Label=_label(controller._dialogue_text.text)
 		if not conversation.understood() or controller._reveal_pending:
 			line.add_theme_font_override("font",load(SandboxLanguagePresentation.native_font_path(conversation.spoken_language(world))))
 		# A full-width conversation line takes precedence over ambient filler
 		# in the compact bottom sheet: keep response controls close to speech.
-		if area.x>=600:
-			_label(trp("The city keeps moving while you read.","تستمر المدينة في الحركة أثناء القراءة."))
 		var choices: Array=conversation.current_frame().get("choices",[])
 		for i in range(choices.size()): _button("choice_%d"%i,SandboxLanguagePresentation.localized_choice(str(choices[i]),locale),_choose.bind(i))
 		if conversation.phase=="pickup" and not controller._request_common.disabled: _button("common",trp("Ask for Common","اطلب اللغة المشتركة"),_call.bind("_on_ask_common"))
 		if controller._ask_rumor.visible: _button("rumor",trp("Ask about local news","اسأل عن أخبار الحي"),_call.bind("_on_ask_rumor"))
 	elif tab=="requests":
 		if world.is_travelling():
-			if area.x>=600:
-				_label(trp("A city between destinations","مدينة بين وجهتين"),true)
-				_label(trp("Your taxi is following the selected roads. Open the map to inspect your route.","تتبع سيارتك الطرق المختارة. افتح الخريطة لمراجعة المسار."))
 			if not world.active_offer_id.is_empty():
 				var fare: Dictionary=world.offer_by_id(world.active_offer_id)
 				_label("%s  ·  %d cr"%[place(str(fare["destination"])),fare["fare"]])
 				var prompt: Dictionary=world.rider_initiative
 				if prompt.get("status","")=="pending":
-					_label(trp("Your passenger speaks first","الراكب يبدأ الحديث"),true)
+					_label(trp("Passenger message","رسالة الراكب"),true)
 					var question_label: Label=_label(SandboxRiderInitiative.question(world,locale))
 					if not SandboxRiderInitiative.understood(world):
 						var rider_speaker: Dictionary=world.resident(str(prompt.get("npc_id","")))
@@ -317,7 +312,7 @@ func sync() -> void:
 		_button("ar_wear",trp("Remove eyewear","اخلع النظارة") if world.ar_equipped else trp("Wear eyewear","ارتدِ النظارة"),_call.bind("_on_wear_ar"),not world.ar_owned)
 		if world.ar_equipped and not controller._ar_note.is_empty(): _label(str(controller._ar_note.get("text",""))+"\n"+trp("Source: ","المصدر: ")+str(controller._ar_note.get("source","")))
 	elif tab=="contacts":
-		_label(trp("People, not quest markers","أناس تعرفهم"),true)
+		_label(trp("Contacts","المعارف"),true)
 		_label(controller._meeting_info.text)
 		for meeting in world.meetings:
 			_button("meeting_"+str(meeting["id"]),trp("Resident ","المقيم ")+str(meeting["npc_id"]).trim_prefix("npc:")+" · "+str(meeting["status"]),_select_meeting.bind(str(meeting["id"])))
@@ -330,7 +325,7 @@ func sync() -> void:
 			for i in range(meeting_choices.size()):
 				_button("meeting_choice_"+str(i),str(meeting_choices[i]),controller._on_meeting_choice.bind(i))
 	elif tab=="settings":
-		_label(trp("Make yourself at home","خياراتك"),true)
+		_label(trp("Options","الخيارات"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))
 		_button("arabic","العربية",controller._on_language_locale.bind("ar")).add_theme_font_override("font",_arabic_font)
 		_button("motion",trp("Reduced motion: ","تقليل الحركة: ")+(trp("On","مفعّل") if controller._reduced_motion else trp("Off","متوقف")),controller._on_reduced_motion.bind(not controller._reduced_motion))

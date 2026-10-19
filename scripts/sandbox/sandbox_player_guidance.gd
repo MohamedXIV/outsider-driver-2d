@@ -66,8 +66,8 @@ static func describe(world: SandboxWorld, locale: String,
 	var ar: bool=locale=="ar"
 	if world.rider_initiative.get("status","")=="pending":
 		return {"title":"الراكب يتحدث" if ar else "Passenger speaking",
-			"detail":"لدى الراكب سؤال. افتح الشارع لتقرر هل ترد." if ar
-				else "Your passenger has a question. Open Street to choose a response.",
+			"detail":"الرد من الشارع" if ar
+				else "Reply in Street",
 			"tab":"requests","action":"افتح الشارع" if ar else "Open Street"}
 	if in_conversation:
 		return {"title":"حوار مع الراكب" if ar else "Passenger conversation",
@@ -93,17 +93,17 @@ static func describe(world: SandboxWorld, locale: String,
 				else "Open Street to talk before deciding about this fare.",
 			"tab":"requests","action":"تحدث" if ar else "Talk"}
 	if world.starter_device.is_empty():
-		return {"title":"بداية ورديتك" if ar else "Your first shift",
-			"detail":"اختر إضافة البداية المجانية من الأجهزة، أو ابحث عن راكب." if ar
-				else "Choose your free starter in Gear, or find a passenger on Street.",
+		return {"title":"تجهيزات البداية" if ar else "Starter equipment",
+			"detail":"ملاحة، اللغة المحلية أو الراديو" if ar
+				else "GPS, Local module or radio",
 			"tab":"gear","action":"افتح الأجهزة" if ar else "Choose starter"}
 	for offer in world.open_offers():
 		if offer.get("origin","")==world.player_district:
-			return {"title":"ركاب قريبون" if ar else "Passengers nearby",
+			return {"title":"طلبات متاحة" if ar else "Available fares",
 				"detail":"اختر طلبًا في الشارع لبدء الحديث." if ar
 					else "Choose a Street request to start a conversation.",
 				"tab":"requests","action":"افتح الطلبات" if ar else "See requests"}
-	return {"title":"الشارع هادئ" if ar else "A quiet street",
+	return {"title":"لا توجد طلبات هنا" if ar else "No nearby fares",
 		"detail":"انتظر قليلًا أو افتح الخريطة للبحث عن موقف آخر." if ar
 			else "Wait a little, or use Map to find another taxi stop.",
 		"tab":"requests","action":"افتح الشارع" if ar else "Open Street"}
