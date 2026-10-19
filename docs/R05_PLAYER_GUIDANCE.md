@@ -88,3 +88,13 @@ Synced onto the exact green rider-initiative parent `a272a0a2` including
 its repaired `web_city_routes` via-selection test, with no modification to
 World, traffic, actor lifecycle or the browser helper. Exact-head CI remains
 required before marking the UI accepted.
+
+## Bounded HUD overlay implementation detail
+
+The first RTL-collision fix caught another genuine native regression:
+`PanelContainer`'s content-size feedback expanded the non-modal card well
+past 250 pixels in height (native focused test on `b198685e`). Replaced
+this presentation-only container with a `Control` drawing the same theme
+style and explicit **282 × 172** layout for a heading, a brief wrapped line
+and the real 44px tab action. No World logic or autonomous interaction is
+inside it. The native test now asserts exact bounded height.

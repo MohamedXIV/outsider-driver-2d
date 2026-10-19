@@ -17,7 +17,8 @@ func _run() -> void:
 	ui._tab("settings")
 	for frame in range(3): await process_frame
 	assert(guide.visible,"Guide should reappear when its action opens a different tab")
-	assert(guide.size.y<250,"Context card must shrink to its own text and controls")
+	assert(is_equal_approx(guide.size.y,172.0),
+			"Context card must have a bounded height instead of a full-height overlay")
 	ui._tab("requests")
 	assert(guide.action_button.custom_minimum_size.y>=44)
 	assert(guide.mouse_filter==Control.MOUSE_FILTER_IGNORE)

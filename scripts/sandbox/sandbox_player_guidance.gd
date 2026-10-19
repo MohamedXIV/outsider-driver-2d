@@ -1,5 +1,5 @@
 class_name SandboxPlayerGuidance
-extends PanelContainer
+extends Control
 
 # Strictly read-only Player Mode affordance; World owns every real event.
 signal tab_requested(tab_name: String)
@@ -8,40 +8,43 @@ var detail_label: Label
 var action_button: Button
 var _target: String=""
 
+var _panel_style: StyleBoxFlat
+
 func _ready() -> void:
-	# Never steal canvas wheel/mouse hover when the card covers part of the
-	# scenery; only its explicit 44px action owns pointer input.
+	# This is an anchored *overlay*, not a Container-driven dock. A
+	# VBoxContainer inside PanelContainer measured narrow wrapped labels at
+	# the old expanded height and yielded a huge ghost panel over the city.
+	# Explicit bounds keep the UI visually small in either LTR or RTL.
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size.x=282
-	size_flags_vertical=Control.SIZE_SHRINK_BEGIN
-	var panel: StyleBoxFlat=StyleBoxFlat.new()
-	panel.bg_color=Color(0.09,0.17,0.19,0.95)
-	panel.border_color=Color("718b7c")
-	panel.set_border_width_all(1)
-	panel.set_corner_radius_all(10)
-	panel.content_margin_left=14;panel.content_margin_right=14
-	panel.content_margin_top=12;panel.content_margin_bottom=12
-	add_theme_stylebox_override("panel",panel)
-	var content: VBoxContainer=VBoxContainer.new()
-	content.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	content.add_theme_constant_override("separation",8)
-	add_child(content)
+	custom_minimum_size=Vector2(282,172)
+	size=custom_minimum_size
+	_panel_style=StyleBoxFlat.new()
+	_panel_style.bg_color=Color(0.09,0.17,0.19,0.95)
+	_panel_style.border_color=Color("718b7c")
+	_panel_style.set_border_width_all(1)
+	_panel_style.set_corner_radius_all(10)
 	title_label=Label.new();title_label.name="ObjectiveTitle"
+	title_label.position=Vector2(14,12);title_label.size=Vector2(254,27)
 	title_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	title_label.add_theme_font_size_override("font_size",19)
 	title_label.add_theme_color_override("font_color",Color("f3e5c2"))
-	content.add_child(title_label)
+	add_child(title_label)
 	detail_label=Label.new();detail_label.name="ObjectiveDetail"
+	detail_label.position=Vector2(14,43);detail_label.size=Vector2(254,67)
 	detail_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	detail_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	detail_label.add_theme_font_size_override("font_size",15)
 	detail_label.add_theme_color_override("font_color",Color("c1d6c9"))
-	content.add_child(detail_label)
+	add_child(detail_label)
 	action_button=Button.new();action_button.name="OpenContext"
-	action_button.mouse_filter=Control.MOUSE_FILTER_STOP
+	action_button.position=Vector2(14,116);action_button.size=Vector2(254,44)
 	action_button.custom_minimum_size.y=44
+	action_button.mouse_filter=Control.MOUSE_FILTER_STOP
 	action_button.pressed.connect(func(): tab_requested.emit(_target))
-	content.add_child(action_button)
+	add_child(action_button)
+
+func _draw() -> void:
+	if _panel_style!=null: draw_style_box(_panel_style,Rect2(Vector2.ZERO,size))
 
 func present(info: Dictionary, current_tab: String) -> void:
 	if title_label==null: return
