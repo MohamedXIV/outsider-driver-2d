@@ -10,16 +10,20 @@ func _initialize() -> void:
 		var slot: int=int(trip["slot"])
 		var phase: float=.23
 		var anchor: Vector2=SandboxStreetModule.position_at(phase,slot)+Vector2(2,-1)
-		assert(SandboxLocalPedestrianTrip.handoff(world,id,phase,anchor))
-		var pose: Dictionary=SandboxActorLifecycle.pose(world,world.resident(id),0.0)
+		assert(SandboxLocalPedestrianTrip.handoff(world,id,phase,anchor,.6))
+		var pose: Dictionary=SandboxActorLifecycle.pose(world,world.resident(id),.6)
 		assert(pose["id"]==id and pose["kind"]=="local_pedestrian")
 		assert(pose["position"].distance_to(SandboxStreetRouteBinding.street_transform()*anchor)<.001,
 				"Unloading must retain the actual collision body anchor")
 		var saved: SandboxWorld=SandboxWorld.new()
 		assert(saved.restore_snapshot(world.snapshot()))
-		assert(SandboxActorLifecycle.pose(saved,saved.resident(id),0.0)==pose)
+		assert(SandboxActorLifecycle.pose(saved,saved.resident(id),.6)==pose)
+		var forged: Dictionary=world.snapshot()
+		for person in forged["residents"]:
+			if person["id"]==id: person["local_pedestrian_trip"]["handoff_fraction"] = .2
+		assert(not SandboxWorld.new().restore_snapshot(forged),"A restored timestamp must match its source event")
 		var last: Vector2=pose["position"]
-		for fraction in [.1,.2,.3,.4,.5,.6,.7,.8,.9]:
+		for fraction in [.65,.7,.75,.8,.85,.9,.95]:
 			var next: Vector2=SandboxActorLifecycle.pose(world,world.resident(id),fraction)["position"]
 			assert(next.distance_to(last)<20.0,"Far presentation must interpolate the same route")
 			last=next
