@@ -36,6 +36,9 @@ var rider_route_request: Dictionary = {}
 # and fare settlement wait for the physical local crossing to clear.
 var route_hold_id: String = ""
 var meetings: Array[Dictionary] = []
+var vehicle_execution: Dictionary={}
+var vehicle_executor: Callable=Callable()
+var vehicle_fraction: float=0.0
 
 
 func _init(world_seed: int = 1) -> void:
@@ -225,9 +228,21 @@ func open_offers() -> Array[Dictionary]:
 
 
 func advance(minutes: int) -> bool:
+	return _advance_minutes(minutes,false)
+
+
+# The real-time adapter has already supplied the elapsed physical seconds.
+# Ordinary advance() remains a complete canonical time-skip operation.
+func advance_elapsed(minutes: int) -> bool:
+	return _advance_minutes(minutes,true)
+
+
+func _advance_minutes(minutes: int, physical_elapsed: bool) -> bool:
 	if meeting_in_progress() or minutes <= 0 or minutes % STEP_MINUTES != 0:
 		return false
 	for i in range(minutes / STEP_MINUTES):
+		if not physical_elapsed and vehicle_executor.is_valid(): vehicle_executor.call(1.0)
+		var execution_ready: bool=SandboxVehicleExecution.before_tick(self)
 		minute += STEP_MINUTES
 		for npc in residents:
 			if npc.get("transit_method","")=="shuttle" \
@@ -245,9 +260,10 @@ func advance(minutes: int) -> bool:
 		for id in expired:
 			_record("offer_expired", id)
 		_record_changes(SandboxAutonomy.begin_expired_trips(residents, offers, expired, minute, seed))
-		if is_travelling() and route_hold_id.is_empty():
+		if is_travelling() and route_hold_id.is_empty() and execution_ready:
 			_step_player_route()
 		SandboxDispatch.refresh(residents, offers, minute, seed)
+		SandboxVehicleExecution.prune(self)
 	return true
 
 
@@ -298,6 +314,8 @@ func is_travelling() -> bool:
 
 func player_position(fraction: float = 0.0) -> Vector3:
 	if not is_travelling(): return SandboxRoads.map_position(player_district)
+	if vehicle_execution.has("player"):
+		return SandboxVehicleExecution.world_point(SandboxVehicleExecution.trip(self,"player"),SandboxVehicleExecution.progress(self,"player",fraction),SandboxVehicleExecution.screen(self,"player",fraction))
 	# Visual interpolation must not drive the taxi through a held zebra.
 	if not route_hold_id.is_empty(): fraction = 0.0
 	return SandboxRoads.sample_edge(route_nodes[route_segment], route_nodes[route_segment+1],
@@ -308,6 +326,8 @@ func npc_position(npc: Dictionary, fraction: float = 0.0) -> Vector3:
 	if not str(npc.get("taxi_offer", "")).is_empty() and npc["taxi_offer"]==active_offer_id:
 		return player_position(fraction)
 	if int(npc.get("transit_until",0))>0:
+		if vehicle_execution.has(str(npc["id"])):
+			return SandboxVehicleExecution.world_point(SandboxVehicleExecution.trip(self,str(npc["id"])),SandboxVehicleExecution.progress(self,str(npc["id"]),fraction),SandboxVehicleExecution.screen(self,str(npc["id"]),fraction))
 		var nodes: Array[String] = []
 		for node in npc.get("transit_nodes",[]): nodes.append(str(node))
 		return SandboxRoads.position_on_path(nodes,maxf(0.0,float(minute-int(npc.get("transit_started",minute))
@@ -588,6 +608,7 @@ func snapshot() -> Dictionary:
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
 		"route_hold_id": route_hold_id,
+		"vehicle_execution":vehicle_execution.duplicate(true),
 		"pending_route_nodes": pending_route_nodes.duplicate(),
 		"rider_route_request": rider_route_request.duplicate(true),
 		"meetings": meetings.duplicate(true)
@@ -914,6 +935,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 				valid_engagement=true
 		if not valid_engagement or not active.is_empty() or not relocation.is_empty(): return false
 
+	if not SandboxVehicleExecution.valid_snapshot(value): return false
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
 	player_district = district
@@ -946,6 +968,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	pending_route_nodes = pending.duplicate()
 	rider_route_request = request.duplicate(true)
 	route_hold_id=held
+	vehicle_execution=value.get("vehicle_execution",{}).duplicate(true)
 	meetings.clear()
 	for meeting in value["meetings"]:
 		meetings.append((meeting as Dictionary).duplicate(true))

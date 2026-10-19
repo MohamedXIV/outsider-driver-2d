@@ -30,6 +30,8 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 			(0.0 if not str(npc.get("transit_hold_crossing","")).is_empty()
 			else clampf(fraction,0.0,1.0)),
 			0.0,route_duration)
+	if world.vehicle_execution.has(str(npc["id"])):
+		elapsed=SandboxVehicleExecution.progress(world,str(npc["id"]),fraction)
 	var current: Vector3=world.npc_position(npc,fraction)
 	var ahead: Vector3=SandboxRoads.position_on_path(nodes,minf(route_duration,
 			elapsed+0.15),route_duration)
@@ -40,6 +42,8 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 	# geometry as the taxi. Existing canonical position and arrivals are intact.
 	var render_position: Vector3=SandboxDirectedLanes.route_point_at_minutes(
 			nodes,elapsed,route_duration)
+	if world.vehicle_execution.has(str(npc["id"])):
+		render_position=SandboxVehicleExecution.world_point(SandboxVehicleExecution.trip(world,str(npc["id"])),elapsed,SandboxVehicleExecution.screen(world,str(npc["id"]),fraction))
 	var render_ahead: Vector3=SandboxDirectedLanes.route_point_at_minutes(
 			nodes,minf(route_duration,elapsed+0.15),route_duration)
 	if not render_position.is_finite() or not render_ahead.is_finite(): return {}
@@ -48,6 +52,7 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 	var direction: Vector2=SandboxDirectedLanes.route_screen_tangent_at_minutes(
 			nodes,elapsed,route_duration)
 	var render_heading: float=direction.angle() if direction.length_squared()>0.000001 else 0.0
+	if world.vehicle_execution.has(str(npc["id"])): render_heading=SandboxVehicleExecution.heading(world,str(npc["id"]),fraction)
 	if render_ahead.distance_to(render_position)<0.0001:
 		render_ahead=SandboxDirectedLanes.route_point_at_minutes(
 				nodes,maxf(0.0,elapsed-0.15),route_duration)
@@ -154,5 +159,8 @@ static func valid_yield_history(npc: Dictionary,events: Array,minute: int) -> bo
 	if active and pending>=0 and pending_source==source and pending>=started:
 		counted+=minute-pending
 	if not active and pending>=0:return false
+	for evt in events:
+		if evt.get("kind","")=="vehicle_execution_wait" and evt.get("subject","")==npc.get("id","") \
+				and evt.get("detail",{}).get("source","")==source+":"+str(started): counted+=1
 	return paused==counted and held==(SandboxStreetRouteBinding.CROSSING_ID
 			if pending>=0 else "")

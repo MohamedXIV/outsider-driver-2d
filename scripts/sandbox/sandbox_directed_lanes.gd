@@ -151,6 +151,7 @@ static func route_screen_tangent_at_minutes(nodes: Array[String], elapsed: float
 # original complete route, without introducing any parallel simulation clock.
 static func taxi_elapsed_minutes(world: SandboxWorld, fraction: float = 0.0) -> float:
 	if not world.is_travelling() or not is_finite(fraction): return -1.0
+	if world.vehicle_execution.has("player"): return SandboxVehicleExecution.progress(world,"player",fraction)
 	if not world.route_hold_id.is_empty(): fraction=0.0
 	var elapsed: float = float(world.route_edge_elapsed)+clampf(fraction,0.0,1.0)
 	for segment in range(world.route_segment):
@@ -171,8 +172,11 @@ static func route_screen_heading(nodes: Array[String], segment: int,
 # A parked pose is reconstructed from the most recent real arrival at this
 # stop, never a renderer-owned remembered position or an older lane visit.
 static func _parked_screen(world: SandboxWorld, stop: String) -> Vector2:
-	for i in range(world.events.size()-1,-1,-1):
-		var evt: Dictionary=world.events[i]
+	return parked_screen_from_events(world.events,stop)
+
+static func parked_screen_from_events(events: Array, stop: String) -> Vector2:
+	for i in range(events.size()-1,-1,-1):
+		var evt: Dictionary=events[i]
 		if evt.get("kind","")!="route_segment_completed": continue
 		var detail: Dictionary=evt.get("detail",{})
 		var a: String=str(detail.get("from",""))
@@ -184,6 +188,8 @@ static func _parked_screen(world: SandboxWorld, stop: String) -> Vector2:
 
 static func taxi_screen(world: SandboxWorld,fraction: float) -> Vector2:
 	if not world.is_travelling(): return _parked_screen(world,world.player_district)
+	if world.vehicle_execution.has("player"):
+		return SandboxVehicleExecution.screen(world,"player",fraction)
 	if not world.route_hold_id.is_empty(): fraction=0.0
 	var a: String=world.route_nodes[world.route_segment]
 	var b: String=world.route_nodes[world.route_segment+1]
