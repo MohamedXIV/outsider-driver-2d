@@ -1300,7 +1300,8 @@ func _publish_street_web() -> void:
 		junction={"owner":local.priority.owner,"queue":local.priority.queue.duplicate(),"admitted":local.admitted.duplicate(),"bodies":{}}
 		for id in local.actors:
 			var body: CharacterBody2D=local.actors[id]
-			junction["bodies"][id]={"x":body.position.x,"y":body.position.y}
+			junction["bodies"][id]={"x":body.position.x,"y":body.position.y,
+				"speed":body.current_speed,"heading":body.rotation}
 	for npc in _world.residents:
 		if not npc.get("local_pedestrian_trip",{}).is_empty(): trips[npc["id"]]=npc["local_pedestrian_trip"].duplicate(true)
 	var local_events: Array=[]
@@ -1337,8 +1338,19 @@ func _publish_street_web() -> void:
 		for i in range(_via.item_count): via_options.append(str(_via.get_item_metadata(i)))
 		var popup: PopupMenu=_via.get_popup()
 		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]
+	# Read-only evidence ties the visible taxi to its authoritative route and
+	# hold. Browser checks can inspect continuity without issuing World commands.
+	var authoritative: Vector3=_world.player_position(_city.visual_fraction)
+	var rendered: Vector2=SandboxDirectedLanes.taxi_screen(_world,_city.visual_fraction)
+	var taxi_pose: Dictionary={"id":"player","minute":_world.minute,
+		"world":[authoritative.x,authoritative.y,authoritative.z],
+		"render":[rendered.x,rendered.y],"heading":_city._heading,
+		"fraction":_city.visual_fraction,"hold":_world.route_hold_id,
+		"segment":_world.route_segment,"elapsed":_world.route_edge_elapsed,
+		"route":_world.route_nodes.duplicate(),"visible":true}
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
+		"streetTaxiPose":JSON.stringify(taxi_pose),
 		"alightTrip":JSON.stringify(alight_trip),"alightActor":JSON.stringify(alight_actor),
 		"alightEvents":JSON.stringify(alight_events),
 		"streetSeed":str(_world.seed),"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,

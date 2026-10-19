@@ -1,10 +1,31 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const { openCity } = require('./city_browser.cjs');
 
 (async () => {
   const { browser, page, errors, data, click, shot } = await openCity();
   const progress = setInterval(() => data().then(d => console.log('ROUTE_PROGRESS',
     d.sandboxMinute, d.playerRouteMinutes, d.playerTravelling)).catch(() => {}), 10000);
+  const sequence = async name => {
+    const frames = [];
+    for (let frame = 0; frame < 3; frame++) {
+      const d = await data();
+      const pose = JSON.parse(d.streetTaxiPose);
+      assert.equal(pose.id, 'player');
+      assert.ok([...pose.world, ...pose.render, pose.heading].every(Number.isFinite));
+      assert.equal(d.streetPopulation, '9');
+      const previous = frames.at(-1);
+      if (previous && pose.hold && previous.hold === pose.hold &&
+          previous.segment === pose.segment && previous.elapsed === pose.elapsed) {
+        assert.ok(Math.hypot(...pose.render.map((value, i) => value - previous.render[i])) < .01,
+          'A World-owned crossing hold must freeze the exported lane pose');
+      }
+      frames.push(pose);
+      await shot(`${name}-${frame}`);
+      await page.waitForTimeout(100);
+    }
+    fs.writeFileSync(`/tmp/od2d-city-evidence/${name}.json`, JSON.stringify(frames, null, 2));
+  };
   try {
     await click('talk');
     await click('common');
@@ -26,6 +47,7 @@ const { openCity } = require('./city_browser.cjs');
     const longMinutes = Number(long.playerRouteMinutes);
     await click('talk');
     await shot('web-long-route');
+    await sequence('web-driving-sequence');
     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
       null, { timeout: 240000 });
     await click('choice_2');
