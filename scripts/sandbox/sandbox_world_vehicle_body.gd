@@ -25,16 +25,37 @@ func bind(state: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 func release(fraction: float=0.0) -> void:
 	if world!=null: SandboxVehicleExecution.unbind(world,vehicle_id,fraction)
 
+# Monotone cumulative lane length avoids both repeated curve inversion and
+# the ambiguous chord inverse on a bend that turns back towards its origin.
+const ARC_STEP: float=.02
+var _arc: PackedFloat64Array=[]
+var _arc_total: float=0.0
+
+func _prepare_arc(travel: Dictionary) -> void:
+	if not _arc.is_empty(): return
+	_arc_total=float(SandboxRoads.path_minutes(SandboxVehicleExecution.nodes_of(travel)))
+	_arc.append(0.0)
+	var previous: Vector2=SandboxVehicleExecution.point(travel,0.0)
+	for index in range(1,int(ceil(_arc_total/ARC_STEP))+1):
+		var point: Vector2=SandboxVehicleExecution.point(travel,minf(_arc_total,float(index)*ARC_STEP))
+		_arc.append(_arc[-1]+previous.distance_to(point))
+		previous=point
+
 func _at_distance(travel: Dictionary,start: float,distance: float) -> float:
-	var origin: Vector2=SandboxVehicleExecution.point(travel,start)
-	var low: float=start
-	var high: float=minf(float(travel["base"])+world.vehicle_fraction+SandboxVehicleExecution.LOOKAHEAD_MINUTES,
-		float(SandboxRoads.path_minutes(SandboxVehicleExecution.nodes_of(travel))))
-	for iteration in range(24):
-		var middle: float=(low+high)*.5
-		if SandboxVehicleExecution.point(travel,middle).distance_to(origin)>distance: high=middle
+	_prepare_arc(travel)
+	var index: int=mini(int(start/ARC_STEP),_arc.size()-2)
+	var origin: float=lerpf(_arc[index],_arc[index+1],clampf((start-float(index)*ARC_STEP)/ARC_STEP,0.0,1.0))
+	var target: float=origin+maxf(0.0,distance)
+	var low: int=index
+	var high: int=_arc.size()-1
+	while high-low>1:
+		var middle: int=(low+high)/2
+		if _arc[middle]>target: high=middle
 		else: low=middle
-	return low
+	var fraction: float=clampf((target-_arc[low])/maxf(.0000001,_arc[high]-_arc[low]),0.0,1.0)
+	return minf(_arc_total,minf(float(travel["base"])+world.vehicle_fraction+SandboxVehicleExecution.LOOKAHEAD_MINUTES,
+		(float(low)+fraction)*ARC_STEP))
+
 
 func step(delta: float) -> bool:
 	if world==null or not is_finite(delta) or delta<=0.0: return false
@@ -75,6 +96,10 @@ func step(delta: float) -> bool:
 	var distance: float=minf(available,next*delta)
 	var cursor: float=_at_distance(travel,at,distance) if distance>0.0 else at
 	var point: Vector2=SandboxVehicleExecution.point(travel,cursor)
+	# Vector2 precision can leave a subpixel residual forever. Commit the exact
+	# authored endpoint only after service braking has reduced speed to rest.
+	if reason=="arrival" and next<.05 and point.distance_to(SandboxVehicleExecution.point(travel,total))<.001:
+		cursor=total;point=SandboxVehicleExecution.point(travel,total);next=0.0
 	var desired: float=SandboxVehicleExecution.tangent(travel,cursor).angle()
 	var facing: float=float(state["heading"]) if travel["held"] or (reason=="junction" and distance<.000001) else SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
 	# The final sweep fails closed, including obstacles inserted this frame.

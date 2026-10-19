@@ -52,3 +52,11 @@ acceptance are pending on this follow-up. The PR78 results above describe its
 foundation head and must not be represented as testing the integrated follow-up.
 Parked collision occupancy, public vehicle arrival ownership and angular clearance
 still require focused validation before claiming the milestone complete.
+
+The first integration candidate `a0b234a` failed the Native city-journeys timeout;
+its Domain attempt was stopped during investigation. They are not accepted gates.
+A real seed9 medical route also reproduced a terminal cursor stuck at
+42.9999778/43 while the Vector2 endpoint no longer changed. The follow-up uses
+monotone cumulative lane arc length (including bends), and commits the exact
+endpoint only within .001 projected units after braking below .05. Focused genuine
+two-journey, contact/meeting and terminal braking checks pass after this repair.
