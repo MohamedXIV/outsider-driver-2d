@@ -560,6 +560,10 @@ func _traffic_only_state(state: Dictionary) -> Dictionary:
 	return retained
 
 
+func _street_clock_fraction() -> float:
+	return minf(fposmod(maxf(_elapsed,0.0),REAL_SECONDS_PER_STEP)/REAL_SECONDS_PER_STEP,.999999999999)
+
+
 func _handoff_restored_pedestrians() -> void:
 	# A far load has saved physical poses but must not instantiate nearby
 	# bodies. Transfer those validated poses into the same world's far policy.
@@ -572,13 +576,13 @@ func _handoff_restored_pedestrians() -> void:
 		var saved: Dictionary=actors[id]
 		var at: Vector2=Vector2(float(saved["pedestrian_x"]),float(saved["pedestrian_y"]))
 		var phase: float=minf(.999999,SandboxStreetModule.progress_of(at,int(trip.get("slot",0))))
-		SandboxLocalPedestrianTrip.handoff(_world,str(id),phase,at)
+		SandboxLocalPedestrianTrip.handoff(_world,str(id),phase,at,_street_clock_fraction())
 
 
 func _sync_local_pedestrian() -> void:
 	if not SandboxStreetRouteBinding.in_neighborhood(_world):
 		if _street_pilot!=null:
-			_street_pilot.handoff_all()
+			_street_pilot.handoff_all(_street_clock_fraction())
 			_street_restore_state=_traffic_only_state(_street_pilot.visual_snapshot())
 			_street_pilot.queue_free();_street_pilot=null
 		elif not _street_restore_state.get("actors",{}).is_empty() or _street_restore_state.has("npc_id"):
@@ -594,7 +598,7 @@ func _sync_local_pedestrian() -> void:
 	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty() and not _street_restore_state.has("junction"): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
 	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
-	local.reentry_fraction=_city.visual_fraction
+	local.reentry_fraction=_street_clock_fraction()
 	local.walking_npc_id=ids[0] if not ids.is_empty() else "";local.resume_state=_street_restore_state.duplicate(true)
 	local.transform=SandboxStreetRouteBinding.street_transform();local.z_index=5
 	_street_pilot=local;add_child(local)
@@ -615,7 +619,7 @@ func _sync_passenger_alight() -> void:
 		var status: String = str(_world.resident(id).get("passenger_alight", {}).get("status", ""))
 		if not nearby or status not in ["walking", "arrived"]:
 			if status == "walking" and _alight_view.walker != null:
-				_alight_view.handoff()
+				_alight_view.handoff(_street_clock_fraction())
 			_alight_view.queue_free()
 			_alight_view = null
 	if not nearby or _alight_view != null: return
@@ -626,7 +630,7 @@ func _sync_passenger_alight() -> void:
 		var local: SandboxAlightView = SandboxAlightView.new()
 		local.world = _world
 		local.npc_id = str(npc["id"])
-		local.reentry_fraction=_city.visual_fraction
+		local.reentry_fraction=_street_clock_fraction()
 		local.resume_state = _alight_restore_state.duplicate(true)
 		local.z_index = 6
 		local.name = "NightClinicResidentAlight"

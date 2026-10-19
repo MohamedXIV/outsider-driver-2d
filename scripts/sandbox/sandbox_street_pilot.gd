@@ -76,7 +76,7 @@ func _spawn_resident(id: String) -> void:
 	var at: Vector2=SandboxStreetModule.waypoints(slot)[0]
 	if trip.get("status","")=="offscreen":
 		at=SandboxLocalPedestrianTrip.offscreen_position(world,id,reentry_fraction)
-		SandboxLocalPedestrianTrip.resume(world,id)
+		SandboxLocalPedestrianTrip.resume(world,id,reentry_fraction)
 	var saved: Dictionary=resume_state.get("actors",{}).get(id,{})
 	if saved.is_empty() and resume_state.get("npc_id","")==id: saved=resume_state
 	if not saved.is_empty(): at=Vector2(float(saved.get("pedestrian_x",at.x)),float(saved.get("pedestrian_y",at.y)))
@@ -155,13 +155,13 @@ func cancel_resident(id: String) -> bool:
 			walking_npc_id=str(pedestrians.keys()[0]);pedestrian=pedestrians[walking_npc_id]
 	return true
 
-func handoff_all() -> void:
+func handoff_all(clock_fraction: float=0.0) -> void:
 	reconcile_reservations()
 	for id in pedestrians:
 		var actor: SandboxPedestrianActor=pedestrians[id]
 		var slot: int=int(world.resident(str(id)).get("local_pedestrian_trip",{}).get("slot",0))
 		var phase: float=minf(.999999,SandboxStreetModule.progress_of(actor.position,slot))
-		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position)
+		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position,clock_fraction)
 
 func _make_lane_car(label: String,start: Vector2) -> SandboxTrafficVehicle:
 	var vehicle: SandboxTrafficVehicle=SandboxTrafficVehicle.new()

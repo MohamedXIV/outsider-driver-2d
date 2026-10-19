@@ -98,3 +98,30 @@ this presentation-only container with a `Control` drawing the same theme
 style and explicit **282 × 172** layout for a heading, a brief wrapped line
 and the real 44px tab action. No World logic or autonomous interaction is
 inside it. The native test now asserts exact bounded height.
+
+## Exact-head integrated visual evidence — 2026-10-19
+
+The complete `04858bb626808d19954e43eea9d4d4a9b8dc7f3f` native/Chromium
+[R05 UI gate #39293201825](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39293201825)
+**PASSED**. The source-backed `r05-player-ui-evidence` artifact (ID
+`12208155736`) includes real Chromium frames for Player default, Ink
+conversation, riding, arrival, Arabic Settings, narrow Arabic, gear market,
+Debug Mode and passenger-initiated dialogue; they are not mockups. It also
+contains complete native/domain logs and genuine two-route settlement traces.
+
+Manual screenshot review confirmed that the guidance is absent when Street is
+already the correct destination, anchored opposite Arabic/RTL Settings (not
+obstructing the English locale toggle), and bounded when displayed on Gear.
+At the native-phone boundary it is hidden instead of overlaying the controls.
+The current presentation still looks like a functional *early playable HUD*,
+not user-approved final aesthetic design; typography, hierarchy, and comfort
+need human gameplay assessment. Do not report Human Accepted from tests.
+
+### Latest actor lifecycle parent sync
+
+The following independent merge incorporates #75 exact green head
+`bee52f2ca27ce3609745cf4bfff0e59147bb94c2` without editing any
+parent-owned World, pedestrian, actor lifecycle, crossing, or Web test files.
+This documentation and the four UI-owned implementation/test/workflow files
+remain the complete child diff. The *new* exact-head integration gate must
+pass separately before recommending PR review/merge.

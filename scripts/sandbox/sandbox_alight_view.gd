@@ -16,7 +16,7 @@ func _ready() -> void:
 	var far_pose: Vector2=Vector2.INF
 	if _trip.get("status", "") == "offscreen":
 		far_pose=SandboxPassengerAlight.offscreen_position(world,npc_id,reentry_fraction)
-		fraction = SandboxPassengerAlight.resume(world, npc_id)
+		fraction = SandboxPassengerAlight.resume(world, npc_id,reentry_fraction)
 		if fraction < 0.0: return
 	elif _trip.get("status", "") != "walking": return
 	var a: Vector2 = SandboxAlightGeometry.start(_trip)
@@ -48,10 +48,10 @@ func _on_reached(point: Vector2) -> void:
 		walker.queue_free()
 		walker = null
 
-func handoff() -> bool:
+func handoff(clock_fraction: float=0.0) -> bool:
 	if walker == null or not is_instance_valid(walker): return false
 	return SandboxPassengerAlight.handoff(world,npc_id,
-			minf(.999999,SandboxAlightGeometry.progress(_trip,walker.position)),walker.position)
+			minf(.999999,SandboxAlightGeometry.progress(_trip,walker.position)),walker.position,clock_fraction)
 
 func visual_snapshot() -> Dictionary:
 	if walker == null or not is_instance_valid(walker): return {}

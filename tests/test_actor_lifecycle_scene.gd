@@ -21,6 +21,10 @@ func _run() -> void:
 		assert(world.advance(1))
 	# No physics frame between body observation, handoff and replacement.
 	for id in ids: poses[id]=scene._street_pilot.pedestrians[id].global_position
+	# Handoff occurs mid-minute in actual play. Reapplying this fraction
+	# to the new anchor previously jumped the far walker immediately.
+	scene._elapsed=.6
+	scene._city.visual_fraction=.6
 	scene._sync_local_pedestrian()
 	assert(scene._street_pilot==null)
 	var out: String="/tmp/od2d-lifecycle-evidence"
@@ -29,7 +33,7 @@ func _run() -> void:
 	source.store_string(JSON.stringify(world.snapshot()));source.close()
 	var traces: Array=[]
 	for i in range(5):
-		scene._city.visual_fraction=float(i)*.2
+		scene._city.visual_fraction=.6+float(i)*.05
 		var frame: Dictionary={"frame":i,"minute":world.minute,"actors":[],"population":world.residents.size()}
 		for id in ids:
 			var pose: Dictionary=SandboxActorLifecycle.pose(world,world.resident(id),scene._city.visual_fraction)
@@ -44,6 +48,18 @@ func _run() -> void:
 		traces.append(frame)
 	var file: FileAccess=FileAccess.open(out.path_join("frames.json"),FileAccess.WRITE)
 	file.store_string(JSON.stringify(traces,"  "));file.close()
+	# Real Save/Load must restore the same presentation timestamp before
+	# the far renderer or native materialization sees the bundle.
+	scene._on_save()
+	assert(scene._notice_text=="Sandbox saved.")
+	var before_load: Dictionary={}
+	for id in ids: before_load[id]=SandboxActorLifecycle.pose(scene._world,scene._world.resident(id),.6)["position"]
+	scene._elapsed=.1;scene._city.visual_fraction=.1
+	scene._on_load()
+	assert(scene._notice_text=="World, NPC and live dialogue restored.")
+	assert(is_equal_approx(scene._city.visual_fraction,.6))
+	for id in ids:
+		assert(SandboxActorLifecycle.pose(scene._world,scene._world.resident(id),scene._city.visual_fraction)["position"].distance_to(before_load[id])<.001)
 	# Reentry uses exactly the same fractional far pose, not an older minute.
 	var far: Dictionary={}
 	for id in ids: far[id]=SandboxActorLifecycle.pose(world,world.resident(id),.8)["position"]
@@ -58,5 +74,6 @@ func _run() -> void:
 		assert(local.pedestrians.has(id))
 		assert(local.pedestrians[id].global_position.distance_to(far[id])<.001)
 	assert(world.residents.size()==9 and saved.residents.size()==9)
+	assert(SandboxWorld.new().restore_snapshot(saved.snapshot()))
 	print("ACTOR_LIFECYCLE_SCENE_PASS actual route unload, exact collision anchors, five far frames, restored fractional reentry ",out)
 	quit()

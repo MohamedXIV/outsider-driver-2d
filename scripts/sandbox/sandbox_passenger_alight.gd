@@ -29,14 +29,15 @@ static func begin(world: SandboxWorld, npc: Dictionary, offer: Dictionary, arriv
 			"offer_id": source, "from": arrived_from})
 	return true
 
-static func offscreen_progress(world: SandboxWorld, npc_id: String) -> float:
+static func offscreen_progress(world: SandboxWorld, npc_id: String, clock_fraction: float=0.0) -> float:
 	var trip: Dictionary = world.resident(npc_id).get("passenger_alight", {})
 	if trip.get("status", "") != "offscreen": return -1.0
-	return clampf(float(trip["handoff_progress"]) + float(world.minute - int(trip["handoff_minute"])) / OFFSCREEN_MINUTES, 0.0, 1.0)
+	return clampf(float(trip["handoff_progress"]) + maxf(0.0,float(world.minute - int(trip["handoff_minute"]))+clampf(clock_fraction,0.0,1.0)-float(trip.get("handoff_fraction",0.0))) / OFFSCREEN_MINUTES, 0.0, 1.0)
 
-static func handoff(world: SandboxWorld, npc_id: String, fraction: float, where: Vector2=Vector2.INF) -> bool:
+static func handoff(world: SandboxWorld, npc_id: String, fraction: float, where: Vector2=Vector2.INF, clock_fraction: float=0.0) -> bool:
 	var trip: Dictionary = world.resident(npc_id).get("passenger_alight", {})
-	if trip.get("status", "") != "walking" or not is_finite(fraction) or fraction < 0.0 or fraction >= 1.0: return false
+	if trip.get("status", "") != "walking" or not is_finite(fraction) or fraction < 0.0 or fraction >= 1.0 or not is_finite(clock_fraction) or clock_fraction<0.0 or clock_fraction>=1.0: return false
+	clock_fraction=minf(clock_fraction,.999999999999)
 	if not where.is_finite(): where=SandboxAlightGeometry.at(trip,fraction)
 	if not SandboxAlightGeometry.valid_position(trip,where) or where.distance_to(SandboxAlightGeometry.at(trip,fraction))>9.0: return false
 	var progress: float = snappedf(fraction, 0.000001)
@@ -45,39 +46,46 @@ static func handoff(world: SandboxWorld, npc_id: String, fraction: float, where:
 	trip["status"] = "offscreen"
 	trip["handoff_progress"] = progress
 	trip["handoff_minute"] = world.minute
-	world._record("rider_alight_handoff", npc_id, {"site": SITE, "progress": progress,"x":where.x,"y":where.y})
+	trip["handoff_fraction"]=clock_fraction
+	world._record("rider_alight_handoff", npc_id, {"site": SITE, "progress": progress,"x":where.x,"y":where.y,"fraction":clock_fraction})
 	return true
 
 static func offscreen_position(world: SandboxWorld, npc_id: String, fraction: float=0.0) -> Vector2:
 	var trip: Dictionary=world.resident(npc_id).get("passenger_alight",{})
 	if trip.get("status","")!="offscreen": return Vector2.INF
 	var old: float=float(trip["handoff_progress"])
-	var progress: float=clampf(offscreen_progress(world,npc_id)+clampf(fraction,0.0,1.0)/OFFSCREEN_MINUTES,0.0,1.0)
+	var progress: float=offscreen_progress(world,npc_id,fraction)
 	var origin: Vector2=SandboxAlightGeometry.at(trip,old)
 	var anchor: Vector2=Vector2(float(trip.get("handoff_x",origin.x)),float(trip.get("handoff_y",origin.y)))
 	return SandboxAlightGeometry.at(trip,progress)+(anchor-origin)*clampf(1.0-(progress-old)/.15,0.0,1.0)
 
-static func resume(world: SandboxWorld, npc_id: String) -> float:
+static func resume(world: SandboxWorld, npc_id: String, clock_fraction: float=0.0) -> float:
 	var trip: Dictionary = world.resident(npc_id).get("passenger_alight", {})
 	if trip.get("status", "") != "offscreen": return -1.0
-	var progress: float = offscreen_progress(world, npc_id)
+	if not is_finite(clock_fraction) or clock_fraction<0.0 or clock_fraction>=1.0: return -1.0
+	clock_fraction=minf(clock_fraction,.999999999999)
+	if world.minute==int(trip["handoff_minute"]): clock_fraction=maxf(clock_fraction,float(trip.get("handoff_fraction",0.0)))
+	var progress: float = offscreen_progress(world, npc_id,clock_fraction)
 	if progress >= 1.0:
-		arrive(world, npc_id, Vector2.INF)
+		arrive(world, npc_id, Vector2.INF,clock_fraction)
 		return -1.0
 	trip["status"] = "walking"
-	world._record("rider_alight_resumed", npc_id, {"site": SITE, "progress": snappedf(progress, 0.000001)})
+	world._record("rider_alight_resumed", npc_id, {"site": SITE, "progress": snappedf(progress, 0.000001),"fraction":clock_fraction})
 	return progress
 
-static func arrive(world: SandboxWorld, npc_id: String, where: Vector2) -> bool:
+static func arrive(world: SandboxWorld, npc_id: String, where: Vector2, clock_fraction: float=0.0) -> bool:
 	var trip: Dictionary = world.resident(npc_id).get("passenger_alight", {})
+	if not is_finite(clock_fraction) or clock_fraction<0.0 or clock_fraction>=1.0: return false
+	clock_fraction=minf(clock_fraction,.999999999999)
 	if trip.get("status", "") not in ["walking", "offscreen"]: return false
 	if trip.get("status", "") == "offscreen":
-		if offscreen_progress(world, npc_id) < 1.0: return false
+		if offscreen_progress(world, npc_id,clock_fraction) < 1.0: return false
 	else:
 		if not where.is_finite() or where.distance_to(SandboxAlightGeometry.goal(trip)) > 4.0: return false
 	trip["status"] = "arrived"
 	trip["arrived"] = world.minute
-	world._record("rider_alight_arrived", npc_id, {"site": SITE, "offer_id": trip["offer_id"]})
+	trip["arrived_fraction"]=clock_fraction
+	world._record("rider_alight_arrived", npc_id, {"site": SITE, "offer_id": trip["offer_id"],"fraction":clock_fraction})
 	return true
 
 static func advance_offscreen(world: SandboxWorld) -> void:
@@ -94,6 +102,8 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 	var from: String = ""
 	var started: int = -1
 	var handoff_minute: int = -1
+	var handoff_clock: float=0.0
+	var arrival_fraction: float=0.0
 	var handoff_fraction: float = -1.0
 	var anchor: Vector2=Vector2.INF
 	var arrived: int = -1
@@ -127,21 +137,29 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 				var progress: Variant = detail.get("progress", null)
 				if state != "walking" or not (progress is int or progress is float) \
 						or not is_finite(float(progress)) or float(progress) < 0.0 or float(progress) >= 1.0: return false
+				var stamp: Variant=detail.get("fraction",0.0)
+				if not (stamp is float or stamp is int) or not is_finite(float(stamp)) or float(stamp)<0.0 or float(stamp)>=1.0: return false
 				state = "offscreen"
 				handoff_minute = when
+				handoff_clock=float(stamp)
 				handoff_fraction = float(progress)
 				var origin: Vector2=SandboxAlightGeometry.at({"from":from},handoff_fraction)
 				anchor=Vector2(float(detail.get("x",origin.x)),float(detail.get("y",origin.y)))
 				if not SandboxAlightGeometry.valid_position({"from":from},anchor) or anchor.distance_to(origin)>9.0: return false
 			"rider_alight_resumed":
 				var resumed: Variant = detail.get("progress", null)
-				var expected: float = snappedf(clampf(handoff_fraction + float(when - handoff_minute) / OFFSCREEN_MINUTES, 0.0, 1.0), 0.000001)
+				var stamp: Variant=detail.get("fraction",0.0)
+				if not (stamp is float or stamp is int) or not is_finite(float(stamp)) or float(stamp)<0.0 or float(stamp)>=1.0: return false
+				var expected: float = snappedf(clampf(handoff_fraction + maxf(0.0,float(when - handoff_minute)+float(stamp)-handoff_clock) / OFFSCREEN_MINUTES, 0.0, 1.0), 0.000001)
 				if state != "offscreen" or not (resumed is int or resumed is float) \
 						or not is_finite(float(resumed)) or not is_equal_approx(float(resumed), expected) or expected >= 1.0: return false
 				state = "walking"
 			"rider_alight_arrived":
 				if state not in ["walking", "offscreen"] or detail.get("offer_id", "") != offer_id: return false
-				if state == "offscreen" and handoff_fraction + float(when - handoff_minute) / OFFSCREEN_MINUTES < 1.0: return false
+				var stamp: Variant=detail.get("fraction",0.0)
+				if not (stamp is float or stamp is int) or not is_finite(float(stamp)) or float(stamp)<0.0 or float(stamp)>=1.0: return false
+				arrival_fraction=float(stamp)
+				if state == "offscreen" and handoff_fraction + maxf(0.0,float(when - handoff_minute)+arrival_fraction-handoff_clock) / OFFSCREEN_MINUTES < 1.0: return false
 				state = "arrived"
 				arrived = when
 			_:
@@ -155,10 +173,14 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 	if state in ["walking", "offscreen"] and (npc.get("location", "") != "clinic" \
 			or not str(npc.get("taxi_offer", "")).is_empty()): return false
 	if handoff_minute >= 0:
+		var stored_stamp: Variant=trip.get("handoff_fraction",0.0)
+		if not (stored_stamp is float or stored_stamp is int) or not is_equal_approx(float(stored_stamp),handoff_clock): return false
 		if not Vector2(float(trip.get("handoff_x",anchor.x)),float(trip.get("handoff_y",anchor.y))).is_equal_approx(anchor): return false
 		if int(trip.get("handoff_minute", -1)) != handoff_minute \
 				or not is_equal_approx(float(trip.get("handoff_progress", -1.0)), handoff_fraction): return false
 	if state == "arrived":
+		var stored_stamp: Variant=trip.get("arrived_fraction",0.0)
+		if not (stored_stamp is float or stored_stamp is int) or not is_equal_approx(float(stored_stamp),arrival_fraction): return false
 		return int(trip.get("arrived", -1)) == arrived and arrived >= started
 	return arrived < 0
 
