@@ -1,0 +1,132 @@
+[
+  {
+    "camera": [
+      148.267242431641,
+      855.109741210938
+    ],
+    "fraction": 0.0,
+    "handoff": [
+      256.519989013672,
+      313.0
+    ],
+    "id": "npc:04",
+    "minute": 485,
+    "population": 9,
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_minute": 485,
+      "handoff_progress": 0.24,
+      "handoff_x": 256.519989013672,
+      "handoff_y": 313.0,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    },
+    "zoom": 1.25
+  },
+  {
+    "camera": [
+      148.267242431641,
+      855.109741210938
+    ],
+    "fraction": 0.2,
+    "handoff": [
+      256.519989013672,
+      313.0
+    ],
+    "id": "npc:04",
+    "minute": 485,
+    "population": 9,
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_minute": 485,
+      "handoff_progress": 0.24,
+      "handoff_x": 256.519989013672,
+      "handoff_y": 313.0,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    },
+    "zoom": 1.25
+  },
+  {
+    "camera": [
+      148.267242431641,
+      855.109741210938
+    ],
+    "fraction": 0.4,
+    "handoff": [
+      256.519989013672,
+      313.0
+    ],
+    "id": "npc:04",
+    "minute": 485,
+    "population": 9,
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_minute": 485,
+      "handoff_progress": 0.24,
+      "handoff_x": 256.519989013672,
+      "handoff_y": 313.0,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    },
+    "zoom": 1.25
+  },
+  {
+    "camera": [
+      148.267242431641,
+      855.109741210938
+    ],
+    "fraction": 0.6,
+    "handoff": [
+      256.519989013672,
+      313.0
+    ],
+    "id": "npc:04",
+    "minute": 485,
+    "population": 9,
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_minute": 485,
+      "handoff_progress": 0.24,
+      "handoff_x": 256.519989013672,
+      "handoff_y": 313.0,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    },
+    "zoom": 1.25
+  },
+  {
+    "camera": [
+      148.267242431641,
+      855.109741210938
+    ],
+    "fraction": 0.8,
+    "handoff": [
+      256.519989013672,
+      313.0
+    ],
+    "id": "npc:04",
+    "minute": 485,
+    "population": 9,
+    "trip": {
+      "crossing_state": "approach",
+      "handoff_minute": 485,
+      "handoff_progress": 0.24,
+      "handoff_x": 256.519989013672,
+      "handoff_y": 313.0,
+      "site": "patchworks:parts_counter",
+      "slot": 0,
+      "started": 480,
+      "status": "offscreen"
+    },
+    "zoom": 1.25
+  }
+]

@@ -17,6 +17,7 @@ var follower: SandboxTrafficVehicle
 var car_yielded: bool=false
 var embedded: bool=false
 var resume_state: Dictionary={}
+var reentry_fraction: float=0.0
 var junction: SandboxJunctionTraffic
 
 func _actor_snapshot(actor: SandboxPedestrianActor) -> Dictionary:
@@ -74,12 +75,7 @@ func _spawn_resident(id: String) -> void:
 	var slot: int=int(trip.get("slot",0))
 	var at: Vector2=SandboxStreetModule.waypoints(slot)[0]
 	if trip.get("status","")=="offscreen":
-		var phase: float=SandboxLocalPedestrianTrip.offscreen_progress(world,id)
-		var old_phase: float=float(trip["handoff_progress"])
-		var anchor: Vector2=Vector2(float(trip.get("handoff_x",SandboxStreetModule.position_at(old_phase,slot).x)),
-				float(trip.get("handoff_y",SandboxStreetModule.position_at(old_phase,slot).y)))
-		var offset: Vector2=anchor-SandboxStreetModule.position_at(old_phase,slot)
-		at=SandboxStreetModule.position_at(phase,slot)+offset*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
+		at=SandboxLocalPedestrianTrip.offscreen_position(world,id,reentry_fraction)
 		SandboxLocalPedestrianTrip.resume(world,id)
 	var saved: Dictionary=resume_state.get("actors",{}).get(id,{})
 	if saved.is_empty() and resume_state.get("npc_id","")==id: saved=resume_state

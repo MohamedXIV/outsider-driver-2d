@@ -260,12 +260,24 @@ func paint(canvas: Node2D, role: String) -> void:
 func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
-		if npc.get("passenger_alight", {}).get("status", "") in ["walking", "offscreen", "arrived"]:
+		if npc.get("passenger_alight", {}).get("status", "") in ["walking", "arrived"] \
+				and npc.get("location","")=="clinic" and int(npc.get("transit_until",0))==0:
 			# The same resident is represented by the local native actor or
 			# is inside the clinic; never draw a second static node marker.
 			continue
-		if (str(npc.get("id",""))==local_active_npc_id or local_active_npc_ids.has(str(npc.get("id","")))) \
-				or npc.get("local_pedestrian_trip",{}).get("status","")=="offscreen": continue
+		if str(npc.get("id",""))==local_active_npc_id or local_active_npc_ids.has(str(npc.get("id",""))): continue
+		var local: Dictionary=SandboxActorLifecycle.pose(world,npc,visual_fraction)
+		if not local.is_empty():
+			if elevated: continue
+			var point: Vector2=local["position"]
+			if local["kind"]=="local_pedestrian":
+				canvas.draw_circle(point,6.0,Color("d5be91") if int(local["slot"])==0 else Color("91bdd5"))
+				canvas.draw_circle(point+Vector2(-1,-2),2.0,Color("496778"))
+			else:
+				canvas.draw_circle(point+Vector2(1,3),7.5,Color("172b30"))
+				canvas.draw_circle(point,6.0,Color("c8b592"))
+				canvas.draw_circle(point+Vector2(0,-3),2.5,Color("86b5aa"))
+			continue
 		var pos: Vector3 = world.npc_position(npc,visual_fraction)
 		if (pos.y>0) != elevated: continue
 		var shuttle: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,visual_fraction)

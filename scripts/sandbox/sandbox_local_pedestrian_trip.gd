@@ -114,6 +114,19 @@ static func offscreen_progress(world: SandboxWorld, npc_id: String) -> float:
 	return clampf(float(trip["handoff_progress"]) + seconds_as_minutes / \
 			SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
 
+# Shared by native reentry and the far renderer: preserve the actual saved
+# collision pose, then merge back to the authored path over the same distance.
+static func offscreen_position(world: SandboxWorld, npc_id: String, fraction: float=0.0) -> Vector2:
+	var trip: Dictionary=world.resident(npc_id).get("local_pedestrian_trip",{})
+	if trip.get("status","")!="offscreen": return Vector2.INF
+	var slot: int=int(trip.get("slot",0))
+	var old_phase: float=float(trip["handoff_progress"])
+	var phase: float=clampf(offscreen_progress(world,npc_id)+
+			clampf(fraction,0.0,1.0)/SandboxStreetModule.OFFSCREEN_MINUTES,0.0,1.0)
+	var origin: Vector2=SandboxStreetModule.position_at(old_phase,slot)
+	var anchor: Vector2=Vector2(float(trip.get("handoff_x",origin.x)),float(trip.get("handoff_y",origin.y)))
+	return SandboxStreetModule.position_at(phase,slot)+(anchor-origin)*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
+
 # Used only when no native pedestrian actor is available. A missing scene
 # object is NOT evidence that the zebra is empty: live walkers fail closed,
 # and offscreen travelers clear it only after world-owned distance passes
