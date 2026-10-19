@@ -11,8 +11,13 @@ func _run() -> void:
 	Engine.max_physics_steps_per_frame=32
 	for rate in [10,30,60]:
 		Engine.physics_ticks_per_second=rate*4
-		await physics_frame;await physics_frame
 		var delta: float=1.0/float(rate)
+		# Several catch-up physics steps can belong to the same render frame
+		# under load, so two physics_frame signals can still use the OLD rate.
+		# Wait for the engine's actual native integration delta instead.
+		for frame in range(60):
+			await process_frame
+			if is_equal_approx(root.get_physics_process_delta_time(),delta): break
 		var traffic: SandboxJunctionTraffic=SandboxJunctionTraffic.new()
 		root.add_child(traffic);traffic.set_physics_process(false)
 		await physics_frame
