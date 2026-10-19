@@ -13,6 +13,7 @@ var _panel: PanelContainer
 var _scroll: ScrollContainer
 var _portrait: SandboxPassengerView
 var _portrait_title: Label
+var _guide: SandboxPlayerGuidance
 var _tabs: GridContainer
 var _mode: Button
 var _actions: Dictionary = {}
@@ -66,6 +67,8 @@ func bind(host: Node) -> void:
 	_body=VBoxContainer.new();_body.size_flags_horizontal=Control.SIZE_EXPAND_FILL;_body.add_theme_constant_override("separation",10);_scroll.add_child(_body)
 	_portrait=SandboxPassengerView.new();root.add_child(_portrait);_portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	_portrait_title=Label.new();root.add_child(_portrait_title);_portrait_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_guide=SandboxPlayerGuidance.new();_guide.name="PlayerGuidance";root.add_child(_guide)
+	_guide.tab_requested.connect(_tab)
 	get_viewport().size_changed.connect(_layout)
 	_layout()
 
@@ -88,11 +91,15 @@ func _layout() -> void:
 	_body.custom_minimum_size.x=_panel.size.x-40
 	_portrait.position=Vector2(area.x-230,120);_portrait.size=Vector2(200,190)
 	_portrait_title.position=Vector2(area.x-250,315);_portrait_title.size=Vector2(240,35)
+	_guide.position=Vector2(area.x-306,365 if _portrait.visible else 120)
+	_guide.size=Vector2(282,0)
+	_guide.visible=not debug_mode and area.x>=820 and area.y>=570
 	_header.add_theme_font_size_override("font_size",20 if area.x<600 else 23)
 	_header.size.x=area.x-48 if area.x<600 else area.x-200
 	_hint.size.x=_header.size.x
 	_header.clip_text=true;_hint.clip_text=true
-	call_deferred("_fit_panel");call_deferred("_publish")
+	_last_signature=""
+	call_deferred("sync");call_deferred("_fit_panel");call_deferred("_publish")
 
 func toggle_debug() -> void:
 	debug_mode=not debug_mode
@@ -159,6 +166,11 @@ func sync() -> void:
 	_portrait.visible=not debug_mode and not speaker.is_empty() and get_viewport().get_visible_rect().size.x>=600
 	_portrait_title.visible=_portrait.visible
 	_portrait_title.text=trp("Passenger · ","الراكب · ")+str(speaker.get("language","")).capitalize()
+	var objective: Dictionary=SandboxPlayerGuidance.describe(world,locale,controller._selected_id,conversation!=null)
+	_guide.present(objective,tab)
+	var area: Vector2=get_viewport().get_visible_rect().size
+	_guide.visible=not debug_mode and area.x>=820 and area.y>=570
+	_guide.position=Vector2(area.x-306,365 if _portrait.visible else 120)
 	var context: Array=[]
 	match tab:
 		"requests":
@@ -186,6 +198,8 @@ func sync() -> void:
 	if debug_mode:
 		call_deferred("_publish")
 		return
+	if tab=="requests" and area.x<820 and conversation==null:
+		_label(str(objective["title"])+" · "+str(objective["detail"]))
 	if conversation!=null and tab=="requests":
 		_label(trp("In the passenger seat","في مقعد الراكب"),true)
 		var line: Label=_label(controller._dialogue_text.text)
