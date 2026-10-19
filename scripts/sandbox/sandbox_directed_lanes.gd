@@ -101,7 +101,16 @@ static func route_lane_point(nodes: Array[String], segment: int,
 		var joined: Vector3=turn_connector_point(nodes[segment-1],from,to,
 				.5+.5*t/TURN_FRACTION,index)
 		if joined.is_finite(): return joined
-	return lane_point(from,to,t,index)
+	var lane: Vector3=lane_point(from,to,t,index)
+	# Where an authored lane section meets the existing centerline presenter,
+	# taper only its lateral offset. Both samplers then meet at the same
+	# graph node, including ramps; never invent a grade-level turn connector.
+	var weight: float=1.0
+	if segment>0 and not valid_lane(nodes[segment-1],from,index):
+		weight=minf(weight,smoothstep(0.0,TURN_FRACTION,t))
+	if segment+2<nodes.size() and not valid_lane(to,nodes[segment+2],index):
+		weight=minf(weight,smoothstep(0.0,TURN_FRACTION,1.0-t))
+	return SandboxRoads.sample_edge(from,to,t).lerp(lane,weight)
 
 # Pure display sampling for real World-owned journeys. The units/edge times
 # are exactly SandboxRoads' canonical minutes; no independent vehicle clock.
@@ -142,6 +151,7 @@ static func route_screen_tangent_at_minutes(nodes: Array[String], elapsed: float
 # original complete route, without introducing any parallel simulation clock.
 static func taxi_elapsed_minutes(world: SandboxWorld, fraction: float = 0.0) -> float:
 	if not world.is_travelling() or not is_finite(fraction): return -1.0
+	if not world.route_hold_id.is_empty(): fraction=0.0
 	var elapsed: float = float(world.route_edge_elapsed)+clampf(fraction,0.0,1.0)
 	for segment in range(world.route_segment):
 		elapsed += float(SandboxRoads.edge_minutes(
@@ -158,25 +168,33 @@ static func route_screen_heading(nodes: Array[String], segment: int,
 	var projected: Vector2=SandboxIsoPresentation.project(q)-SandboxIsoPresentation.project(p)
 	return projected.angle() if projected.length_squared()>.000001 else 0.0
 
+# A parked pose is reconstructed from the most recent real arrival at this
+# stop, never a renderer-owned remembered position or an older lane visit.
+static func _parked_screen(world: SandboxWorld, stop: String) -> Vector2:
+	for i in range(world.events.size()-1,-1,-1):
+		var evt: Dictionary=world.events[i]
+		if evt.get("kind","")!="route_segment_completed": continue
+		var detail: Dictionary=evt.get("detail",{})
+		var a: String=str(detail.get("from",""))
+		var b: String=str(detail.get("to",""))
+		if b!=stop: continue
+		if has_profile(a,b): return SandboxIsoPresentation.project(lane_point(a,b,1.0))
+		break
+	return SandboxIsoPresentation.project(SandboxRoads.map_position(stop))
+
 static func taxi_screen(world: SandboxWorld,fraction: float) -> Vector2:
-	var centre: Vector3=world.player_position(fraction)
-	if world.is_travelling():
-		var a: String=world.route_nodes[world.route_segment]
-		var b: String=world.route_nodes[world.route_segment+1]
-		if has_profile(a,b):
-			var progress: float=(float(world.route_edge_elapsed)+clampf(fraction,0,1)) / \
-					float(SandboxRoads.edge_minutes(a,b))
-			var physical: Vector3=route_lane_point(world.route_nodes,world.route_segment,progress)
-			if physical.is_finite(): return SandboxIsoPresentation.project(physical)
-	elif world.player_district == "clinic":
-		# The active route may already be cleared, but settled arrivals
-		# preserve their actual inbound edge in immutable World events.
-		for i in range(world.events.size()-1,-1,-1):
-			var evt: Dictionary=world.events[i]
-			if evt.get("kind","")!="route_segment_completed": continue
-			var detail: Dictionary=evt.get("detail",{})
-			var a: String=str(detail.get("from",""))
-			var b: String=str(detail.get("to",""))
-			if b == "clinic" and has_profile(a,b):
-				return SandboxIsoPresentation.project(lane_point(a,b,1.0))
-	return SandboxIsoPresentation.project(centre)
+	if not world.is_travelling(): return _parked_screen(world,world.player_district)
+	if not world.route_hold_id.is_empty(): fraction=0.0
+	var a: String=world.route_nodes[world.route_segment]
+	var b: String=world.route_nodes[world.route_segment+1]
+	var progress: float=(float(world.route_edge_elapsed)+clampf(fraction,0,1)) / \
+			float(SandboxRoads.edge_minutes(a,b))
+	var physical: Vector3=route_lane_point(world.route_nodes,world.route_segment,progress)
+	if not physical.is_finite(): return SandboxIsoPresentation.project(world.player_position(fraction))
+	var screen: Vector2=SandboxIsoPresentation.project(physical)
+	if world.route_segment==0 and progress<TURN_FRACTION:
+		# Depart from the actual last parked pose, merging smoothly onto the
+		# chosen directed lane over its existing authored approach interval.
+		var start: Vector2=SandboxIsoPresentation.project(route_lane_point(world.route_nodes,0,0.0))
+		screen+=(_parked_screen(world,a)-start)*(1.0-smoothstep(0.0,TURN_FRACTION,progress))
+	return screen

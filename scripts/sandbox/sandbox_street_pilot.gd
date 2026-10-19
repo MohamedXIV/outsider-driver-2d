@@ -193,7 +193,9 @@ func _physics_process(delta: float) -> void:
 			car.position.x,occupied,false,delta,walker_ahead_of_leader)
 	if occupied and car.position.x<=SandboxStreetPriority.stop_line() and not walker_ahead_of_leader:
 		leader_limit=minf(leader_limit,SandboxVehicleKinematics.braking_speed(
-				SandboxStreetPriority.stop_line()-car.position.x))
+				SandboxStreetPriority.stop_line()-car.position.x,delta))
+	leader_limit=minf(leader_limit,SandboxVehicleKinematics.braking_speed(
+			SandboxStreetPriority.LANE_END_X-car.position.x,delta))
 	car.current_speed=SandboxVehicleKinematics.next_speed(car.current_speed,leader_limit,delta)
 	# Never advance beyond a protected stop line even under a long frame.
 	car.current_speed=minf(car.current_speed,leader_limit)
@@ -203,10 +205,10 @@ func _physics_process(delta: float) -> void:
 	var follower_limit: float=SandboxStreetPriority.follower_velocity(
 			follower.position.x,car.position.x,occupied,false,delta,walker_ahead_of_follower)
 	var gap_left: float=car.position.x-SandboxStreetPriority.FOLLOW_SPACING-follower.position.x
-	follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(gap_left))
+	follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(gap_left,delta))
 	if occupied and follower.position.x<=SandboxStreetPriority.stop_line() and not walker_ahead_of_follower:
 		follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(
-				SandboxStreetPriority.stop_line()-follower.position.x))
+				SandboxStreetPriority.stop_line()-follower.position.x,delta))
 	follower.current_speed=SandboxVehicleKinematics.next_speed(follower.current_speed,follower_limit,delta)
 	follower.current_speed=minf(follower.current_speed,follower_limit)
 	follower.velocity=global_transform.x.normalized()*follower.current_speed
