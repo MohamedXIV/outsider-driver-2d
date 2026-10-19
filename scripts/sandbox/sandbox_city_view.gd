@@ -36,6 +36,8 @@ static func edge_heading(from: String, to: String, fraction: float) -> float:
 
 static func world_road_heading(state: SandboxWorld, fraction: float = 0.0) -> float:
 	if state.vehicle_execution.has("player"): return SandboxVehicleExecution.heading(state,"player",fraction)
+	if not state.is_travelling() and state.vehicle_parking.get("player",{}).get("stop","")==state.player_district:
+		return float(state.vehicle_parking["player"]["heading"])
 	if state.is_travelling():
 		var elapsed: float = SandboxDirectedLanes.taxi_elapsed_minutes(state,fraction)
 		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(

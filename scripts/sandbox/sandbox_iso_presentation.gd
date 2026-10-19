@@ -15,6 +15,12 @@ static func project(point: Vector3) -> Vector2:
 	return Vector2((point.x-point.z)*WORLD_TO_SCREEN,
 			(point.x+point.z)*WORLD_TO_SCREEN*0.5-point.y*HEIGHT_TO_SCREEN)
 
+static func unproject(point: Vector2,elevation: float=0.0) -> Vector3:
+	if not point.is_finite() or not is_finite(elevation): return Vector3.INF
+	var horizontal: float=point.x/WORLD_TO_SCREEN
+	var vertical: float=2.0*(point.y+elevation*HEIGHT_TO_SCREEN)/WORLD_TO_SCREEN
+	return Vector3((horizontal+vertical)*.5,elevation,(vertical-horizontal)*.5)
+
 static func lane_offset(heading: float) -> Vector2:
 	# One signed visual lane: following a reversed route flips this vector.
 	return Vector2.RIGHT.rotated(heading).orthogonal()*LANE_SHIFT

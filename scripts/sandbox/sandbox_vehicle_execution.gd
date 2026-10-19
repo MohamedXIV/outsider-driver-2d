@@ -44,6 +44,10 @@ static func point(travel: Dictionary, progress: float) -> Vector2:
 			result+=(Vector2(travel["origin"])-start)*(1.0-smoothstep(0.0,SandboxDirectedLanes.TURN_FRACTION,fraction))
 	return result
 
+static func tangent(travel: Dictionary,at: float) -> Vector2:
+	var total: float=float(SandboxRoads.path_minutes(nodes_of(travel)))
+	return point(travel,minf(total,at+.015))-point(travel,maxf(0.0,at-.015))
+
 static func world_point(travel: Dictionary,progress: float,at: Vector2=Vector2.INF) -> Vector3:
 	var physical: Vector3=SandboxDirectedLanes.route_point_at_minutes(nodes_of(travel),progress)
 	var screen: Vector2=point(travel,progress) if not at.is_finite() else at
@@ -75,7 +79,9 @@ static func bind(world: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 		existing["heading"]=facing;existing["native"]=true
 		return true
 	var progress: float=float(travel["base"])+(0.0 if travel["held"] else clampf(fraction,0.0,.999999))
-	var heading: float=SandboxDirectedLanes.route_screen_tangent_at_minutes(nodes_of(travel),progress).angle()
+	var heading: float=tangent(travel,progress).angle()
+	var parked: Dictionary=world.vehicle_parking.get("player",{}) if id=="player" else {}
+	if progress<=EPSILON and parked.get("stop","")==travel["nodes"][0]: heading=float(parked["heading"])
 	var initial: Vector2=point(travel,progress)
 	world.vehicle_execution[id]={"x":initial.x,"y":initial.y,"source":travel["source"],"nodes":travel["nodes"].duplicate(),
 		"progress":progress,"speed":0.0,"heading":heading,"native":true,"reason":""}
@@ -121,7 +127,7 @@ static func screen(world: SandboxWorld,id: String,fraction: float=0.0) -> Vector
 static func heading(world: SandboxWorld,id: String,fraction: float=0.0) -> float:
 	var travel: Dictionary=trip(world,id)
 	var state: Dictionary=world.vehicle_execution.get(id,{})
-	var desired: float=SandboxDirectedLanes.route_screen_tangent_at_minutes(nodes_of(travel),progress(world,id,fraction)).angle()
+	var desired: float=tangent(travel,progress(world,id,fraction)).angle()
 	if state.is_empty(): return desired
 	if bool(state["native"]): return float(state["heading"])
 	var elapsed: float=maxf(0.0,float(world.minute-int(state.get("handoff_minute",world.minute)))+
@@ -136,7 +142,7 @@ static func report(world: SandboxWorld,id: String,at: float,speed: float,heading
 			or not is_finite(at) or not is_finite(speed) or not is_finite(heading) \
 			or at<float(state["progress"])-EPSILON or at>float(travel["base"])+LOOKAHEAD_MINUTES+EPSILON \
 			or speed<0.0 or speed>SandboxVehicleKinematics.CRUISE+EPSILON \
-			or not ["","motion","vehicle","pedestrian","junction","world_crossing"].has(reason): return false
+			or not ["","motion","vehicle","pedestrian","junction","world_crossing","arrival"].has(reason): return false
 	if bool(travel["held"]) and (absf(at-float(state["progress"]))>EPSILON or absf(angle_difference(float(state["heading"]),heading))>EPSILON): return false
 	var window: Dictionary=SandboxVehicleJunctions.next_window(travel,float(state["progress"]))
 	if not window.is_empty() and at>float(window["entry"]):
@@ -181,6 +187,7 @@ static func before_tick(world: SandboxWorld) -> bool:
 static func prune(world: SandboxWorld) -> void:
 	for id in world.vehicle_execution.keys():
 		var travel: Dictionary=trip(world,str(id))
+		if travel.is_empty() and id=="player": SandboxVehicleParking.capture_player(world,world.vehicle_execution[id])
 		if travel.is_empty() or travel.get("source","")!=world.vehicle_execution[id]["source"] \
 				or travel["nodes"]!=world.vehicle_execution[id]["nodes"]:
 			world.vehicle_execution.erase(id)
@@ -196,7 +203,7 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		for key in ["progress","speed","heading","x","y"]:
 			if not (state.get(key) is float or state.get(key) is int) or not is_finite(float(state[key])): return false
 		if float(state["speed"])<0.0 or float(state["speed"])>SandboxVehicleKinematics.CRUISE \
-				or absf(float(state["heading"]))>PI or not ["","motion","vehicle","pedestrian","junction","world_crossing"].has(state.get("reason")): return false
+				or absf(float(state["heading"]))>PI or not ["","motion","vehicle","pedestrian","junction","world_crossing","arrival"].has(state.get("reason")): return false
 		var nodes: Array[String]=[]
 		for node in state["nodes"]:
 			if not node is String: return false
@@ -232,7 +239,7 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		var travel: Dictionary={"nodes":nodes}
 		var actual: Vector2=Vector2(float(state["x"]),float(state["y"]))
 		if id=="player":
-			travel["origin"]=SandboxDirectedLanes.parked_screen_from_events(value["events"],nodes[0])
+			travel["origin"]=SandboxVehicleParking.from_snapshot(value,nodes[0])
 		if actual.distance_to(point(travel,float(state["progress"])))>.5: return false
 		if not bool(state["native"]):
 			for key in ["handoff_minute","handoff_fraction","handoff_progress","handoff_x","handoff_y","handoff_heading"]:

@@ -25,3 +25,9 @@ Evidence includes the before/after numerical audit, a native screenshot and its 
 Verification at `6614e3d`: all 45 domain tests and all 41 native tests passed under Godot 4.7.2. At runtime head `1b9cd57`, all 46 domain tests and all 42 native tests passed after the heading/handoff and clearance changes. The additional variable-delta native regression passed locally at that runtime and adds one native case. No Web or human acceptance is inferred from these results. Five controlled native collision samples with canonical World/render/body traces are in `docs/evidence/r05-world-execution/native-collision/`.
 
 No HUD presentation files are changed. This branch is isolated from the canonical PR73/PR75 heads until the integration above is ready.
+
+## Corridor follow-up: arrival and departure anchors
+
+A real medical fare reproduced a terminal-body bug: reaching the physical goal still reported speed 36. The body now reserves braking distance to its actual final point. A new native regression checks gradual deceleration, a stopped saved goal, exactly one real settlement, canonical/render parked-position continuity and departure from the same pose/heading. Forged or deleted parking records are rejected against the actual journey completion and preceding execution ledger.
+
+`vehicle_parking` is optional for older version-12 saves. A completed physically executed player trip records its final pose in World rather than reverting the canonical position to the graph-node centre. Execution tangents include the real departure anchor, and a reversed new journey starts with the saved parked heading; the bounded steering/acceleration layer then aligns the car. Automatic corridor coordination remains in progress.

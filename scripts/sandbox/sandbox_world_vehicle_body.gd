@@ -43,9 +43,15 @@ func step(delta: float) -> bool:
 	if travel.is_empty() or state.is_empty() or not bool(state["native"]): return false
 	var at: float=float(state["progress"])
 	var speed: float=float(state["speed"])
-	var target: float=SandboxVehicleKinematics.CRUISE
+	var direction: Vector2=SandboxVehicleExecution.tangent(travel,at)
+	var alignment: float=maxf(0.0,cos(angle_difference(float(state["heading"]),direction.angle())))
+	var target: float=SandboxVehicleKinematics.CRUISE*alignment*alignment
 	var reason: String="motion"
 	var available: float=36.0
+	var total: float=float(SandboxRoads.path_minutes(SandboxVehicleExecution.nodes_of(travel)))
+	if total-at<=SandboxVehicleExecution.LOOKAHEAD_MINUTES:
+		available=minf(available,position.distance_to(SandboxVehicleExecution.point(travel,total)))
+		if available<36.0: reason="arrival"
 	var junction_stop: float=SandboxVehicleJunctions.stop_progress(world,vehicle_id)
 	if is_finite(junction_stop):
 		available=maxf(0.0,position.distance_to(SandboxVehicleExecution.point(travel,junction_stop))-BODY_SIZE.x*.5-CLEARANCE)
@@ -69,9 +75,8 @@ func step(delta: float) -> bool:
 	var distance: float=minf(available,next*delta)
 	var cursor: float=_at_distance(travel,at,distance) if distance>0.0 else at
 	var point: Vector2=SandboxVehicleExecution.point(travel,cursor)
-	var desired: float=SandboxDirectedLanes.route_screen_tangent_at_minutes(
-		SandboxVehicleExecution.nodes_of(travel),cursor).angle()
-	var facing: float=float(state["heading"]) if travel["held"] else SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
+	var desired: float=SandboxVehicleExecution.tangent(travel,cursor).angle()
+	var facing: float=float(state["heading"]) if travel["held"] or (reason=="junction" and distance<.000001) else SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
 	# The final sweep fails closed, including obstacles inserted this frame.
 	if test_move(global_transform,point-position):
 		cursor=at;point=position;next=0.0;reason="vehicle"

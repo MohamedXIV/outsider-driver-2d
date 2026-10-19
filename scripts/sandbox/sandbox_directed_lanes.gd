@@ -193,6 +193,8 @@ static func route_screen_heading(nodes: Array[String], segment: int,
 # A parked pose is reconstructed from the most recent real arrival at this
 # stop, never a renderer-owned remembered position or an older lane visit.
 static func _parked_screen(world: SandboxWorld, stop: String) -> Vector2:
+	var actual: Vector2=SandboxVehicleParking.screen(world,stop)
+	if actual.is_finite(): return actual
 	return parked_screen_from_events(world.events,stop)
 
 static func parked_screen_from_events(events: Array, stop: String) -> Vector2:
