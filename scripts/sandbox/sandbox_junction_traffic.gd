@@ -136,7 +136,7 @@ func _release_cleared_owner() -> void:
 		priority.release(priority.owner,true)
 
 func step(delta: float) -> void:
-	if actors.is_empty() or delta<=0.0: return
+	if actors.is_empty() or not is_finite(delta) or delta<=0.0: return
 	_release_cleared_owner()
 	for id in IDS:
 		if _waiting(id): priority.request(id)
@@ -151,10 +151,20 @@ func step(delta: float) -> void:
 		var current: float=float(distances[id])
 		# Predictive service braking before a FIFO-owned stop line. Vehicle
 		# admission never overrides a blocked downstream or the real body.
-		var limit: float=SPEED
+		var clearance: float=maxf(0.0,routes[id].get_baked_length()-current)
 		if id!=priority.owner and current<=STOP_DISTANCE:
-			limit=minf(limit,SandboxVehicleKinematics.braking_speed(
-					STOP_DISTANCE-current))
+			clearance=minf(clearance,STOP_DISTANCE-current)
+		# Anticipate the shared downstream queue BEFORE taking this step.
+		# A branch vehicle follows only cars already on its outgoing lane;
+		# the other approach's pre-admission stop is not its leader.
+		for other in IDS:
+			if other==id: continue
+			var ahead: Vector2=actors[other].position
+			if ahead.y<349.9 or ahead.x<=body.position.x: continue
+			if id=="branch" and ahead.x<SandboxStreetModule.T_BRANCH.end.x: continue
+			var leader_offset: float=routes[id].get_closest_offset(ahead)
+			clearance=minf(clearance,maxf(0.0,leader_offset-current-SandboxStreetPriority.FOLLOW_SPACING))
+		var limit: float=SandboxVehicleKinematics.braking_speed(clearance,delta)
 		body.current_speed=minf(SandboxVehicleKinematics.next_speed(
 				body.current_speed,limit,delta),limit)
 		var next: float=minf(current+body.current_speed*delta,
