@@ -4,12 +4,21 @@ extends SceneTree
 # each tested physics delta. Abrupt stop-line/queue clamps fail this test.
 func _initialize() -> void: call_deferred("_run")
 func _run() -> void:
+	# Exercise every native physics step without spending 75 wall-clock
+	# seconds in three queues. Scale tick frequency with test time so body
+	# integration still receives exactly 1/10, 1/30 and 1/60 second deltas.
+	Engine.time_scale=4.0
+	Engine.max_physics_steps_per_frame=32
 	for rate in [10,30,60]:
-		Engine.physics_ticks_per_second=rate
+		Engine.physics_ticks_per_second=rate*4
+		await physics_frame;await physics_frame
 		var delta: float=1.0/float(rate)
 		var traffic: SandboxJunctionTraffic=SandboxJunctionTraffic.new()
 		root.add_child(traffic);traffic.set_physics_process(false)
 		await physics_frame
+		print("NATIVE_INTEGRATION_DELTA ",rate," ",traffic.get_physics_process_delta_time()," expected ",delta)
+		assert(is_equal_approx(traffic.get_physics_process_delta_time(),delta),
+				"Accelerated test time must not change native integration delta")
 		var resumed: bool=false
 		for frame in range(rate*25):
 			traffic.exit_blocked=frame<rate*4

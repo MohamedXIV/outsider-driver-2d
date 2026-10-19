@@ -24,6 +24,11 @@ unchanged. #75's rider initiative remains a downstream dependency.
 - Parking inherits the latest real inbound edge at every profiled stop. The
   next departure blends from that event-owned pose onto the selected lane.
 
+- Canonical saves keep valid sub-tick fractions inside the JSON boundary.
+  Both formatting and Godot parsing can round the last float below 1.0 to
+  1.0; Save uses a presentation-only margin of at most one picosecond.
+  Authoritative minutes/events are unchanged and invalid fractions still fail.
+
 ## Evidence and regression design
 
 The unmodified #73 domain/adapters and native gates passed on Godot
@@ -43,6 +48,10 @@ browser timeouts and fare assertions are unchanged.
 - `test_junction_braking_scene.gd`: actual CharacterBody movement at 10/30/60 Hz,
   bounded acceleration/braking through FIFO stop lines, downstream congestion
   and terminal queues, stop/resume and restored queue/owner/speeds/positions.
+  Test time runs at 4x with matching tick frequency; it first settles and
+  asserts actual integration deltas, retaining every original physical step.
+- `test_save_float_precision.gd`: bounded sub-tick/heading round trips, strict
+  rejection of invalid fractions and unchanged World provenance.
 - `test_directed_lane_continuity.gd`: held render pose and tangent progress,
   snapshot provenance, all authored junction triples and a real next departure.
 - `test_lane_visual_scene.gd`: sequential native screenshots and JSON pose

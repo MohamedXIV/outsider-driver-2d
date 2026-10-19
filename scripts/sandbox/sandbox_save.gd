@@ -11,10 +11,19 @@ static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: 
 	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})) \
 			or not SandboxPassengerAlight.valid_presentation(world,presentation.get("alight_state",{})) \
 			or not _valid_taxi_heading(presentation): return false
+	var stored_presentation: Dictionary=presentation.duplicate(true)
+	if stored_presentation.has("clock_fraction"):
+		var fraction: Variant=stored_presentation["clock_fraction"]
+		if not (fraction is float or fraction is int) or not is_finite(float(fraction)) \
+				or float(fraction)<0.0 or float(fraction)>=1.0: return false
+		# Both JSON formatting and Godot's number parser can round a valid
+		# fraction one ULP below 1 up to 1. Keep a one-picosecond presentation
+		# margin; never change the authoritative World minute/event ledger.
+		stored_presentation["clock_fraction"]=minf(float(fraction),0.999999999999)
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"version": VERSION, "world": world.snapshot(), "dialogue": dialogue, "presentation": presentation}))
+	file.store_string(JSON.stringify({"version": VERSION, "world": world.snapshot(), "dialogue": dialogue, "presentation": stored_presentation}))
 	file.close()
 	return true
 
