@@ -15,6 +15,7 @@ func _run() -> void:
 	var source: String=str(npc["transit_from_offer"])+":"+str(npc["transit_started"])
 	var body: SandboxWorldVehicleBody=SandboxWorldVehicleBody.new()
 	root.add_child(body);assert(body.bind(world,id))
+	_check_arrival_merge(world,id)
 	await physics_frame
 	var arrived: bool=false
 	for frame in range(1200):
@@ -80,3 +81,12 @@ func _check_departure_merge(original: SandboxWorld,source: String) -> void:
 	if not is_finite(SandboxVehicleJunctions.stop_progress(world,id)):
 		push_error("An empty shuttle can merge into a conflict reserved by the genuine taxi");quit(1);return
 	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
+
+func _check_arrival_merge(original: SandboxWorld,id: String) -> void:
+	var world: SandboxWorld=SandboxWorld.new()
+	assert(world.restore_snapshot(original.snapshot()))
+	assert(world.reposition("docks","clinic") and world.advance(41))
+	assert(SandboxVehicleExecution.bind(world,"player"))
+	assert(SandboxVehicleJunctions.claim(world,"player"))
+	if not is_finite(SandboxVehicleJunctions.stop_progress(world,id)):
+		push_error("An arriving real shuttle ignores the taxi's exclusive clinic reservation");quit(1);return

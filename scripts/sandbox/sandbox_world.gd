@@ -373,7 +373,7 @@ func reposition(destination: String, via: String = "", waypoints: Array[String] 
 	route_segment = 0
 	route_edge_elapsed = 0
 	remaining_minutes = SandboxRoads.path_minutes(nodes)
-	_record("reposition", "player", {"from":player_district,"to":destination,"expense":move_cost,"nodes":nodes.duplicate(),"clock_fraction":vehicle_fraction})
+	_record("reposition", "player", {"from":player_district,"to":destination,"expense":move_cost,"nodes":nodes.duplicate(),"clock_fraction":_vehicle_clock_stamp()})
 	if vehicle_executor.is_valid(): vehicle_executor.call(0.0)
 	return true
 
@@ -418,7 +418,7 @@ func accept(offer_id: String, waypoint: String = "") -> bool:
 	pending_route_nodes.clear()
 	rider_route_request = SandboxRiderRoutes.request(npc, offer, route)
 	_record("offer_accepted", offer_id, {
-		"nodes": route.duplicate(), "minutes": remaining_minutes,"clock_fraction":vehicle_fraction,
+		"nodes": route.duplicate(), "minutes": remaining_minutes,"clock_fraction":_vehicle_clock_stamp(),
 		"anticipated_expense": SandboxRoads.path_expense(route)
 	})
 	if vehicle_executor.is_valid(): vehicle_executor.call(0.0)
@@ -611,6 +611,14 @@ func _complete_active_trip() -> void:
 	rider_route_request.clear()
 
 
+func _vehicle_clock_stamp() -> Variant:
+	# Match the ledger's integral JSON convention at zero and retain a one-
+	# picosecond margin below one, as the presentation save clock already does.
+	if vehicle_fraction==0.0: return 0
+	if vehicle_fraction>0.0 and vehicle_fraction<1.0: return minf(vehicle_fraction,.999999999999)
+	return vehicle_fraction # invalid values remain invalid during restoration
+
+
 func snapshot() -> Dictionary:
 	return {
 		"version": SCHEMA_VERSION, "seed": seed, "minute": minute,
@@ -625,7 +633,7 @@ func snapshot() -> Dictionary:
 		"remaining_minutes": remaining_minutes, "route_nodes": route_nodes.duplicate(),
 		"route_segment": route_segment, "route_edge_elapsed": route_edge_elapsed,
 		"route_hold_id": route_hold_id,
-		"vehicle_fraction":vehicle_fraction,
+		"vehicle_fraction":float(_vehicle_clock_stamp()),
 		"vehicle_execution":vehicle_execution.duplicate(true),
 		"vehicle_parking":vehicle_parking.duplicate(true),
 		"vehicle_departures":vehicle_departures.duplicate(true),

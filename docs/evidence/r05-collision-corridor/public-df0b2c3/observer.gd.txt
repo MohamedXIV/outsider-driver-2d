@@ -1,0 +1,65 @@
+extends SceneTree
+const OUT: String="res://work/public-main-frames"
+const SOURCE_HEAD: String="df0b2c3468f2d9288300c30b7d29ade4e5c6ed90"
+var app: Node
+var rows: Array=[]
+var public_identity: String=""
+func _initialize() -> void: call_deferred("_run")
+func _read(label: String) -> Dictionary:
+	var world: SandboxWorld=app._world
+	var bodies: Dictionary={}
+	for id in app._vehicle_corridor.bodies:
+		var body: SandboxWorldVehicleBody=app._vehicle_corridor.bodies[id]
+		bodies[id]={"identity":body.identity,"position":[body.position.x,body.position.y],"heading":body.rotation}
+	var riders: Dictionary={}
+	for npc in world.residents:
+		var at: Vector2=SandboxVehicleDepartures.resident_screen(world,npc,world.vehicle_fraction)
+		if at.is_finite(): riders[npc["id"]]=[at.x,at.y]
+	return {"label":label,"head":SOURCE_HEAD,"world":world.snapshot(),"fraction":world.vehicle_fraction,"bodies":bodies,"curb_residents":riders,"population":world.residents.size()}
+func _shot(label: String) -> void:
+	await RenderingServer.frame_post_draw
+	var row: Dictionary=_read(label)
+	rows.append(row)
+	if root.get_texture().get_image().save_png(OUT.path_join(label+".png"))!=OK: push_error("Capture failed");quit(1)
+	FileAccess.open(OUT.path_join(label+".json"),FileAccess.WRITE).store_string(JSON.stringify(row,"  "))
+	print("PUBLIC_FRAME ",label," minute=",app._world.minute)
+func _run() -> void:
+	DirAccess.make_dir_recursive_absolute(OUT)
+	app=load("res://scenes/sandbox.tscn").instantiate()
+	app._world=SandboxWorld.new(9)
+	root.add_child(app)
+	if not app._world.reposition("clinic"): push_error("Real clinic reposition unavailable");quit(1);return
+	app._render()
+	await _shot("01-player-departure")
+	var approach: bool=false
+	var service_id: String=""
+	for frame in range(14400):
+		await physics_frame
+		if not approach:
+			for npc in app._world.residents:
+				if npc.get("transit_method","")=="shuttle" and npc.get("transit_to","")=="clinic" and app._vehicle_corridor.bodies.has(npc["id"]) and int(npc["transit_until"])-app._world.minute<=2:
+					public_identity=app._vehicle_corridor.bodies[npc["id"]].identity
+					approach=true;await _shot("02-public-approach");break
+		if not app._world.vehicle_departures.is_empty():
+			service_id=str(app._world.vehicle_departures.keys()[0]);break
+	if service_id.is_empty() or not approach: push_error("No genuine clinic shuttle continuation observed");quit(1);return
+	if public_identity!=service_id: push_error("Public vehicle identity changed at rider exit");quit(1);return
+	await _shot("03-rider-exit")
+	var credits: int=app._world.credits
+	app._on_save()
+	var saved: Dictionary=_read("saved")
+	app._on_load()
+	var restored: Dictionary=_read("restored")
+	if saved["bodies"]!=restored["bodies"] or saved["curb_residents"]!=restored["curb_residents"]:
+		push_error("Public saved actor poses changed on load");quit(1);return
+	await _shot("04-restored")
+	await create_timer(.7).timeout
+	await _shot("05-public-return")
+	await create_timer(1.5).timeout
+	await _shot("06-rider-intake")
+	if app._world.credits!=credits or app._world.residents.size()!=9 or app._world.events.any(func(e: Dictionary)->bool:return e["kind"]=="fare_settled"):
+		push_error("An empty vehicle continuation changed the real player economy or population");quit(1);return
+	if not SandboxWorld.new().restore_snapshot(app._world.snapshot()): push_error("Final World invalid");quit(1);return
+	FileAccess.open(OUT.path_join("sequence.json"),FileAccess.WRITE).store_string(JSON.stringify(rows,"  "))
+	print("PUBLIC_MAIN_EVIDENCE_PASS real-time World demand, same shuttle identity, rider exit, empty return, exact reload, no fare/population invention")
+	quit()

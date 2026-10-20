@@ -19,6 +19,12 @@ static func next_window(travel: Dictionary,progress: float) -> Dictionary:
 		if progress>exit: continue
 		return {"junction":nodes[index+1],"entry":boundary-incoming*SandboxDirectedLanes.TURN_FRACTION,
 			"exit":exit,"nodes":[nodes[index],nodes[index+1],nodes[index+2]]}
+	if nodes.size()>=2 and nodes.back()=="clinic" and travel.get("arrival_policy","") in [SandboxVehicleBays.CLINIC,SandboxVehicleBays.SHUTTLE]:
+		var total: float=SandboxRoads.path_minutes(nodes)
+		var duration: float=SandboxRoads.edge_minutes(nodes[nodes.size()-2],nodes.back())
+		if progress<=total:
+			return {"junction":"clinic","entry":total-duration*SandboxVehicleBays.BLEND,
+				"exit":total,"nodes":[nodes[nodes.size()-2],nodes.back()],"kind":"curb_arrival"}
 	return {}
 
 static func claim(world: SandboxWorld,id: String) -> bool:
@@ -77,6 +83,9 @@ static func valid_snapshot(value: Dictionary) -> bool:
 			if held.get("kind","")=="curb_merge":
 				if nodes.size()!=2 or nodes[0]!="clinic" or key!="clinic" or not nodes[1] is String or not SandboxDirectedLanes.has_profile(nodes[0],nodes[1]): return false
 				if held.get("entry",-1)!=0.0 or held.get("exit",-1)!=SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxDirectedLanes.TURN_FRACTION: return false
+			elif held.get("kind","")=="curb_arrival":
+				if nodes.size()!=2 or nodes[1]!="clinic" or key!="clinic" or not nodes[0] is String or not SandboxDirectedLanes.has_profile(nodes[0],nodes[1]): return false
+				if absf(float(held.get("exit",0))-float(held.get("entry",0))-SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxVehicleBays.BLEND)>.00001: return false
 			else:
 				if held.has("kind") or nodes.size()!=3: return false
 				if not nodes[0] is String or not nodes[1] is String or not nodes[2] is String \
@@ -94,7 +103,7 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		var state: Dictionary=value.get("vehicle_execution",{}).get(held["vehicle"],{})
 		if state.is_empty() or state["source"]!=held["source"]: return false
 		var curb: bool=value.get("vehicle_departures",{}).has(held["vehicle"]) or (held["vehicle"]=="player" and value.get("vehicle_parking",{}).get("player",{}).get("arrival_policy","")==SandboxVehicleBays.CLINIC)
-		var travel: Dictionary={"nodes":state["nodes"],"origin_merge":curb}
+		var travel: Dictionary={"nodes":state["nodes"],"origin_merge":curb,"arrival_policy":state.get("arrival_policy","")}
 		var window: Dictionary=next_window(travel,float(state["progress"]))
 		if window.is_empty() or window["junction"]!=key or window["entry"]!=held["entry"] \
 				or window["exit"]!=held["exit"] or window["nodes"]!=held["nodes"]: return false

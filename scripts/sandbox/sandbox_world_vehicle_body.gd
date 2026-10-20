@@ -100,7 +100,7 @@ func step(delta: float) -> bool:
 	if is_finite(junction_stop):
 		available=maxf(0.0,position.distance_to(SandboxVehicleExecution.point(travel,junction_stop))-BODY_SIZE.x*.5-CLEARANCE)
 		available=minf(36.0,available)
-		reason="junction"
+		if available<36.0: reason="junction"
 	if travel["held"]:
 		target=0.0;available=0.0;reason="world_crossing"
 	else:

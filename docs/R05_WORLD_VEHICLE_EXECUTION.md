@@ -155,3 +155,29 @@ original pose, currency, identity, route, native motion and settlement assertion
 remain. Tests deliberately restoring only a domain copy explicitly hand off its
 absent native presenters at the saved fractional clock; scene restores continue
 to recreate physical bodies and do not use that aggregate-only option.
+
+## Saved numeric identity and terminal admission
+
+The df0b2c3 full Domain run failed `test_sandbox_ar`; a retained diff showed the
+new clock zero changing from float to int through JSON. It also reproduced an
+unloadable save for an authoritative fraction one ULP below one. Clock stamps
+now preserve the existing one-picosecond upper margin and integral ledger zero.
+
+Native df0b2c3 reached the peer-scene reload assertion and failed exact event
+identity: Native progress/base/fraction types and some coordinate mantissa bits
+were lost by JSON. Assertions were retained. New saves include Godot's built-in
+object-free Variant encoding of the same World, checked against the readable
+JSON before restoration. Altering either representation rejects Load; legacy
+JSON-only v12 saves remain readable. The full numeric round-trip regression now
+covers zero, a nontrivial fraction, near-one, physical execution entries and
+legacy/mismatched payloads. Focused float, AR and unmodified Native peer checks
+pass. This is a serialization detail, not a second runtime World or clock.
+
+Curb arrivals now reserve the same clinic conflict area as curb departures and
+through connectors. A retained genuine taxi/shuttle repro failed before this
+arrival-window change; the corrected arriving shuttle stops for the taxi's
+existing exclusive claim and restores its queue consistently. Upstream moving
+vehicles no longer report a junction-stop reason merely because a junction lies
+far ahead. Six real-time Main public-shuttle frames and full read-only snapshots
+from df0b2c3 are retained under `public-df0b2c3`; they are distinct from final-head
+suite acceptance and the contested-arrival test.
