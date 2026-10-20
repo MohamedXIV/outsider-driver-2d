@@ -67,6 +67,7 @@ func _run() -> void:
 		if trip["status"]=="arrived": break
 	assert(trip["status"]=="arrived" and world.residents.size()==9)
 	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
+	world.vehicle_fraction=.6
 	assert(world.reposition("garage","margin_gate"))
 	corridor.reconcile()
 	assert(corridor.parked==null)

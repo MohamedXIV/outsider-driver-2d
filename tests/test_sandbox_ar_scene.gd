@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 func _initialize() -> void:
 	call_deferred("_walk")
@@ -16,7 +17,7 @@ func _walk() -> void:
 	assert(not ar.visible)
 	scene.call("_on_starter_device", "gps")
 	scene.call("_on_drive_market")
-	world.advance(world.remaining_minutes)
+	NativeRouteChecks.finish(world)
 	scene.call("_render")
 	assert(world.player_district == "market" and world.knows("map:district-graph"))
 	scene.get_node("HUD/WorldPanel/Content/ARActions/BuyAR").pressed.emit()

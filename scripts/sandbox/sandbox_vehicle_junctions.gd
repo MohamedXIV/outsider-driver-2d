@@ -5,6 +5,10 @@ extends RefCounted
 # ledger survives unloading, saves and scene replacement; bodies own no locks.
 static func next_window(travel: Dictionary,progress: float) -> Dictionary:
 	var nodes: Array[String]=SandboxVehicleExecution.nodes_of(travel)
+	if bool(travel.get("origin_merge",false)) and nodes.size()>=2 and nodes[0]=="clinic":
+		var merge_exit: float=SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxDirectedLanes.TURN_FRACTION
+		if progress<=merge_exit:
+			return {"junction":"clinic","entry":0.0,"exit":merge_exit,"nodes":[nodes[0],nodes[1]],"kind":"curb_merge"}
 	var boundary: float=0.0
 	for index in range(nodes.size()-2):
 		var incoming: float=SandboxRoads.edge_minutes(nodes[index],nodes[index+1])
@@ -28,6 +32,7 @@ static func claim(world: SandboxWorld,id: String) -> bool:
 	if not held.is_empty(): return held["vehicle"]==id and held["source"]==state["source"]
 	var reservation: Dictionary={"vehicle":id,"source":state["source"],"entry":window["entry"],
 		"exit":window["exit"],"nodes":window["nodes"]}
+	if window.has("kind"): reservation["kind"]=window["kind"]
 	world.vehicle_junctions[key]=reservation
 	world._record("vehicle_junction_claimed",id,{"junction":key,"reservation":reservation})
 	return true
@@ -67,10 +72,15 @@ static func valid_snapshot(value: Dictionary) -> bool:
 			var held: Variant=detail.get("reservation",{})
 			if ledger.has(key) or not held is Dictionary or held.get("vehicle","")!=id \
 					or not held.get("source") is String or str(held["source"]).is_empty() \
-					or not held.get("nodes") is Array or held["nodes"].size()!=3: return false
+					or not held.get("nodes") is Array: return false
 			var nodes: Array=held["nodes"]
-			if not nodes[0] is String or not nodes[1] is String or not nodes[2] is String \
-					or nodes[1]!=key or not SandboxDirectedLanes.can_turn(nodes[0],nodes[1],nodes[2]): return false
+			if held.get("kind","")=="curb_merge":
+				if nodes.size()!=2 or nodes[0]!="clinic" or key!="clinic" or not nodes[1] is String or not SandboxDirectedLanes.has_profile(nodes[0],nodes[1]): return false
+				if held.get("entry",-1)!=0.0 or held.get("exit",-1)!=SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxDirectedLanes.TURN_FRACTION: return false
+			else:
+				if held.has("kind") or nodes.size()!=3: return false
+				if not nodes[0] is String or not nodes[1] is String or not nodes[2] is String \
+						or nodes[1]!=key or not SandboxDirectedLanes.can_turn(nodes[0],nodes[1],nodes[2]): return false
 			for field in ["entry","exit"]:
 				if not (held.get(field) is float or held.get(field) is int) or not is_finite(float(held[field])): return false
 			if float(held["entry"])<0.0 or float(held["exit"])<=float(held["entry"]): return false
@@ -83,7 +93,8 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		var held: Dictionary=registry[key]
 		var state: Dictionary=value.get("vehicle_execution",{}).get(held["vehicle"],{})
 		if state.is_empty() or state["source"]!=held["source"]: return false
-		var travel: Dictionary={"nodes":state["nodes"]}
+		var curb: bool=value.get("vehicle_departures",{}).has(held["vehicle"]) or (held["vehicle"]=="player" and value.get("vehicle_parking",{}).get("player",{}).get("arrival_policy","")==SandboxVehicleBays.CLINIC)
+		var travel: Dictionary={"nodes":state["nodes"],"origin_merge":curb}
 		var window: Dictionary=next_window(travel,float(state["progress"]))
 		if window.is_empty() or window["junction"]!=key or window["entry"]!=held["entry"] \
 				or window["exit"]!=held["exit"] or window["nodes"]!=held["nodes"]: return false

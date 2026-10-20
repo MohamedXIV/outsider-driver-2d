@@ -5,12 +5,16 @@ extends CharacterBody2D
 # resident creation, fare completion or independent route timer lives here.
 var world: SandboxWorld
 var vehicle_id: String=""
+var _identity: String=""
+var identity: String:
+	get: return _identity
 const BODY_SIZE: Vector2=Vector2(25,13)
 const CLEARANCE: float=4.0
 
 func bind(state: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 	if world!=null or not SandboxVehicleExecution.bind(state,id,fraction): return false
 	world=state;vehicle_id=id
+	_identity=id if id=="player" or world.vehicle_departures.has(id) else "shuttle:"+str(world.vehicle_execution[id]["source"])
 	collision_layer=16
 	collision_mask=2|4|16
 	var shape: CollisionShape2D=CollisionShape2D.new()

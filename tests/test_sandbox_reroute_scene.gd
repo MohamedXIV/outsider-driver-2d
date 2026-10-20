@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 const SHOTS: String = "/tmp/od2d-ink-evidence/sandbox"
 
@@ -43,7 +44,7 @@ func _walkthrough() -> void:
 	assert(recovered.route_nodes[0] == "margin_gate" and recovered.route_segment == 0)
 	await RenderingServer.frame_post_draw
 	_capture("rider-reroute-junction.png")
-	recovered.advance(recovered.remaining_minutes)
+	NativeRouteChecks.finish(recovered,true)
 	scene.call("_render")
 	assert(recovered.active_offer_id.is_empty())
 	await RenderingServer.frame_post_draw

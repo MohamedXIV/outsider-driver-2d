@@ -8,6 +8,7 @@ const LEAVE_RADIUS: float=540.0
 var world: SandboxWorld
 var bodies: Dictionary={}
 var parked: StaticBody2D
+var curb_residents: Dictionary={}
 
 func attach(state: SandboxWorld) -> void:
 	if world==state: return
@@ -20,6 +21,9 @@ func _clear(handoff: bool) -> void:
 	if world!=null and world.vehicle_executor==step: world.vehicle_executor=Callable()
 	for id in bodies.keys(): _remove(str(id),handoff)
 	_remove_parked()
+	for actor in curb_residents.values():
+		actor.collision_layer=0;actor.queue_free()
+	curb_residents.clear()
 
 func _exit_tree() -> void:
 	_clear(true)
@@ -63,11 +67,35 @@ func _sync_parked() -> void:
 	parked.position=Vector2(float(pose["x"]),float(pose["y"]))
 	parked.rotation=float(pose["heading"])
 
+func _sync_curb_residents(focus: Vector2) -> void:
+	var present: Array[String]=[]
+	for npc in world.residents:
+		var at: Vector2=SandboxVehicleDepartures.resident_screen(world,npc,world.vehicle_fraction)
+		if not at.is_finite() or at.distance_to(focus)>LEAVE_RADIUS: continue
+		var id: String=str(npc["id"])
+		present.append(id)
+		if not curb_residents.has(id):
+			var actor: StaticBody2D=StaticBody2D.new()
+			actor.collision_layer=2;actor.collision_mask=16
+			var collider: CollisionShape2D=CollisionShape2D.new()
+			var shape: CircleShape2D=CircleShape2D.new()
+			shape.radius=SandboxAlightGeometry.BODY_RADIUS
+			collider.shape=shape;actor.add_child(collider);add_child(actor)
+			curb_residents[id]=actor
+		curb_residents[id].position=at
+	for id in curb_residents.keys():
+		if not present.has(id):
+			curb_residents[id].collision_layer=0;curb_residents[id].queue_free();curb_residents.erase(id)
+
+
 func reconcile() -> void:
 	if world==null: return
 	_sync_parked()
 	var focus: Vector2=SandboxCityView.project(world.player_position(world.vehicle_fraction))
+	_sync_curb_residents(focus)
 	var candidates: Array[String]=["player"]
+	for id in world.vehicle_departures:
+		if not SandboxVehicleDepartures.trip(world,str(id)).is_empty(): candidates.append(str(id))
 	for npc in world.residents:
 		if npc.get("transit_method","")=="shuttle": candidates.append(str(npc["id"]))
 	for id in bodies.keys():
@@ -89,7 +117,7 @@ func reconcile() -> void:
 			SandboxVehicleExecution.unbind(world,str(id),world.vehicle_fraction)
 
 func step(seconds: float) -> void:
-	if world==null or not is_finite(seconds) or seconds<=0.0: return
+	if world==null or not is_finite(seconds) or seconds<0.0: return
 	reconcile()
 	var left: float=seconds
 	while left>.0000001:

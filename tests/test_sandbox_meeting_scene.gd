@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 const SHOTS: String = "/tmp/od2d-ink-evidence/sandbox"
 
@@ -18,7 +19,7 @@ func _walk() -> void:
 	var accept_trip: Button = scene.get_node("HUD/DockPanel/Content/Actions/Accept")
 	assert(not accept_trip.disabled)
 	accept_trip.pressed.emit()
-	assert(world.advance(world.remaining_minutes))
+	assert(NativeRouteChecks.finish(world))
 	var followup: String = ""
 	for tick in range(150):
 		for offer in world.open_offers():
@@ -30,7 +31,7 @@ func _walk() -> void:
 		assert(world.advance(10))
 	assert(not followup.is_empty())
 	assert(world.accept(followup))
-	assert(world.advance(world.remaining_minutes))
+	assert(NativeRouteChecks.finish(world))
 	scene.call("_render")
 	await process_frame
 	assert(world.meetings.size() == 1)

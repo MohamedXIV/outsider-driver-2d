@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 func _initialize() -> void: call_deferred("_run")
 func _scene() -> Node:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate();root.add_child(scene);scene.set_process(false)
@@ -80,7 +81,7 @@ func _run() -> void:
 	assert(scene._world.reposition("market"))
 	# Loading a valid physical snapshot outside the active neighborhood must
 	# hand off its saved poses, even when no actor was instantiated on load.
-	_finish_route(scene._world)
+	NativeRouteChecks.finish(scene._world)
 	scene._on_save();assert(scene._notice_text=="Sandbox saved.")
 	scene._on_load();assert(scene._street_pilot==null)
 	for id in ["npc:04","npc:08"]:
@@ -89,10 +90,10 @@ func _run() -> void:
 	scene._on_save();assert(scene._notice_text=="Sandbox saved.")
 	scene._on_load()
 	_assert_queue_state(scene._street_restore_state.get("junction",{}),traffic_before)
-	assert(scene._world.reposition("garage"));_finish_route(scene._world);scene._process(0.0)
+	assert(scene._world.reposition("garage"));NativeRouteChecks.finish(scene._world);scene._process(0.0)
 	assert(scene._street_pilot!=null)
 	assert(scene._street_pilot.junction.snapshot()==traffic_before)
-	assert(scene._world.reposition("market"));_finish_route(scene._world);scene._process(0.0)
+	assert(scene._world.reposition("market"));NativeRouteChecks.finish(scene._world);scene._process(0.0)
 	assert(scene._street_pilot==null)
 	_assert_queue_state(scene._street_restore_state.get("junction",{}),traffic_before)
 	assert(scene._world.residents.size()==9 and SandboxWorld.new().restore_snapshot(scene._world.snapshot()))
@@ -105,11 +106,3 @@ func _assert_queue_state(actual: Dictionary,expected: Dictionary) -> void:
 	assert(actual["owner"]==expected["owner"] and actual["queue"]==expected["queue"])
 	for id in SandboxJunctionTraffic.IDS:
 		assert(is_equal_approx(float(actual["distances"][id]),float(expected["distances"][id])))
-
-func _finish_route(world: SandboxWorld) -> void:
-	assert(world.advance(world.remaining_minutes))
-	for delay in range(60):
-		if not world.is_travelling(): break
-		assert(world.advance(1))
-	assert(not world.is_travelling(),"A real physical route must finish before requesting the next one")
-	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))

@@ -89,6 +89,10 @@ func _fractional_clock() -> void:
 	assert(SandboxVehicleExecution.report(moving,"player",cursor,1.0,0.0,"motion"))
 	assert(SandboxVehicleExecution.screen(moving,"player",.9).distance_to(before)<.001)
 	assert(SandboxWorld.new().restore_snapshot(moving.snapshot()))
+	var bad_source_clock: Dictionary=world.snapshot()
+	for event in bad_source_clock["events"]:
+		if event["kind"]=="reposition": event["detail"]["clock_fraction"]=1.0
+	assert(not SandboxWorld.new().restore_snapshot(bad_source_clock))
 	var legacy: Dictionary=world.snapshot()
 	legacy.erase("vehicle_fraction")
 	assert(restored.restore_snapshot(legacy) and restored.vehicle_fraction==0.0)

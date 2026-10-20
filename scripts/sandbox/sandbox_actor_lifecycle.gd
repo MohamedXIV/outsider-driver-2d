@@ -17,4 +17,6 @@ static func pose(world: SandboxWorld, npc: Dictionary, fraction: float=0.0) -> D
 
 		return {"id":str(npc["id"]),"kind":"alight","position":SandboxPassengerAlight.offscreen_position(world,str(npc["id"]),fraction),
 				"elevated":false,"slot":0}
+	var curb: Vector2=SandboxVehicleDepartures.resident_screen(world,npc,fraction)
+	if curb.is_finite(): return {"id":str(npc["id"]),"kind":"alight","position":curb,"elevated":false,"slot":0}
 	return {}

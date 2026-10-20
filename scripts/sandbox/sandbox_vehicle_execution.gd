@@ -9,6 +9,7 @@ const EPSILON: float=0.00001
 const LOOKAHEAD_MINUTES: float=2.0
 
 static func trip(world: SandboxWorld,id: String) -> Dictionary:
+	if world.vehicle_departures.has(id): return SandboxVehicleDepartures.trip(world,id)
 	if id=="player":
 		if not world.is_travelling(): return {}
 		var base: float=float(world.route_edge_elapsed)
@@ -22,13 +23,15 @@ static func trip(world: SandboxWorld,id: String) -> Dictionary:
 					source=str(world.events[index]["id"]);break
 		return {"nodes":world.route_nodes.duplicate(),"base":base,"source":source,
 			"arrival_policy":world.vehicle_execution.get(id,{}).get("arrival_policy",""),
+			"origin_merge":world.vehicle_parking.get("player",{}).get("arrival_policy","")==SandboxVehicleBays.CLINIC and world.route_nodes.front()=="clinic",
 			"held":not world.route_hold_id.is_empty(),"origin":SandboxDirectedLanes._parked_screen(world,world.route_nodes.front())}
 	var npc: Dictionary=world.resident(id)
 	if npc.get("transit_method","")!="shuttle" or int(npc.get("transit_until",0))<=world.minute: return {}
 	return {"nodes":npc["transit_nodes"].duplicate(),
 		"base":float(world.minute-int(npc["transit_started"])-int(npc.get("transit_pause_minutes",0))),
 		"source":str(npc["transit_from_offer"])+":"+str(npc["transit_started"]),
-		"held":not str(npc.get("transit_hold_crossing","")).is_empty()}
+		"held":not str(npc.get("transit_hold_crossing","")).is_empty(),
+		"arrival_policy":world.vehicle_execution.get(id,{}).get("arrival_policy","")}
 
 static func nodes_of(travel: Dictionary) -> Array[String]:
 	var nodes: Array[String]=[]
@@ -79,9 +82,13 @@ static func bind(world: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 		existing["progress"]=at;existing["x"]=here.x;existing["y"]=here.y
 		existing["heading"]=facing;existing["native"]=true
 		return true
-	travel["arrival_policy"]=SandboxVehicleBays.policy(nodes_of(travel)) if id=="player" else ""
-	var progress: float=float(travel["base"])+(0.0 if travel["held"] else clampf(fraction,0.0,.999999))
-	var heading: float=tangent(travel,progress).angle()
+	travel["arrival_policy"]=""
+	if not world.vehicle_departures.has(id) and not SandboxVehicleBays.policy(nodes_of(travel)).is_empty():
+		travel["arrival_policy"]=SandboxVehicleBays.CLINIC if id=="player" else SandboxVehicleBays.SHUTTLE
+	var progress: float=float(travel["base"])+(0.0 if travel["held"] else _departure_fraction(world,id,travel,fraction))
+	var heading: float=float(travel.get("initial_heading",tangent(travel,progress).angle())) if progress<=EPSILON else tangent(travel,progress).angle()
+	if travel.has("initial_heading"):
+		heading=SandboxVehicleKinematics.turn_heading(float(travel["initial_heading"]),tangent(travel,progress).angle(),progress)
 	var parked: Dictionary=world.vehicle_parking.get("player",{}) if id=="player" else {}
 	if progress<=EPSILON and parked.get("stop","")==travel["nodes"][0]: heading=float(parked["heading"])
 	var initial: Vector2=point(travel,progress)
@@ -90,6 +97,17 @@ static func bind(world: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 		"progress":progress,"speed":0.0,"heading":heading,"native":true,"reason":""}
 	world._record("vehicle_execution_entered",id,{"source":travel["source"],"progress":progress,"arrival_policy":travel.get("arrival_policy","")})
 	return true
+
+static func _departure_fraction(world: SandboxWorld,id: String,travel: Dictionary,fraction: float) -> float:
+	var result: float=clampf(fraction,0.0,.999999)
+	if id!="player" or float(travel["base"])>EPSILON: return result
+	for index in range(world.events.size()-1,-1,-1):
+		var event: Dictionary=world.events[index]
+		if int(event["minute"])<world.minute: break
+		var source: String="fare:"+str(event["subject"]) if event["kind"]=="offer_accepted" else str(event["id"]) if event["kind"]=="reposition" else ""
+		if source==travel["source"]: return maxf(0.0,result-float(event["detail"].get("clock_fraction",0.0)))
+	return result
+
 
 static func unbind(world: SandboxWorld,id: String,clock_fraction: float=0.0) -> void:
 	var state: Dictionary=world.vehicle_execution.get(id,{})
@@ -181,6 +199,8 @@ static func before_tick(world: SandboxWorld) -> bool:
 		world._record("vehicle_execution_wait",str(id),{"source":state["source"],
 			"base":travel["base"],"progress":state["progress"],"reason":state["reason"]})
 		if id=="player": player_ready=false
+		elif world.vehicle_departures.has(id):
+			world.vehicle_departures[id]["pause"]=int(world.vehicle_departures[id]["pause"])+1
 		else:
 			var npc: Dictionary=world.resident(str(id))
 			npc["transit_pause_minutes"]=int(npc.get("transit_pause_minutes",0))+1
@@ -191,13 +211,18 @@ static func prune(world: SandboxWorld) -> void:
 	for id in world.vehicle_execution.keys():
 		var travel: Dictionary=trip(world,str(id))
 		if travel.is_empty() and id=="player": SandboxVehicleParking.capture_player(world,world.vehicle_execution[id])
+		elif travel.is_empty() and not world.vehicle_departures.has(id): SandboxVehicleDepartures.capture(world,str(id),world.vehicle_execution[id])
 		if travel.is_empty() or travel.get("source","")!=world.vehicle_execution[id]["source"] \
 				or travel["nodes"]!=world.vehicle_execution[id]["nodes"]:
 			world.vehicle_execution.erase(id)
 
 static func valid_snapshot(value: Dictionary) -> bool:
+	for event in value["events"]:
+		if event["kind"] in ["offer_accepted","reposition"]:
+			var fraction: Variant=event.get("detail",{}).get("clock_fraction",0.0)
+			if not (fraction is int or fraction is float) or not is_finite(float(fraction)) or float(fraction)<0.0 or float(fraction)>=1.0: return false
 	var registry: Variant=value.get("vehicle_execution",{})
-	if not registry is Dictionary or registry.size()>10: return false
+	if not registry is Dictionary or registry.size()>32: return false
 	for id in registry:
 		var state: Variant=registry[id]
 		if not id is String or not state is Dictionary: return false
@@ -225,6 +250,10 @@ static func valid_snapshot(value: Dictionary) -> bool:
 			if int(value.get("route_segment",-1))<0 or int(value["route_segment"])>=nodes.size()-1: return false
 			base=float(value.get("route_edge_elapsed",-1))
 			for index in range(int(value.get("route_segment",0))): base+=SandboxRoads.edge_minutes(nodes[index],nodes[index+1])
+		elif value.get("vehicle_departures",{}).has(id):
+			var service: Dictionary=value["vehicle_departures"][id]
+			if nodes!=service["nodes"] or state["source"]!="departure:"+str(id): return false
+			base=float(int(value["minute"])-int(service["started"])-int(service["pause"]))
 		else:
 			var npc: Dictionary={}
 			for person in value["residents"]:
@@ -235,8 +264,10 @@ static func valid_snapshot(value: Dictionary) -> bool:
 			base=float(int(value["minute"])-int(npc["transit_started"])-int(npc.get("transit_pause_minutes",0)))
 		if float(state["progress"])<base-EPSILON or float(state["progress"])>base+float(value.get("vehicle_fraction",0.0))+LOOKAHEAD_MINUTES+EPSILON: return false
 		var arrival_policy: Variant=state.get("arrival_policy","")
-		if not arrival_policy is String or arrival_policy not in ["",SandboxVehicleBays.CLINIC]: return false
-		if not arrival_policy.is_empty() and (id!="player" or SandboxVehicleBays.policy(nodes)!=arrival_policy): return false
+		if not arrival_policy is String or arrival_policy not in ["",SandboxVehicleBays.CLINIC,SandboxVehicleBays.SHUTTLE]: return false
+		if not arrival_policy.is_empty():
+			if SandboxVehicleBays.policy(nodes)!=SandboxVehicleBays.CLINIC: return false
+			if (id=="player")!=(arrival_policy==SandboxVehicleBays.CLINIC) or value.get("vehicle_departures",{}).has(id): return false
 		var entered: bool=false
 		for event in value["events"]:
 			if event.get("kind","")=="vehicle_execution_entered" and event.get("subject","")==id \
@@ -247,6 +278,9 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		var actual: Vector2=Vector2(float(state["x"]),float(state["y"]))
 		if id=="player":
 			travel["origin"]=SandboxVehicleParking.from_snapshot(value,nodes[0])
+		elif value.get("vehicle_departures",{}).has(id):
+			var service: Dictionary=value["vehicle_departures"][id]
+			travel["origin"]=Vector2(float(service["x"]),float(service["y"]))
 		if actual.distance_to(point(travel,float(state["progress"])))>.5: return false
 		if not bool(state["native"]):
 			for key in ["handoff_minute","handoff_fraction","handoff_progress","handoff_x","handoff_y","handoff_heading"]:

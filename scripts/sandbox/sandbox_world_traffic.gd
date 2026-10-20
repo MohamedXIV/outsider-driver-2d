@@ -58,6 +58,7 @@ static func shuttle_pose(world: SandboxWorld, npc: Dictionary,
 				nodes,maxf(0.0,elapsed-0.15),route_duration)
 	return {
 		"resident_id":str(npc["id"]),
+		"vehicle_identity":"shuttle:"+str(npc["transit_from_offer"])+":"+str(npc["transit_started"]),
 		"source_offer":str(npc["transit_from_offer"]),
 		"position":current,
 		"ahead":ahead,

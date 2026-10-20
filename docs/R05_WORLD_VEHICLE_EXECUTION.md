@@ -107,3 +107,51 @@ under `docs/evidence/r05-collision-corridor/clinic-e0ef24c`. That source's Domai
 planned-duration assumption. The latter now waits for actual bounded World
 arrival before issuing its next route; all identity/queue assertions are retained
 and its focused run passes. No full integrated final gate is claimed yet.
+
+## Genuine clinic shuttle arrival and fractional departure follow-up
+
+A real seed9 municipal trip reproduced disappearance of the vehicle at passenger
+arrival. Physically bound clinic shuttles now have a separate authored frontage
+bay and transfer into a World-owned empty return to the actual depot over authored
+roads. `vehicle_departures` is sourced by the genuine alternative-arrival event,
+original public departure and physical execution entry. It contains no resident,
+fare or economic tick. World minutes and validated execution waits advance it.
+Its stable `shuttle:<original-source>` identity survives rider exit, body
+replacement, offscreen handoff and Save/Load. On reaching the depot it remains
+parked rather than vanishing in view. This authored continuation is deliberately
+limited to clinic arrivals, rather than inventing a whole municipal fleet.
+
+The actual rider exits outside the saved bus footprint and moves along the clinic
+frontage on World time. Close-range collision proxies use that same canonical
+pose and real resident ID, including removal/reentry; no duplicate NPC is added.
+Forged service poses or deleting a source-owned service record fail restoration.
+Focused native shuttle arrival, identity transfer, empty departure, saved service,
+handoff and resident threshold checks pass locally.
+
+A separate retained native repro started a new taxi trip at clock fraction .6.
+The prior binder jumped forward from the parked curb because it treated the
+entire fraction as elapsed journey time. New real accept/reposition events stamp
+their World clock fraction, and binding subtracts only that initial offset. The
+existing zero-elapsed executor callback reconciles the new real journey before
+presentation. This keeps render synchronization read-only and retains the actual
+parked pose/heading. Invalid source fractions are rejected; older events default
+to zero. Focused nonzero-fraction departure and native alight regression pass.
+
+Full Native on be83706 exposed one more old planned-duration assumption in
+`test_passenger_alight_scene`; it now waits for actual bounded physical arrival,
+retaining all walking, Save/Load, legal curb and exactly-once assertions. Its
+focused run passes. Full integrated gates for this follow-up are still pending.
+
+Clinic curb exits now request the same exclusive World junction reservation as
+incoming connectors. A retained two-real-journey repro failed when an empty
+shuttle's curb merge ignored a taxi's active claim; the corrected merge returns a
+zero-progress stop and survives snapshot validation. This applies to the newly
+authored curb policies and preserves legacy connector save records.
+
+Native scene tests that use a planned duration as an arrival command share
+`tests/native_route_checks.gd`: advance planned time, then allow at most 60 sourced
+World delay minutes, require actual arrival, and validate the snapshot. Their
+original pose, currency, identity, route, native motion and settlement assertions
+remain. Tests deliberately restoring only a domain copy explicitly hand off its
+absent native presenters at the saved fractional clock; scene restores continue
+to recreate physical bodies and do not use that aggregate-only option.

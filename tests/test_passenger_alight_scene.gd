@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -18,7 +19,7 @@ func _run() -> void:
 			break
 	assert(not offer.is_empty())
 	assert(world.accept(str(offer["id"])))
-	assert(world.advance(world.remaining_minutes))
+	NativeRouteChecks.finish(world)
 	assert(not world.is_travelling() and world.player_district == "clinic")
 	scene._sync_passenger_alight()
 	assert(scene._alight_view != null and scene._alight_view.walker != null)
@@ -101,7 +102,7 @@ func _run() -> void:
 			next_offer = candidate
 			break
 	assert(not next_offer.is_empty() and other.accept(str(next_offer["id"])))
-	assert(other.advance(other.remaining_minutes))
+	NativeRouteChecks.finish(other)
 	scene2._sync_passenger_alight()
 	assert(scene2._alight_view != null)
 	var second_id: String = str(next_offer["npc_id"])

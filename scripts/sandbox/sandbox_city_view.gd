@@ -279,7 +279,8 @@ func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
 		if npc.get("passenger_alight", {}).get("status", "") in ["walking", "arrived"] \
-				and npc.get("location","")=="clinic" and int(npc.get("transit_until",0))==0:
+				and npc.get("location","")=="clinic" and int(npc.get("transit_until",0))==0 \
+				and not SandboxVehicleDepartures.resident_screen(world,npc,visual_fraction).is_finite():
 			# The same resident is represented by the local native actor or
 			# is inside the clinic; never draw a second static node marker.
 			continue
@@ -309,6 +310,10 @@ func _draw_people(canvas: Node2D, elevated: bool) -> void:
 		canvas.draw_circle(p+Vector2(2,3),4,Color("172a30"))
 		canvas.draw_line(p,p-Vector2(0,5),Color("c3b797"),4)
 		canvas.draw_circle(p-Vector2(0,6),2.5,Color("a5bbac"))
+
+	for id in world.vehicle_departures:
+		if SandboxVehicleDepartures.elevated(world,str(id),visual_fraction)!=elevated: continue
+		_draw_world_shuttle(canvas,SandboxVehicleDepartures.screen(world,str(id),visual_fraction),SandboxVehicleDepartures.heading(world,str(id),visual_fraction))
 
 # A world-owned passenger's independently timed shuttle trip. The car
 # silhouette is presentation only; city travel/arrival stays in SandboxWorld.

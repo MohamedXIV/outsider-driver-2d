@@ -38,6 +38,7 @@ var route_hold_id: String = ""
 var meetings: Array[Dictionary] = []
 var vehicle_execution: Dictionary={}
 var vehicle_parking: Dictionary={}
+var vehicle_departures: Dictionary={}
 var vehicle_junctions: Dictionary={}
 var vehicle_executor: Callable=Callable()
 var vehicle_fraction: float=0.0
@@ -347,6 +348,8 @@ func npc_position(npc: Dictionary, fraction: float = 0.0) -> Vector3:
 				(0.0 if not str(npc.get("transit_hold_crossing","")).is_empty() else fraction)),
 			float(int(npc["transit_until"])-int(npc["transit_started"])
 				-int(npc.get("transit_pause_minutes",0))))
+	var curb: Vector2=SandboxVehicleDepartures.resident_screen(self,npc,fraction)
+	if curb.is_finite(): return SandboxIsoPresentation.unproject(curb,0.0)
 	return SandboxRoads.map_position(str(npc["location"]))
 
 
@@ -370,7 +373,8 @@ func reposition(destination: String, via: String = "", waypoints: Array[String] 
 	route_segment = 0
 	route_edge_elapsed = 0
 	remaining_minutes = SandboxRoads.path_minutes(nodes)
-	_record("reposition", "player", {"from":player_district,"to":destination,"expense":move_cost,"nodes":nodes.duplicate()})
+	_record("reposition", "player", {"from":player_district,"to":destination,"expense":move_cost,"nodes":nodes.duplicate(),"clock_fraction":vehicle_fraction})
+	if vehicle_executor.is_valid(): vehicle_executor.call(0.0)
 	return true
 
 
@@ -414,9 +418,10 @@ func accept(offer_id: String, waypoint: String = "") -> bool:
 	pending_route_nodes.clear()
 	rider_route_request = SandboxRiderRoutes.request(npc, offer, route)
 	_record("offer_accepted", offer_id, {
-		"nodes": route.duplicate(), "minutes": remaining_minutes,
+		"nodes": route.duplicate(), "minutes": remaining_minutes,"clock_fraction":vehicle_fraction,
 		"anticipated_expense": SandboxRoads.path_expense(route)
 	})
+	if vehicle_executor.is_valid(): vehicle_executor.call(0.0)
 	return true
 
 
@@ -623,6 +628,7 @@ func snapshot() -> Dictionary:
 		"vehicle_fraction":vehicle_fraction,
 		"vehicle_execution":vehicle_execution.duplicate(true),
 		"vehicle_parking":vehicle_parking.duplicate(true),
+		"vehicle_departures":vehicle_departures.duplicate(true),
 		"vehicle_junctions":vehicle_junctions.duplicate(true),
 		"pending_route_nodes": pending_route_nodes.duplicate(),
 		"rider_route_request": rider_route_request.duplicate(true),
@@ -952,7 +958,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 
 	var saved_fraction: Variant=value.get("vehicle_fraction",0.0)
 	if not (saved_fraction is float or saved_fraction is int) or not is_finite(float(saved_fraction)) or float(saved_fraction)<0.0 or float(saved_fraction)>=1.0: return false
-	if not SandboxVehicleParking.valid_snapshot(value) or not SandboxVehicleExecution.valid_snapshot(value) or not SandboxVehicleJunctions.valid_snapshot(value): return false
+	if not SandboxVehicleDepartures.valid_snapshot(value) or not SandboxVehicleParking.valid_snapshot(value) or not SandboxVehicleExecution.valid_snapshot(value) or not SandboxVehicleJunctions.valid_snapshot(value): return false
 	seed = int(value.get("seed", 1))
 	minute = int(value["minute"])
 	player_district = district
@@ -988,6 +994,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	vehicle_fraction=float(saved_fraction)
 	vehicle_execution=value.get("vehicle_execution",{}).duplicate(true)
 	vehicle_parking=value.get("vehicle_parking",{}).duplicate(true)
+	vehicle_departures=value.get("vehicle_departures",{}).duplicate(true)
 	vehicle_junctions=value.get("vehicle_junctions",{}).duplicate(true)
 	meetings.clear()
 	for meeting in value["meetings"]:

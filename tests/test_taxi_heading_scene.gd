@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 # R05 regression: the player-facing heading is a persistent presentation pose,
 # resolved from genuine road tangents/events, NEVER a new movement authority.
@@ -49,7 +50,7 @@ func _run() -> void:
 	assert(absf(angle_difference(heading_before, city._heading)) < .001,
 			"Mid-curve Save/Load must retain the exact smoothed facing")
 	world = scene._world
-	world.advance(world.remaining_minutes)
+	NativeRouteChecks.finish(world)
 	city._process(0.0)
 	assert(world.player_district == "clinic" and not world.is_travelling())
 	var clinic_facing: float = SandboxCityView.world_road_heading(world)
@@ -70,7 +71,7 @@ func _run() -> void:
 	# independent city travel after the first fareless reposition).
 	world = scene._world
 	assert(world.reposition("docks"))
-	world.advance(world.remaining_minutes)
+	NativeRouteChecks.finish(world)
 	city._process(0.0)
 	var back_facing: float = SandboxCityView.world_road_heading(world)
 	assert(absf(angle_difference(back_facing, city._heading)) < .001)
