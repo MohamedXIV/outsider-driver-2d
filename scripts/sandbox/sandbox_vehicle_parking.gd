@@ -34,6 +34,7 @@ static func capture_player(world: SandboxWorld,state: Dictionary) -> void:
 	var parked: Dictionary={"source":state["source"],"parent_event":parent["id"],"stop":world.player_district,
 		"from":nodes[nodes.size()-2],"x":state["x"],"y":state["y"],
 		"height":SandboxRoads.map_position(world.player_district).y,"heading":state["heading"],"minute":world.minute}
+	if not str(state.get("arrival_policy","")).is_empty(): parked["arrival_policy"]=state["arrival_policy"]
 	world.vehicle_parking["player"]=parked
 	world._record("vehicle_parked","player",parked)
 
@@ -52,7 +53,7 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		elif event.get("kind","")=="route_segment_completed": leg=event
 		elif event.get("kind","")=="vehicle_execution_entered" and event.get("subject","")=="player":
 			if not detail is Dictionary: return false
-			entered[str(detail.get("source",""))]=true
+			entered[str(detail.get("source",""))]=str(detail.get("arrival_policy",""))
 		elif event.get("kind","")=="vehicle_parked" and event.get("subject","")=="player":
 			if not detail is Dictionary: return false
 			for key in ["source","parent_event","stop","from"]:
@@ -70,7 +71,9 @@ static func valid_snapshot(value: Dictionary) -> bool:
 			if not SandboxRoads.connected(detail["from"],detail["stop"]) or not SandboxRoads.DISTRICTS.has(detail["stop"]) \
 					or absf(float(detail["heading"]))>PI or float(detail["height"])!=SandboxRoads.map_position(detail["stop"]).y: return false
 			var nodes: Array[String]=[detail["from"],detail["stop"]]
-			var point: Vector2=SandboxCityView.project(SandboxDirectedLanes.route_lane_point(nodes,0,1.0))
+			var policy: String=str(detail.get("arrival_policy",""))
+			if policy!=entered[source] or (not policy.is_empty() and SandboxVehicleBays.policy(nodes)!=policy): return false
+			var point: Vector2=SandboxVehicleExecution.point({"nodes":nodes,"arrival_policy":policy},float(SandboxRoads.path_minutes(nodes)))
 			if point.distance_to(Vector2(float(detail["x"]),float(detail["y"])))>.5: return false
 			expected=detail
 		seen[str(event.get("id",""))]=event

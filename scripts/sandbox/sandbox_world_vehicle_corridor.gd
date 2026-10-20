@@ -7,6 +7,7 @@ const ENTER_RADIUS: float=420.0
 const LEAVE_RADIUS: float=540.0
 var world: SandboxWorld
 var bodies: Dictionary={}
+var parked: StaticBody2D
 
 func attach(state: SandboxWorld) -> void:
 	if world==state: return
@@ -18,6 +19,7 @@ func attach(state: SandboxWorld) -> void:
 func _clear(handoff: bool) -> void:
 	if world!=null and world.vehicle_executor==step: world.vehicle_executor=Callable()
 	for id in bodies.keys(): _remove(str(id),handoff)
+	_remove_parked()
 
 func _exit_tree() -> void:
 	_clear(true)
@@ -37,8 +39,33 @@ func _eligible(id: String) -> bool:
 	return not segment.is_empty() and SandboxDirectedLanes.has_profile(segment["from"],segment["to"]) \
 		and SandboxRoads.map_position(segment["from"]).y==0.0 and SandboxRoads.map_position(segment["to"]).y==0.0
 
+func _remove_parked() -> void:
+	if parked==null: return
+	parked.collision_layer=0
+	parked.collision_mask=0
+	parked.queue_free()
+	parked=null
+
+func _sync_parked() -> void:
+	var pose: Dictionary=world.vehicle_parking.get("player",{})
+	if world.is_travelling() or pose.is_empty():
+		_remove_parked();return
+	if parked==null:
+		parked=StaticBody2D.new()
+		parked.collision_layer=16
+		parked.collision_mask=2|4|16
+		var shape: CollisionShape2D=CollisionShape2D.new()
+		var box: RectangleShape2D=RectangleShape2D.new()
+		box.size=SandboxWorldVehicleBody.BODY_SIZE
+		shape.shape=box
+		parked.add_child(shape)
+		add_child(parked)
+	parked.position=Vector2(float(pose["x"]),float(pose["y"]))
+	parked.rotation=float(pose["heading"])
+
 func reconcile() -> void:
 	if world==null: return
+	_sync_parked()
 	var focus: Vector2=SandboxCityView.project(world.player_position(world.vehicle_fraction))
 	var candidates: Array[String]=["player"]
 	for npc in world.residents:

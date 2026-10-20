@@ -20,11 +20,11 @@ func _run() -> void:
 	scene._on_load();world=scene._world
 	assert(world.player_position(scene._elapsed).distance_to(at)<.01)
 	await shot("04-long-city-ride")
-	world.advance(world.remaining_minutes);scene._render()
+	_finish_route();scene._render()
 	assert(scene._conversation!=null and scene._conversation.still_valid(world))
 	await shot("05-arrival-readable")
 	scene._on_dialogue_choice(2)
-	assert(world.reposition("clinic"));world.advance(world.remaining_minutes)
+	assert(world.reposition("clinic"));_finish_route()
 	assert(world.reposition("depot","",["basin_turn","market","margin_gate","bridge_east","bridge_west"]))
 	assert(world.route_nodes.has("basin_turn") and world.route_nodes.has("bridge_west"))
 	var captured: Dictionary={}
@@ -57,3 +57,14 @@ func shot(label: String) -> void:
 	assert(root.get_texture().get_image().save_png(SHOTS.path_join(label+".png"))==OK)
 	var file: FileAccess=FileAccess.open(SHOTS.path_join(label+".json"),FileAccess.WRITE)
 	file.store_string(JSON.stringify({"minute":world.minute,"node":world.player_district,"position":str(world.player_position(scene._city.visual_fraction)),"route":world.route_nodes,"segment":world.route_segment,"edge_elapsed":world.route_edge_elapsed,"zoom":scene._city._zoom}))
+
+func _finish_route() -> void:
+	# Planned road minutes exclude source-owned physical holds. Drive the real
+	# World to completion rather than treating that estimate as an arrival.
+	var planned: int=world.remaining_minutes
+	assert(world.advance(planned))
+	for delay in range(60):
+		if not world.is_travelling(): break
+		assert(world.advance(1))
+	assert(not world.is_travelling(),"Physical route must drain within the bounded delay")
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))

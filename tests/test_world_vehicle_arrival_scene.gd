@@ -44,10 +44,33 @@ func _run() -> void:
 	assert(not SandboxWorld.new().restore_snapshot(bad))
 	bad=world.snapshot();bad["vehicle_parking"]={}
 	assert(not SandboxWorld.new().restore_snapshot(bad))
+	var trip: Dictionary=world.resident(str(offer["npc_id"]))["passenger_alight"]
+	assert(trip["curb"]["source"]=="fare:"+str(offer["id"]))
+	assert(is_equal_approx(SandboxAlightGeometry.start(trip).distance_to(target),SandboxVehicleBays.DOOR_CLEARANCE))
+	bad=world.snapshot()
+	for resident in bad["residents"]:
+		if resident["id"]==offer["npc_id"]: resident["passenger_alight"]["curb"]["x"]+=10.0
+	assert(not SandboxWorld.new().restore_snapshot(bad))
+	bad=world.snapshot()
+	for resident in bad["residents"]:
+		if resident["id"]==offer["npc_id"]: resident["passenger_alight"].erase("curb")
+	assert(not SandboxWorld.new().restore_snapshot(bad))
 	body.queue_free();await physics_frame
+	var corridor: SandboxWorldVehicleCorridor=SandboxWorldVehicleCorridor.new()
+	root.add_child(corridor);corridor.attach(world)
+	assert(corridor.parked!=null and corridor.parked.position.distance_to(target)<.001)
+	var alight: SandboxAlightView=SandboxAlightView.new()
+	alight.world=world;alight.npc_id=str(offer["npc_id"]);root.add_child(alight)
+	assert(alight.walker.position.distance_to(SandboxAlightGeometry.start(trip))<.001)
+	for frame in range(240):
+		await physics_frame
+		if trip["status"]=="arrived": break
+	assert(trip["status"]=="arrived" and world.residents.size()==9)
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
 	assert(world.reposition("garage","margin_gate"))
-	var departing: SandboxWorldVehicleBody=SandboxWorldVehicleBody.new();root.add_child(departing)
-	assert(departing.bind(world,"player"))
+	corridor.reconcile()
+	assert(corridor.parked==null)
+	var departing: SandboxWorldVehicleBody=corridor.bodies["player"]
 	assert(departing.position.distance_to(target)<.001)
 	assert(absf(angle_difference(departing.rotation,parked_heading))<.001,"A new trip must start from the real parked heading")
 	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))

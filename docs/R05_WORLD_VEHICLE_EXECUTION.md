@@ -60,3 +60,27 @@ A real seed9 medical route also reproduced a terminal cursor stuck at
 monotone cumulative lane arc length (including bends), and commits the exact
 endpoint only within .001 projected units after braking below .05. Focused genuine
 two-journey, contact/meeting and terminal braking checks pass after this repair.
+
+## Clinic curb ownership follow-up
+
+A genuine seed9 medical fare reproduced a 43.3316-pixel gap between the incoming
+taxi endpoint and the previous clinic walker spawn. New physically bound clinic
+trips use an explicit saved `clinic-curb-v1` arrival policy: the final authored
+segment blends into the clinic frontage bay. Older execution snapshots without
+that policy retain their old geometry. Planned road minutes remain unchanged;
+any physical delay is recorded by the existing World wait contract.
+
+The actual completed fare transfers its terminal World pose/source into the
+resident's alight record. The pedestrian starts 14 pixels outside the car centre,
+clearing the 6.5-pixel vehicle half-width and 6-pixel walker radius, then walks
+outward to the real clinic doorway. Snapshot validation reconstructs this curb
+and its original entered journey; pose forgery or deleting the curb is rejected.
+The same parked taxi footprint remains collidable until the next real journey.
+No new resident, fare, settlement, or synthetic driver is created.
+
+Focused native arrival/braking, curb transfer, physical walking, parked occupancy,
+Save/Load, forged-curb rejection and next departure pass. The previously failing
+city-presentation test assumed planned minutes guaranteed arrival; its retained
+trace showed a stopped endpoint with one genuine World delay still outstanding.
+The test now advances to actual arrival within a bounded delay and validates the
+World snapshot before requesting the next route. All presentation assertions remain.
