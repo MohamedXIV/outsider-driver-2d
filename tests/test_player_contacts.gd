@@ -38,6 +38,12 @@ func _run() -> void:
 	scene._render();scene._render()
 	var count: int=scene._meeting_dialogue.current_frame()["choices"].size()
 	assert(mode._body.has_node("ContactSceneSection"))
+	assert(mode._body.get_node("ContactSceneSection").get_index() <
+		mode._body.get_node("ContactsListSection").get_index(),
+		"Active off-duty Ink must lead Contacts, ahead of past invitations")
+	assert(mode._body.get_node("ContactRepliesSection").get_index() <
+		mode._body.get_node("ContactDetailsSection").get_index(),
+		"During the meeting player responses outrank appointment metadata")
 	assert(mode._off_duty_stage.visible,
 		"Use real off-duty stage only while a sourced encounter is running")
 	assert(mode._off_duty_stage.venue==str(world.meetings[0]["location"]))
@@ -53,6 +59,10 @@ func _run() -> void:
 	assert(not mode._off_duty_stage.visible,
 		"Narrow contacts must prioritize dialogue over the optional vignette")
 	assert(mode._body.has_node("ContactRepliesSection"))
+	var compact_line: Label=mode._body.get_node("ContactSceneSection/Items").get_child(1) as Label
+	var visible_scroll: Rect2=mode._scroll.get_global_rect()
+	assert(visible_scroll.has_point(compact_line.get_global_rect().position + Vector2(4,4)),
+		"Compact Contacts must show the real Ink line before any scrolling")
 	root.size=Vector2i(1280,720)
 	for frame in range(4): await process_frame
 	assert(mode._off_duty_stage.visible,

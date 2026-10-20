@@ -84,6 +84,8 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
   assert.equal((await data()).playerContactStage, 'false');
   assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText,
     'Arabic UI must not silently translate the source Ink meeting line');
+  assert.equal((await data()).playerContactSceneTopVisible, 'true',
+    'Arabic compact Contacts must show the real encounter text immediately');
   for (let i = 0; i < 3; i++)
     assert.equal((await actions())['meeting_choice_' + i]?.disabled, false,
       'All sourced Ink replies must remain reachable on compact Arabic Web');

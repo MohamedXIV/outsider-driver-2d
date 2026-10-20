@@ -515,7 +515,26 @@ func sync() -> void:
 			_call.bind("_on_buy_ar"),controller._ar_buy.disabled)
 		_end_button_group()
 	elif tab=="contacts":
-		_label(trp("People & appointments","المعارف والمواعيد"),true)
+		# During an authentic off-duty scene, dialogue takes visual priority.
+		# On a small screen the previous invite-first order pushed the
+		# actual Ink line entirely below the first visible scroll page.
+		if controller._meeting_dialogue!=null:
+			_label(trp("Off-duty encounter","لقاء خارج العمل"),true)
+		if controller._meeting_dialogue!=null:
+			# A real Ink frame may contain stage directions, not speech; avoid
+			# giving them an invented speaker or an unauthorized translation.
+			_begin_button_group(trp("At the meeting","أثناء اللقاء"),"ContactSceneSection")
+			_group_note(controller._meeting_text.text)
+			_end_button_group()
+			var meeting_choices: Array=controller._meeting_dialogue.current_frame().get("choices",[])
+			if not meeting_choices.is_empty():
+				_begin_button_group(trp("Replies","الردود"),"ContactRepliesSection")
+				for i in range(meeting_choices.size()):
+					_button("meeting_choice_"+str(i),str(meeting_choices[i]),
+						controller._on_meeting_choice.bind(i))
+				_end_button_group()
+		else:
+			_label(trp("People & appointments","المعارف والمواعيد"),true)
 		var status_text: Dictionary={
 			"invited":trp("Invited","دعوة"),
 			"accepted":trp("Confirmed","مؤكد"),
@@ -563,19 +582,7 @@ func sync() -> void:
 						_button("meeting_attend",trp("Meet here","التقِ هنا"),
 							_call.bind("_on_meeting_attend"),controller._meeting_attend.disabled)
 					_end_button_group()
-		if controller._meeting_dialogue!=null:
-			# A real Ink frame may contain stage directions, not speech; avoid
-			# giving them an invented speaker or an unauthorized translation.
-			_begin_button_group(trp("At the meeting","أثناء اللقاء"),"ContactSceneSection")
-			_group_note(controller._meeting_text.text)
-			_end_button_group()
-			var meeting_choices: Array=controller._meeting_dialogue.current_frame().get("choices",[])
-			if not meeting_choices.is_empty():
-				_begin_button_group(trp("Replies","الردود"),"ContactRepliesSection")
-				for i in range(meeting_choices.size()):
-					_button("meeting_choice_"+str(i),str(meeting_choices[i]),
-						controller._on_meeting_choice.bind(i))
-				_end_button_group()
+
 	elif tab=="settings":
 		_label(trp("Options","الخيارات"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))
@@ -627,6 +634,7 @@ func _publish() -> void:
 	# remain unattributed until an authored speaker exists.
 	var contact_sections: Dictionary={}
 	var contact_scene_text: String=""
+	var contact_scene_top_visible: bool=false
 	if not debug_mode and tab=="contacts":
 		for section_name in ["ContactsListSection","ContactDetailsSection",
 				"ContactActionsSection","ContactSceneSection","ContactRepliesSection"]:
@@ -634,7 +642,11 @@ func _publish() -> void:
 		if _body.has_node("ContactSceneSection/Items"):
 			var scene_items: Node=_body.get_node("ContactSceneSection/Items")
 			if scene_items.get_child_count()>1 and scene_items.get_child(1) is Label:
-				contact_scene_text=(scene_items.get_child(1) as Label).text
+				var line: Label=scene_items.get_child(1) as Label
+				contact_scene_text=line.text
+				var top: float=line.get_global_rect().position.y
+				var scroll_rect: Rect2=_scroll.get_global_rect()
+				contact_scene_top_visible=top>=scroll_rect.position.y and top<scroll_rect.end.y-8.0
 	for key in _actions:
 		var button: Button=_actions[key]
 		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled,
@@ -646,6 +658,7 @@ func _publish() -> void:
 			"playerRiderQuestion":SandboxRiderInitiative.question(controller._world,controller._ui_locale),
 			"playerContactSections":JSON.stringify(contact_sections),
 			"playerContactSceneText":contact_scene_text,
+			"playerContactSceneTopVisible":str(contact_scene_top_visible).to_lower(),
 			"playerContactStage":str(_off_duty_stage.visible).to_lower()}),true)
 
 func _fit_panel() -> void:

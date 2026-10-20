@@ -288,3 +288,27 @@ desktop English it confirms the authenticated stage appears again and
 selects the actual Ink reply, proving completed World settlement without a
 synthetic bridge. This is a regression test and screenshot artifact only:
 no UI layout or simulation mechanics have been changed by this slice.
+
+## Compact off-duty focus correction — 2026-10-21
+
+Reviewed **fully green exact-head** [run #39456730241](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39456730241)
+and the real exported screenshots including `web-player-contact-compact-ar.png`.
+Its 480×760 Arabic Contacts page placed **Invitations** then **Appointment**
+at the top of the scroll view and the genuine `At the meeting` text below
+the fold: users could not see the ongoing Ink scene without manually
+scrolling, despite correctness of the source and available action indexes.
+
+The rendering now puts **the actual Ink scene and its player Replies
+first while an authentic `_meeting_dialogue` exists**; a compact heading
+identifies the off-duty encounter, and historical invitations/details remain
+below. Other invitation/confirmed/completed states preserve their original
+order. This is only player-owned presentation, not World, Ink or clock logic.
+Native acceptance enforces ordering and that a real Ink line intersects
+the visible compact scroller before user input. Browser read-only
+`playerContactSceneTopVisible` and the genuine compact Arabic exported Web
+test assert the same first-view property without moving the scroll
+programmatically, fabricating a dialogue, or bypassing real UI actions.
+
+This change does NOT constitute visual acceptance or authorize a gameplay
+release. Canonical physical-driving #73, rider #75, and evidence #80 are
+still being reviewed; `main` and all Codex-owned files remain untouched.
