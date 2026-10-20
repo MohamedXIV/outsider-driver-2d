@@ -187,6 +187,16 @@ func _inline_passenger(speaker: Dictionary, words: String, locale: String,
 	_body.add_child(speech)
 	speech.present(speaker,words,locale,font_path,controller._reduced_motion)
 
+func _gear_readout(kind: String, title: String, detail: String) -> void:
+	# The actual World-owned equipment state is given to this read-only
+	# cab instrument. It never unlocks a module or infers language knowledge.
+	var device: SandboxCabGearPlate=SandboxCabGearPlate.new()
+	device.name="Device_"+kind
+	device.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	device.custom_minimum_size.y=74.0
+	(_button_group if _button_group!=null else _body).add_child(device)
+	device.present(kind,title,detail,controller._ui_locale=="ar")
+
 func _button(id: String, text: String, action: Callable, disabled: bool=false) -> Button:
 	var button: Button=Button.new();button.name=id;button.text=text;button.custom_minimum_size=Vector2(0,44)
 	button.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -391,23 +401,67 @@ func sync() -> void:
 			_button("honor",trp("Honor passenger request","لبِّ طلب الراكب"),controller._on_rider_answer.bind(true),controller._honor.disabled)
 			_button("refuse",trp("Refuse passenger request","ارفض طلب الراكب"),controller._on_rider_answer.bind(false),controller._refuse.disabled)
 	elif tab=="gear":
-		_label(trp("Your working kit","أدوات عملك"),true)
+		_label(trp("Cab equipment","تجهيزات التاكسي"),true)
+		var installed: PackedStringArray=[]
+		for language in world.modules_installed:
+			installed.append(trp({"trade":"Common","local":"Local","cant":"Cant"}.get(language,language),
+				{"trade":"المشتركة","local":"المحلية","cant":"الكانت"}.get(language,language)))
+		_begin_button_group(trp("Cab instruments","أجهزة المقصورة"),"CabInstrumentsSection")
 		if world.starter_device.is_empty():
-			_label(trp("Basic Common translator included. Choose one free starter bonus.","مترجم اللغة المشتركة متاح. اختر إضافة مجانية واحدة."))
-			for device in ["gps","module:local","radio"]: _button(device,trp({"gps":"GPS · route display","module:local":"Local language module","radio":"Radio · underground dispatch"}[device],{"gps":"نظام الملاحة","module:local":"وحدة اللغة المحلية","radio":"راديو الطلبات السرية"}[device]),controller._on_starter_device.bind(device),world.is_travelling())
+			_gear_readout("translator",trp("Translator","المترجم"),
+				trp("Common installed","اللغة المشتركة مثبتة"))
 		else:
-			_label(trp("Starter kit: ","عدة البداية: ")+trp({"gps":"GPS","module:local":"Local module","radio":"Radio"}[world.starter_device],{"gps":"الملاحة","module:local":"وحدة اللغة المحلية","radio":"الراديو"}[world.starter_device]))
-			var installed: PackedStringArray=[]
-			for language in world.modules_installed: installed.append(trp({"trade":"Common","local":"Local","cant":"Cant"}[language],{"trade":"المشتركة","local":"المحلية","cant":"الكانت"}[language]))
-			_label(trp("Installed languages: ","اللغات المثبتة: ")+" / ".join(installed))
-		_label(trp("Concourse Market · Linguist · 06:00–20:00","سوق الملتقى · اللغوي · ٠٦:٠٠–٢٠:٠٠"))
-		_button("market",trp("Drive to the market","قد إلى السوق"),_drive.bind("market"),world.is_travelling() or world.player_district=="market")
+			var starter_names: Dictionary={"gps":trp("GPS","الملاحة"),
+				"module:local":trp("Local translator","مترجم اللغة المحلية"),
+				"radio":trp("Radio","الراديو")}
+			var starter_kind: String="translator" if world.starter_device=="module:local" else world.starter_device
+			_gear_readout(starter_kind,str(starter_names.get(world.starter_device,world.starter_device)),
+				trp("Starter device","جهاز البداية"))
+		_gear_readout("translator",trp("Language cartridges","وحدات اللغة"),
+			trp("Installed: ","المثبتة: ")+" / ".join(installed))
+		if world.ar_owned:
+			_gear_readout("ar",trp("AR eyewear","نظارة الواقع المعزز"),
+				trp("Worn","مرتداة") if world.ar_equipped else trp("Stored","محفوظة"))
+		_end_button_group()
+		if world.starter_device.is_empty():
+			_begin_button_group(trp("Choose one free starter","اختر جهاز بداية مجانيًا"),
+				"StarterGearSection")
+			_button("gps",trp("GPS · navigation","الملاحة · GPS"),
+				controller._on_starter_device.bind("gps"),world.is_travelling())
+			_button("module:local",trp("Local translator module","وحدة ترجمة اللغة المحلية"),
+				controller._on_starter_device.bind("module:local"),world.is_travelling())
+			_button("radio",trp("Radio receiver","جهاز الراديو"),
+				controller._on_starter_device.bind("radio"),world.is_travelling())
+			_end_button_group()
+		_begin_button_group(trp("Fitting & controls","التركيب والتحكم"),"FittingGearSection")
 		for language in ["local","cant"]:
-			_button("buy_"+language,trp("Buy ","اشترِ ")+language+" · "+str(8 if language=="local" else 9)+" cr",controller._on_buy_module.bind(language),controller._buy_local.disabled if language=="local" else controller._buy_cant.disabled)
-			_button("install_"+language,trp("Install ","ثبّت ")+language,controller._on_install_module.bind(language),controller._install_local.disabled if language=="local" else controller._install_cant.disabled)
-		_button("ar_buy",trp("AR eyewear · 5 cr","نظارة الواقع المعزز · ٥"),_call.bind("_on_buy_ar"),controller._ar_buy.disabled)
-		_button("ar_wear",trp("Remove eyewear","اخلع النظارة") if world.ar_equipped else trp("Wear eyewear","ارتدِ النظارة"),_call.bind("_on_wear_ar"),not world.ar_owned)
-		if world.ar_equipped and not controller._ar_note.is_empty(): _label(str(controller._ar_note.get("text",""))+"\n"+trp("Source: ","المصدر: ")+str(controller._ar_note.get("source","")))
+			var install_name: String=trp("Local","المحلية") if language=="local" else trp("Cant","الكانت")
+			_button("install_"+language,trp("Install ","ثبّت ")+install_name,
+				controller._on_install_module.bind(language),
+				controller._install_local.disabled if language=="local" else controller._install_cant.disabled)
+		_button("ar_wear",trp("Remove eyewear","اخلع النظارة") if world.ar_equipped else
+			trp("Wear eyewear","ارتدِ النظارة"),_call.bind("_on_wear_ar"),not world.ar_owned)
+		if world.ar_equipped and not controller._ar_note.is_empty():
+			var source: String=str(controller._ar_note.get("source",""))
+			var note: Label=Label.new()
+			note.text=str(controller._ar_note.get("text",""))+"\n"+
+				trp("Source: ","المصدر: ")+source
+			note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+			_button_group.add_child(note)
+		_end_button_group()
+		_begin_button_group(trp("Linguist counter · 06:00–20:00","مكتب اللغوي · ٠٦:٠٠–٢٠:٠٠"),
+			"MarketGearSection")
+		_button("market",trp("Concourse Market · directions","سوق الملتقى · الطريق"),
+			_drive.bind("market"),world.is_travelling() or world.player_district=="market")
+		for language in ["local","cant"]:
+			var name: String=trp("Local","المحلية") if language=="local" else trp("Cant","الكانت")
+			var price: int=8 if language=="local" else 9
+			_button("buy_"+language,trp("Buy ","اشترِ ")+name+" · %d cr"%price,
+				controller._on_buy_module.bind(language),
+				controller._buy_local.disabled if language=="local" else controller._buy_cant.disabled)
+		_button("ar_buy",trp("AR eyewear · 5 cr","نظارة الواقع المعزز · ٥ cr"),
+			_call.bind("_on_buy_ar"),controller._ar_buy.disabled)
+		_end_button_group()
 	elif tab=="contacts":
 		_label(trp("Contacts","المعارف"),true)
 		_label(controller._meeting_info.text)

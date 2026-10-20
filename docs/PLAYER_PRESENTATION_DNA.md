@@ -120,3 +120,32 @@ Native regression now asserts distinct location/wallet/device surfaces,
 stable mobile layout and a real local dispatch group; the full linked
 Chromium click/route tests remain required. Gear/device visuals are a
 separate future step; no unrelated simulation or controller rewrite.
+
+## Cab instruments, fitting and market counter — 2026-10-20
+
+Verified [#39357802273](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39357802273)
+**fully green on exact HEAD** for the previous Street/telemetry changes.
+The exported Web screenshot of `web-gear.png` still showed a single flat
+technical list of disabled buy/install buttons. New UI compartmentalizes
+**actual installed cab hardware** from **physical fitting/controls** and
+**Linguist market purchases**, matching the earlier 3D fiction of a patched
+older taxi with real local-market access. `SandboxCabGearPlate` renders a
+small enamel plate with simple GPS road fork, radio tuning dial, translator
+cartridge markings, and eyewear silhouette. These are read-only **functional
+pictograms**, not invented alien written text or finalized cultural emblems.
+
+Starter remains exactly one real GPS / Local translator / Radio choice.
+Equipment statuses are read from `starter_device`, `modules_installed`,
+`ar_owned`, and `ar_equipped`. All purchases and installs remain the
+original controller actions and disabled-state gates; the presented
+numeric prices remain 8/9/5 technical credits, never a named fiction
+currency. No additional radio language, official permit, translator skill,
+market stock, or income is granted by these plates. The UI keeps the real
+Concourse Market travel command and 06:00–20:00 Linguist hours.
+
+`tests/test_cab_gear_scene.gd` covers the actual World-backed starter
+selection, read-only view, real controller interaction, Arabic RTL, 44px
+buttons, responsive compact sheet and Debug exclusion. The existing
+Chromium integration must still purchase/install Local and Cant, equip AR
+and perform one real fare. This slice is deliberately **not** the final
+visual identity or a general-purpose inventory rewrite.
