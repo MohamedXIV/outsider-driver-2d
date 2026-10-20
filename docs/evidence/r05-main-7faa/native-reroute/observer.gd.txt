@@ -1,0 +1,57 @@
+extends SceneTree
+const OUT: String="res://work/reroute-main-frames"
+const SOURCE_HEAD: String="7faa5cc45e6ad77bc25c5bb7e54573a6d58e34b4"
+var app: Node
+var rows: Array=[]
+func _initialize() -> void: call_deferred("_run")
+func _read(label: String) -> Dictionary:
+	var w: SandboxWorld=app._world
+	var point: Vector2=SandboxDirectedLanes.taxi_screen(w,w.vehicle_fraction)
+	return {"label":label,"head":SOURCE_HEAD,"minute":w.minute,"fraction":w.vehicle_fraction,
+		"render":[point.x,point.y],"heading":SandboxVehicleExecution.heading(w,"player",w.vehicle_fraction),
+		"world":w.snapshot(),"loaded":app._vehicle_corridor.bodies.keys()}
+func _shot(label: String) -> void:
+	await RenderingServer.frame_post_draw
+	var row: Dictionary=_read(label);rows.append(row)
+	if root.get_texture().get_image().save_png(OUT.path_join(label+".png"))!=OK: push_error("PNG capture failed");quit(1)
+	FileAccess.open(OUT.path_join(label+".json"),FileAccess.WRITE).store_string(JSON.stringify(row,"  "))
+	print("REROUTE_FRAME ",label," minute=",app._world.minute)
+func _run() -> void:
+	DirAccess.make_dir_recursive_absolute(OUT)
+	app=load("res://scenes/sandbox.tscn").instantiate();app._world=SandboxWorld.new(9);root.add_child(app)
+	var offer: Dictionary={}
+	for item in app._world.open_offers():
+		if item["origin"]=="garage" and SandboxPassengerAlight.applicable(item): offer=item;break
+	if offer.is_empty() or not app._world.accept(str(offer["id"])): push_error("Real medical fare missing");quit(1);return
+	app._render()
+	var boundary: float=SandboxRoads.edge_minutes(app._world.route_nodes[0],app._world.route_nodes[1])
+	var queued: bool=false
+	for frame in range(3600):
+		await physics_frame
+		var w: SandboxWorld=app._world
+		if w.route_segment==0 and SandboxVehicleExecution.progress(w,"player",w.vehicle_fraction)>boundary:
+			await _shot("01-driven-handoff")
+			var before: Dictionary=_read("before-command")
+			if not w.queue_reroute("depot"): push_error("Reachable real reroute rejected");quit(1);return
+			var after: Dictionary=_read("after-command")
+			if before["render"]!=after["render"] or absf(angle_difference(float(before["heading"]),float(after["heading"])))>.00001:
+				push_error("Queue changed the already-driven pose");quit(1);return
+			rows.append(before);rows.append(after);queued=true;app._render();await _shot("02-queued");break
+	if not queued: push_error("No real physical handoff window observed");quit(1);return
+	var rebased: bool=false
+	for frame in range(600):
+		await physics_frame
+		rows.append(_read("tracking"))
+		if app._world.vehicle_execution.get("player",{}).has("rebase_event"): rebased=true;break
+	if not rebased: push_error("World discarded the actual reroute cursor");quit(1);return
+	await _shot("03-rebased")
+	app._on_save();var saved: Dictionary=_read("saved")
+	app._on_load();var restored: Dictionary=_read("restored")
+	if saved["render"]!=restored["render"] or saved["heading"]!=restored["heading"]:
+		push_error("Rerouted saved pose changed on load");quit(1);return
+	await _shot("04-restored")
+	if not SandboxWorld.new().restore_snapshot(app._world.snapshot()) or app._world.residents.size()!=9:
+		push_error("Invalid real reroute World");quit(1);return
+	FileAccess.open(OUT.path_join("sequence.json"),FileAccess.WRITE).store_string(JSON.stringify(rows,"  "))
+	print("REROUTE_MAIN_EVIDENCE_PASS genuine real-time fare, driven prefix, unchanged command pose, sourced rebase, exact reload")
+	quit()

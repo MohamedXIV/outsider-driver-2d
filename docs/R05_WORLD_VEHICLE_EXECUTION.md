@@ -1,4 +1,12 @@
-# World vehicle execution — integration in progress
+# World-owned physical vehicle corridor
+
+The automatic Main corridor is implemented on runtime `7faa5cc45e6ad77bc25c5bb7e54573a6d58e34b4`. The later `14c1609` changes only three restored-scene regressions so they retain the real physical executor and wait for actual World commitment. World owns city time, source journeys, validated waits/reservations, population and settlements; nearby physical bodies execute those journeys and report bounded progress. The renderer consumes the same canonical poses.
+
+Coverage is deliberately bounded to four authored ground-road profiles with proximity hysteresis, plus source-backed clinic curb arrival and empty municipal return to the depot. Other routes use aggregate handoff. This does not establish whole-city physical traffic or human acceptance. The following sections retain the foundation assumptions, reproduced failures and subsequent repairs chronologically; statements about missing Main activation refer to those earlier candidates.
+
+Sequential actual Main Native/Web evidence and precise capture limitations are in `docs/evidence/r05-main-7faa/`. Full gate results remain associated with their recorded exact heads; milestone acceptance is pending. No HUD presentation files are changed.
+
+## Historical foundation before Main activation
 
 This branch adds a bounded execution contract and a replaceable native body for existing player trips and genuine municipal shuttle trips. The main scene does **not** instantiate these bodies yet. This is not completion of issue #67 or an accepted living-streets milestone.
 
