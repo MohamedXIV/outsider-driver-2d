@@ -4,7 +4,12 @@ extends RefCounted
 # Exclusive admission for real adjacent authored lane connectors. The World
 # ledger survives unloading, saves and scene replacement; bodies own no locks.
 static func next_window(travel: Dictionary,progress: float) -> Dictionary:
-	var nodes: Array[String]=SandboxVehicleExecution.nodes_of(travel)
+	var nodes: Array[String]=SandboxVehicleExecution.geometry_nodes(travel)
+	var preceding: String=str(travel.get("incoming_node",""))
+	if not preceding.is_empty() and nodes.size()>=2 and SandboxDirectedLanes.can_turn(preceding,nodes[0],nodes[1]):
+		var turn_exit: float=SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxDirectedLanes.TURN_FRACTION
+		if progress<=turn_exit:
+			return {"junction":nodes[0],"entry":0.0,"exit":turn_exit,"nodes":[preceding,nodes[0],nodes[1]],"kind":"carried_turn"}
 	if bool(travel.get("origin_merge",false)) and nodes.size()>=2 and nodes[0]=="clinic":
 		var merge_exit: float=SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxDirectedLanes.TURN_FRACTION
 		if progress<=merge_exit:
@@ -30,7 +35,7 @@ static func next_window(travel: Dictionary,progress: float) -> Dictionary:
 static func claim(world: SandboxWorld,id: String) -> bool:
 	var travel: Dictionary=SandboxVehicleExecution.trip(world,id)
 	var state: Dictionary=world.vehicle_execution.get(id,{})
-	if travel.is_empty() or state.is_empty() or not bool(state["native"]): return false
+	if travel.is_empty() or state.is_empty(): return false
 	var window: Dictionary=next_window(travel,float(state["progress"]))
 	if window.is_empty() or float(window["entry"])-float(state["progress"])>SandboxVehicleExecution.LOOKAHEAD_MINUTES: return false
 	var key: String=str(window["junction"])
@@ -42,6 +47,20 @@ static func claim(world: SandboxWorld,id: String) -> bool:
 	world.vehicle_junctions[key]=reservation
 	world._record("vehicle_junction_claimed",id,{"junction":key,"reservation":reservation})
 	return true
+
+static func refresh_player_plan(world: SandboxWorld) -> void:
+	var state: Dictionary=world.vehicle_execution.get("player",{})
+	if state.is_empty(): return
+	var window: Dictionary=next_window(SandboxVehicleExecution.trip(world,"player"),float(state["progress"]))
+	var changed: bool=false
+	for key in world.vehicle_junctions.keys():
+		var held: Dictionary=world.vehicle_junctions[key]
+		if held["vehicle"]!="player": continue
+		if window.get("nodes",[])==held["nodes"] and window.get("entry",-1)==held["entry"] and window.get("exit",-1)==held["exit"]: continue
+		world._record("vehicle_junction_released","player",{"junction":key,"source":held["source"]})
+		world.vehicle_junctions.erase(key);changed=true
+	if changed: claim(world,"player")
+
 
 static func release_cleared(world: SandboxWorld) -> void:
 	for key in world.vehicle_junctions.keys():
@@ -86,6 +105,9 @@ static func valid_snapshot(value: Dictionary) -> bool:
 			elif held.get("kind","")=="curb_arrival":
 				if nodes.size()!=2 or nodes[1]!="clinic" or key!="clinic" or not nodes[0] is String or not SandboxDirectedLanes.has_profile(nodes[0],nodes[1]): return false
 				if absf(float(held.get("exit",0))-float(held.get("entry",0))-SandboxRoads.edge_minutes(nodes[0],nodes[1])*SandboxVehicleBays.BLEND)>.00001: return false
+			elif held.get("kind","")=="carried_turn":
+				if nodes.size()!=3 or not nodes[0] is String or not nodes[1] is String or not nodes[2] is String or nodes[1]!=key or not SandboxDirectedLanes.can_turn(nodes[0],nodes[1],nodes[2]): return false
+				if held.get("entry",-1)!=0.0 or held.get("exit",-1)!=SandboxRoads.edge_minutes(nodes[1],nodes[2])*SandboxDirectedLanes.TURN_FRACTION: return false
 			else:
 				if held.has("kind") or nodes.size()!=3: return false
 				if not nodes[0] is String or not nodes[1] is String or not nodes[2] is String \
@@ -103,7 +125,12 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		var state: Dictionary=value.get("vehicle_execution",{}).get(held["vehicle"],{})
 		if state.is_empty() or state["source"]!=held["source"]: return false
 		var curb: bool=value.get("vehicle_departures",{}).has(held["vehicle"]) or (held["vehicle"]=="player" and value.get("vehicle_parking",{}).get("player",{}).get("arrival_policy","")==SandboxVehicleBays.CLINIC)
-		var travel: Dictionary={"nodes":state["nodes"],"origin_merge":curb,"arrival_policy":state.get("arrival_policy","")}
+		var travel: Dictionary={"nodes":state["nodes"],"origin_merge":curb,"arrival_policy":state.get("arrival_policy",""),"incoming_node":state.get("incoming_node","")}
+		if held["vehicle"]=="player" and not value.get("pending_route_nodes",[]).is_empty():
+			var geometry: Array[String]=[]
+			for index in range(int(value["route_segment"])+1): geometry.append(str(state["nodes"][index]))
+			for node in value["pending_route_nodes"]: geometry.append(str(node))
+			travel["geometry_nodes"]=geometry
 		var window: Dictionary=next_window(travel,float(state["progress"]))
 		if window.is_empty() or window["junction"]!=key or window["entry"]!=held["entry"] \
 				or window["exit"]!=held["exit"] or window["nodes"]!=held["nodes"]: return false

@@ -433,7 +433,10 @@ func queue_reroute(via: String = "") -> bool:
 	var destination: String = str(offer_by_id(active_offer_id)["destination"])
 	if junction == destination:
 		return false
-	var proposed: Array[String] = SandboxRoads.path(junction, destination, via)
+	var physical_plan: Dictionary=SandboxVehicleReroute.plan(self,destination,via)
+	if physical_plan.is_empty(): return false
+	var proposed: Array[String]=[]
+	for node in physical_plan["nodes"]: proposed.append(str(node))
 	if not SandboxRoads.valid_path(proposed):
 		return false
 	var previous: Array[String] = []
@@ -448,8 +451,9 @@ func queue_reroute(via: String = "") -> bool:
 	remaining_minutes = _route_time_left()
 	_record("route_change_queued", active_offer_id, {
 		"junction": junction, "via": via, "new_nodes": proposed.duplicate(),
-		"requested_by": "player"
+		"requested_by": "player", "decision_junction":physical_plan["decision_junction"]
 	})
+	SandboxVehicleJunctions.refresh_player_plan(self)
 	return true
 
 

@@ -181,3 +181,41 @@ vehicles no longer report a junction-stop reason merely because a junction lies
 far ahead. Six real-time Main public-shuttle frames and full read-only snapshots
 from df0b2c3 are retained under `public-df0b2c3`; they are distinct from final-head
 suite acceptance and the contested-arrival test.
+
+## Rerouting physical progress and bounded execution speed
+
+A genuine seed9 medical fare was driven by the native body across its first
+road, then handed off normally. Queuing a depot reroute before the slower
+integer route counter reached that same node erased its physical cursor and
+jumped the presentation back. The retained repro failed before this change.
+`SandboxVehicleReroute` now retains the already-driven prefix and chooses a
+junction whose turn has not begun. Pending geometry is shared by execution and
+reservations. When World applies the suffix it rebases route coordinates while
+keeping the actual pose, speed, heading and incoming authored turn context.
+A sourced rebase event and refreshed far anchor survive Save/Load; removing that
+context is rejected. A second genuine market fare tests the live occupied clinic
+turn, including transferring its reservation to the carried turn without moving
+the body. Existing domain-only route planning keeps its prior policy.
+
+The execution-budget boundary also reproduced the terminal-speed defect: a taxi
+could stop at its allowed two-minute lookahead while still reporting cruise.
+It now service-brakes against that moving World boundary as well as the final
+goal, and resumes after World commits. Native tests cover both a real reposition
+and a real medical fare with the future clinic control present.
+
+The e74159c full Native attempt timed out in the unchanged 24-hour autonomy
+scene. Instrumented six-hour commands took 30.701, 12.784 and 24.956 seconds,
+with the last command not completing within the retained attempt. Reusing the
+same curve table for predictive samples and the same shape-query object, plus
+sleeping an entirely stationary loaded set until the next World boundary, ran
+all four commands in 6.632, 2.653, 5.909 and 11.631 seconds and passed all original
+autonomy/population/reload assertions. Actual reported poses and final angular
+clearance still use exact authored geometry; physical substeps remain 1/60.
+Rejected physical reports now fail visibly instead of silently holding a car.
+
+Focused routes, execution, junctions, numeric Save/Load, handoff/live rerouting,
+lookahead braking, genuine two-car conflict, variable delta and public shuttle
+arrival checks all pass on the working follow-up. e74159c itself has Domain
+46/46 and current Chromium 6/6 PASS; its full Native timeout is not a PASS.
+The new follow-up still needs its own complete gates. Evidence directories are
+excluded from Godot imports/exports; the raw GitHub artifacts remain available.

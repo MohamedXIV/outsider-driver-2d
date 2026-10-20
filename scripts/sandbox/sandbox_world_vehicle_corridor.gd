@@ -125,6 +125,16 @@ func step(seconds: float) -> void:
 		# Stable genuine IDs make same-frame reservation admission deterministic.
 		var ids: Array=bodies.keys()
 		ids.sort()
+		var changed: bool=false
 		for id in ids:
-			if not SandboxVehicleExecution.trip(world,str(id)).is_empty(): bodies[id].step(dt)
+			if SandboxVehicleExecution.trip(world,str(id)).is_empty(): continue
+			var body: SandboxWorldVehicleBody=bodies[id]
+			var before: Transform2D=body.transform
+			if not body.step(dt):
+				push_error("World rejected physical vehicle execution: "+str(id));return
+			changed=changed or body.transform!=before or float(world.vehicle_execution[id]["speed"])>.000001
 		left-=dt
+		# A manual time-skip has no external physics frame inside this call.
+		# Once every loaded body is stopped and unchanged, resweep at the next
+		# World boundary instead of repeating identical blocked queries 60 times.
+		if not changed: return

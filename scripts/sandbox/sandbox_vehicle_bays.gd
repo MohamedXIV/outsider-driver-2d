@@ -25,7 +25,7 @@ static func point(from: String) -> Vector2:
 
 static func apply(travel: Dictionary,at: float,screen: Vector2) -> Vector2:
 	if travel.get("arrival_policy","") not in [CLINIC,SHUTTLE]: return screen
-	var nodes: Array[String]=SandboxVehicleExecution.nodes_of(travel)
+	var nodes: Array[String]=SandboxVehicleExecution.geometry_nodes(travel)
 	if policy(nodes)!=CLINIC: return screen
 	var from: String=nodes[nodes.size()-2]
 	var duration: float=SandboxRoads.edge_minutes(from,"clinic")

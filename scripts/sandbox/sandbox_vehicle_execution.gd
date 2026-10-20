@@ -23,6 +23,8 @@ static func trip(world: SandboxWorld,id: String) -> Dictionary:
 					source=str(world.events[index]["id"]);break
 		return {"nodes":world.route_nodes.duplicate(),"base":base,"source":source,
 			"arrival_policy":world.vehicle_execution.get(id,{}).get("arrival_policy",""),
+			"incoming_node":world.vehicle_execution.get(id,{}).get("incoming_node",""),
+			"geometry_nodes":SandboxVehicleReroute.geometry(world),
 			"origin_merge":world.vehicle_parking.get("player",{}).get("arrival_policy","")==SandboxVehicleBays.CLINIC and world.route_nodes.front()=="clinic",
 			"held":not world.route_hold_id.is_empty(),"origin":SandboxDirectedLanes._parked_screen(world,world.route_nodes.front())}
 	var npc: Dictionary=world.resident(id)
@@ -38,10 +40,21 @@ static func nodes_of(travel: Dictionary) -> Array[String]:
 	for node in travel.get("nodes",[]): nodes.append(str(node))
 	return nodes
 
+static func geometry_nodes(travel: Dictionary) -> Array[String]:
+	var nodes: Array[String]=[]
+	for node in travel.get("geometry_nodes",travel.get("nodes",[])): nodes.append(str(node))
+	return nodes
+
 static func point(travel: Dictionary, progress: float) -> Vector2:
-	var nodes: Array[String]=nodes_of(travel)
-	var result: Vector2=SandboxCityView.project(SandboxDirectedLanes.route_point_at_minutes(nodes,progress))
-	if travel.has("origin") and nodes.size()>=2:
+	var nodes: Array[String]=geometry_nodes(travel)
+	var incoming: String=str(travel.get("incoming_node",""))
+	var geometry: Array[String]=nodes.duplicate()
+	var geometry_progress: float=progress
+	if not incoming.is_empty():
+		geometry.push_front(incoming)
+		geometry_progress+=SandboxRoads.edge_minutes(incoming,nodes[0])
+	var result: Vector2=SandboxCityView.project(SandboxDirectedLanes.route_point_at_minutes(geometry,geometry_progress))
+	if incoming.is_empty() and travel.has("origin") and nodes.size()>=2:
 		var fraction: float=progress/float(SandboxRoads.edge_minutes(nodes[0],nodes[1]))
 		if fraction<SandboxDirectedLanes.TURN_FRACTION:
 			var start: Vector2=SandboxCityView.project(SandboxDirectedLanes.route_lane_point(nodes,0,0.0))
@@ -49,11 +62,11 @@ static func point(travel: Dictionary, progress: float) -> Vector2:
 	return SandboxVehicleBays.apply(travel,progress,result)
 
 static func tangent(travel: Dictionary,at: float) -> Vector2:
-	var total: float=float(SandboxRoads.path_minutes(nodes_of(travel)))
+	var total: float=float(SandboxRoads.path_minutes(geometry_nodes(travel)))
 	return point(travel,minf(total,at+.015))-point(travel,maxf(0.0,at-.015))
 
 static func world_point(travel: Dictionary,progress: float,at: Vector2=Vector2.INF) -> Vector3:
-	var physical: Vector3=SandboxDirectedLanes.route_point_at_minutes(nodes_of(travel),progress)
+	var physical: Vector3=SandboxDirectedLanes.route_point_at_minutes(geometry_nodes(travel),progress)
 	var screen: Vector2=point(travel,progress) if not at.is_finite() else at
 	var horizontal: float=screen.x/SandboxIsoPresentation.WORLD_TO_SCREEN
 	var vertical: float=2.0*(screen.y+physical.y*SandboxIsoPresentation.HEIGHT_TO_SCREEN)/SandboxIsoPresentation.WORLD_TO_SCREEN
@@ -193,6 +206,8 @@ static func before_tick(world: SandboxWorld) -> bool:
 		if travel["held"]: continue # existing validated zebra wait owns this minute
 		if not bool(state["native"]):
 			state["progress"]=progress(world,str(id),0.0,1)
+			var elapsed: float=maxf(0.0,float(world.minute+1-int(state.get("handoff_minute",world.minute)))-float(state.get("handoff_fraction",0.0)))
+			state["heading"]=SandboxVehicleKinematics.turn_heading(float(state.get("handoff_heading",state["heading"])),tangent(travel,float(state["progress"])).angle(),elapsed)
 			var here: Vector2=point(travel,float(state["progress"]))
 			state["x"]=here.x;state["y"]=here.y
 		if float(state["progress"])+EPSILON>=float(travel["base"])+1.0: continue
@@ -210,6 +225,8 @@ static func before_tick(world: SandboxWorld) -> bool:
 static func prune(world: SandboxWorld) -> void:
 	for id in world.vehicle_execution.keys():
 		var travel: Dictionary=trip(world,str(id))
+		if id=="player" and not travel.is_empty() and travel.get("source","")==world.vehicle_execution[id]["source"] and travel["nodes"]!=world.vehicle_execution[id]["nodes"]:
+			SandboxVehicleReroute.rebase(world,world.vehicle_execution[id])
 		if travel.is_empty() and id=="player": SandboxVehicleParking.capture_player(world,world.vehicle_execution[id])
 		elif travel.is_empty() and not world.vehicle_departures.has(id): SandboxVehicleDepartures.capture(world,str(id),world.vehicle_execution[id])
 		if travel.is_empty() or travel.get("source","")!=world.vehicle_execution[id]["source"] \
@@ -278,6 +295,13 @@ static func valid_snapshot(value: Dictionary) -> bool:
 		var actual: Vector2=Vector2(float(state["x"]),float(state["y"]))
 		if id=="player":
 			travel["origin"]=SandboxVehicleParking.from_snapshot(value,nodes[0])
+			if not SandboxVehicleReroute.valid_context(value,state): return false
+			travel["incoming_node"]=state.get("incoming_node","")
+			var geometry: Array[String]=[]
+			if not value.get("pending_route_nodes",[]).is_empty():
+				for index in range(int(value["route_segment"])+1): geometry.append(nodes[index])
+				for node in value["pending_route_nodes"]: geometry.append(str(node))
+				travel["geometry_nodes"]=geometry
 		elif value.get("vehicle_departures",{}).has(id):
 			var service: Dictionary=value["vehicle_departures"][id]
 			travel["origin"]=Vector2(float(service["x"]),float(service["y"]))
