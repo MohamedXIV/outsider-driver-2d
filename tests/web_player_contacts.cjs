@@ -32,6 +32,8 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
   assert.equal(confirmed.ContactDetailsSection, true);
   assert.equal(confirmed.ContactActionsSection, true);
   assert.equal(confirmed.ContactRepliesSection, false);
+  assert.equal((await actions()).meeting_accept, undefined);
+  assert.equal((await actions()).meeting_decline, undefined);
   assert.ok((await actions()).meeting_attend.disabled,
     'The actual time/place gate must remain disabled before arrival');
   await shot('web-player-contact-confirmed');
@@ -64,6 +66,9 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
     document.documentElement.dataset.sandboxMeetingStatus === 'completed');
   assert.equal((await data()).sandboxMeetingStatus, 'completed');
   assert.equal((await sections()).ContactRepliesSection, false);
+  assert.equal((await sections()).ContactActionsSection, false,
+    'Completed encounters must not show nonfunctional invitation controls');
+  assert.equal((await actions()).meeting_attend, undefined);
   await shot('web-player-contact-completed');
   console.log('WEB_PLAYER_CONTACTS_PASS real two fares, confirmed appointment, restored Ink, live Player choices, single settlement');
 }).catch(err => { console.error(err); process.exitCode = 1; });

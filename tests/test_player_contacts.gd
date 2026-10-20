@@ -21,6 +21,10 @@ func _run() -> void:
 	assert(mode._body.has_node("ContactDetailsSection"))
 	assert(mode._body.has_node("ContactActionsSection"))
 	assert(mode._body.get_node("ContactDetailsSection/Items").get_child_count()>=3)
+	assert(not mode._guide.visible,
+		"Routine equipment tips should not cover a personal meeting")
+	assert(not mode._actions.has("meeting_accept") and not mode._actions.has("meeting_decline"),
+		"Confirmed appointment should not repeat invitation decisions")
 	assert(mode._actions["meeting_attend"].disabled)
 	world.advance(int(world.meetings[0]["slot"])-world.minute);scene._render()
 	assert(not scene._player_ui._actions["meeting_attend"].disabled,"Contact action must refresh when the actual appointment starts")
@@ -43,5 +47,11 @@ func _run() -> void:
 	for i in range(count): assert(scene._player_ui._actions.has("meeting_choice_"+str(i)))
 	scene._player_ui._actions["meeting_choice_0"].pressed.emit()
 	assert(world.meeting_by_id(id)["status"]=="completed")
-	print("PLAYER_CONTACTS_PASS live frame choices, stable indexes, real meeting settlement")
+	scene._render()
+	assert(mode._body.has_node("ContactDetailsSection"))
+	assert(not mode._body.has_node("ContactActionsSection"),
+		"A settled meeting must not show three inert scheduling buttons")
+	assert(not mode._actions.has("meeting_attend"))
+	assert(not mode._guide.visible)
+	print("PLAYER_CONTACTS_PASS real appointment lifecycle, no stale actions, source-exact Ink")
 	quit()

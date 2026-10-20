@@ -295,9 +295,13 @@ func sync() -> void:
 	# still signal that attention is needed back on Street.
 	var passenger_needs_attention: bool=conversation!=null or (
 		world.rider_initiative.get("status","")=="pending")
+	# Equipment onboarding and ordinary fare tips must not distract from
+	# an off-duty appointment either. Genuine passenger interruption still
+	# has permission to call attention to Street.
+	var private_context: bool=tab=="gear" or tab=="contacts"
 	_guide.visible=not debug_mode and area.x>=820 and area.y>=570 and (
 		relevant_tab!=tab) and not _speech.visible and (
-		tab!="gear" or passenger_needs_attention)
+		not private_context or passenger_needs_attention)
 	_guide.position=Vector2(24 if locale=="ar" else area.x-306,
 			365 if _portrait.visible else 120)
 	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
@@ -521,15 +525,21 @@ func sync() -> void:
 				trp("Day ","اليوم "),int(slot/1440)+1,int((slot%1440)/60),slot%60,
 				trp("Contact: ","الشخص: ")+actual_presence])
 			_end_button_group()
+			# Offer only state-valid appointment actions. In particular,
+			# completed or missed encounters are history, not disabled forms.
 			if controller._meeting_dialogue==null:
-				_begin_button_group(trp("Meeting actions","إجراءات الموعد"),"ContactActionsSection")
-				_button("meeting_accept",trp("Accept invitation","اقبل الدعوة"),
-					_call.bind("_on_meeting_accept"),controller._meeting_accept.disabled)
-				_button("meeting_decline",trp("Decline invitation","ارفض الدعوة"),
-					_call.bind("_on_meeting_decline"),controller._meeting_decline.disabled)
-				_button("meeting_attend",trp("Meet here","التقِ هنا"),
-					_call.bind("_on_meeting_attend"),controller._meeting_attend.disabled)
-				_end_button_group()
+				var state: String=str(selected_meeting["status"])
+				if state=="invited" or state=="accepted":
+					_begin_button_group(trp("Meeting actions","إجراءات الموعد"),"ContactActionsSection")
+					if state=="invited":
+						_button("meeting_accept",trp("Accept invitation","اقبل الدعوة"),
+							_call.bind("_on_meeting_accept"),controller._meeting_accept.disabled)
+						_button("meeting_decline",trp("Decline invitation","ارفض الدعوة"),
+							_call.bind("_on_meeting_decline"),controller._meeting_decline.disabled)
+					elif state=="accepted":
+						_button("meeting_attend",trp("Meet here","التقِ هنا"),
+							_call.bind("_on_meeting_attend"),controller._meeting_attend.disabled)
+					_end_button_group()
 		if controller._meeting_dialogue!=null:
 			# A real Ink frame may contain stage directions, not speech; avoid
 			# giving them an invented speaker or an unauthorized translation.

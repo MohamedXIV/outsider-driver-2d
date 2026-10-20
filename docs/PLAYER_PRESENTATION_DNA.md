@@ -214,3 +214,31 @@ rendered UI; no direct command bridge, fabricated appointment or trust
 mutation was added. Its source is registered in the current Web gate.
 Aesthetic approval and eventual choice semantics still require human
 review after exact-head evidence.
+
+## Contacts screenshot review: remove competing hints and stale actions — 2026-10-20
+
+Exact-head [CI #39433559941](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39433559941)
+passed all Godot/native/export/Chromium suites, including the **new**
+`web_player_contacts.cjs` which captured actual invitation, restored
+off-duty Ink dialogue and completion in Player Mode. The three screenshots
+confirmed correct World-sourced information and distinct replies, but
+exposed two unnecessary UI distractions:
+
+1. A high-profile **Starter equipment** cross-tab guidance card obscured
+   the city while the driver was reading an intimate off-duty meeting. The
+   Gear suppression rule is extended to Contacts for routine onboarding
+   and fares; an **actual** passenger conversation or pending rider question
+   remains eligible to draw attention back to Street.
+2. **Accept invitation, Decline invitation, Meet here** were all displayed
+   disabled for completed encounters. The selection now mirrors the real
+   invitation state: only Accept/Decline when `invited`, only Meet here
+   when `accepted` (with its original authoritative disabled gate before
+   time/place), and **no scheduling tray** for completed/missed/declined/
+   expired/cancelled/in-progress appointments. The actual sourced
+   appointment details and Ink choice list remain visible in their
+   respective states.
+
+Native and Chromium acceptance now assert the contextual controls before
+the actual time window and their absence after the real Ink settlement.
+No trust, status, invitation, residence, translated content or controller
+behaviour was changed. Final art approval remains separate.
