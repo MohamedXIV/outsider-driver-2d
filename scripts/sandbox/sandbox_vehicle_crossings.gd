@@ -38,7 +38,7 @@ static func _held(value: Dictionary,id: String) -> bool:
 
 static func native_approach(value: Dictionary,id: String) -> bool:
 	var state: Dictionary=_state(value,id)
-	if state.is_empty() or float(state["speed"])>.05: return false
+	if state.is_empty() or float(state["speed"])>.05 or native_occupies(value,id): return false
 	var segment: Dictionary=SandboxVehicleExecution.segment(state,float(state["progress"]))
 	if segment.is_empty(): return false
 	var crossing: float=SandboxStreetRouteBinding.crossing_fraction(segment["from"],segment["to"])
@@ -63,13 +63,17 @@ static func native_approach(value: Dictionary,id: String) -> bool:
 			return true
 	return false
 
-static func clearance(world: SandboxWorld,travel: Dictionary,at: float,position: Vector2) -> float:
+static func clearance(world: SandboxWorld,id: String,travel: Dictionary,at: float,position: Vector2) -> float:
 	var reserved: bool=false
 	for npc in world.residents:
 		var trip: Dictionary=npc.get("local_pedestrian_trip",{})
 		if trip.get("site","")==SandboxLocalPedestrianTrip.PATCHWORKS_PARTS and trip.get("status","") in ["walking","offscreen"] and trip.get("crossing_state","") in ["reserved","entered"]:
 			reserved=true;break
 	if not reserved: return INF
+	# Match the existing right-of-way rule: a pedestrian waiting on the safe
+	# pavement cannot strand a vehicle whose footprint already entered paint.
+	# Native obstacle sweeps still protect any physically committed walker.
+	if native_occupies(context(world),id): return INF
 	var segment: Dictionary=SandboxVehicleExecution.segment({"nodes":SandboxVehicleExecution.geometry_nodes(travel)},at)
 	if segment.is_empty(): return INF
 	var crossing: float=SandboxStreetRouteBinding.crossing_fraction(segment["from"],segment["to"])

@@ -37,11 +37,11 @@ func _remove(id: String,handoff: bool) -> void:
 	bodies.erase(id)
 
 func _eligible(id: String) -> bool:
-	# Pre-physics saves can hold a projected car on the zebra paint. Preserve
-	# that legacy pose without adding a blocking native footprint until clear.
-	if id=="player" and not world.route_hold_id.is_empty() and not world.vehicle_execution.has(id): return false
 	var trip: Dictionary=SandboxVehicleExecution.trip(world,id)
 	if trip.is_empty(): return false
+	# Aggregate and older sourced holds can project onto the paint. Preserve
+	# their exact pose until clear, then enter native execution without a jump.
+	if trip["held"] and (not world.vehicle_execution.has(id) or SandboxVehicleCrossings.native_occupies(SandboxVehicleCrossings.context(world),id)): return false
 	var segment: Dictionary=SandboxVehicleExecution.segment(trip,SandboxVehicleExecution.progress(world,id,world.vehicle_fraction))
 	return not segment.is_empty() and SandboxDirectedLanes.has_profile(segment["from"],segment["to"]) \
 		and SandboxRoads.map_position(segment["from"]).y==0.0 and SandboxRoads.map_position(segment["to"]).y==0.0

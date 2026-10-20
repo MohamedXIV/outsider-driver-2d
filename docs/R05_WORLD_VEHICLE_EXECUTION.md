@@ -313,3 +313,32 @@ The `8d74f4a` Domain 46-case suite passed; its full Native run failed the shared
 crossing assertion above. Its exported attempt failed at a 30-second screenshot
 capture deadline, without a gameplay assertion failure. Those attempts are not
 accepted final suites. Complete gates on the crossing follow-up remain required.
+
+## Clearing paint already occupied when a pedestrian reserves
+
+Exact `2f830983c2c39bd130ce77a411acf047617eef28` completed Domain 46/46 and
+Native 51/51 locally. A further genuine native repro then reserved the real
+npc:02 errand after an actually moving taxi had entered paint at progress
+2.124879, speed 36. The earlier guard could strand that taxi inside the zebra
+while the safe-pavement pedestrian was waiting for it to clear.
+
+The existing right-of-way rule now also applies to the real corridor: a body
+already occupying paint clears it before a newly reserving waiting pedestrian
+enters. Such a body cannot latch a new World yield there. Native sweeps still
+protect any physically committed walker, and following vehicles still brake
+before the reserved paint. The regression advances genuine World minutes and
+requires the occupied taxi to clear without a painted-area hold.
+
+Compatibility admission also covers older sourced player/shuttle holds already
+inside paint, and aggregate municipal holds with no native registry. Their exact
+visible pose and World wait remain; a blocking native body is deferred until the
+pedestrian clears. Entry afterward preserves identity and visible position.
+Current physically sourced holds before the paint keep their native bodies.
+This is an explicit compatibility/aggregate transition, not a claim of physical
+collision for older projection-only states.
+
+Twelve focused domain/Native crossing cases pass on this follow-up, including
+late reservation, both directions, co-yield, snapshots, manual clock and the four
+braking deltas. The additional aggregate/sourced compatibility variants pass in
+the corridor regression. The parent head's complete suites do not substitute for
+final exact-head CI on this follow-up.
