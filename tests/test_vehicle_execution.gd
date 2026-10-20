@@ -1,6 +1,8 @@
 extends SceneTree
 
 func _initialize() -> void:
+	_held_crossing_handoff()
+	_native_crosswalk_footprint()
 	_fractional_clock()
 	var world: SandboxWorld=SandboxWorld.new(9)
 	var offer: Dictionary={}
@@ -96,3 +98,52 @@ func _fractional_clock() -> void:
 	var legacy: Dictionary=world.snapshot()
 	legacy.erase("vehicle_fraction")
 	assert(restored.restore_snapshot(legacy) and restored.vehicle_fraction==0.0)
+
+func _native_crosswalk_footprint() -> void:
+	var world: SandboxWorld=SandboxWorld.new(8)
+	assert(world.reposition("market","margin_gate") and world.advance(2))
+	assert(SandboxVehicleExecution.bind(world,"player"))
+	var travel: Dictionary=SandboxVehicleExecution.trip(world,"player")
+	var cross: float=SandboxRoads.edge_minutes("garage","margin_gate")*SandboxStreetRouteBinding.CROSS_FRACTION
+	assert(SandboxVehicleExecution.report(world,"player",cross,0.0,SandboxVehicleExecution.tangent(travel,cross).angle(),"motion"))
+	assert(SandboxStreetRouteBinding.taxi_occupies_crosswalk(world),"World occupancy must read the accepted native footprint ahead of its integer cursor")
+	assert(world.advance(1))
+	assert(SandboxVehicleExecution.report(world,"player",5.0,0.0,SandboxVehicleExecution.tangent(travel,5.0).angle(),"motion"))
+	assert(not SandboxStreetRouteBinding.taxi_occupies_crosswalk(world),"Whole native taxi cleared the paint despite its earlier integer cursor")
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
+	var municipal: SandboxWorld=SandboxWorld.new(8)
+	var id: String=""
+	for minute in range(100):
+		for npc in municipal.residents:
+			if npc.get("transit_method","")=="shuttle" and npc.get("transit_nodes",[]).slice(0,2)==["garage","margin_gate"] and int(npc.get("transit_started",-1))==municipal.minute:
+				id=str(npc["id"]);break
+		if not id.is_empty(): break
+		assert(municipal.advance(1))
+	assert(not id.is_empty() and municipal.advance(2) and SandboxVehicleExecution.bind(municipal,id))
+	travel=SandboxVehicleExecution.trip(municipal,id)
+	assert(SandboxVehicleExecution.report(municipal,id,cross,0.0,SandboxVehicleExecution.tangent(travel,cross).angle(),"motion"))
+	assert(SandboxWorldTraffic.occupies_zebra(municipal),"Real shuttle footprint must govern pedestrian admission")
+	assert(municipal.advance(1))
+	assert(SandboxVehicleExecution.report(municipal,id,5.0,0.0,SandboxVehicleExecution.tangent(travel,5.0).angle(),"motion"))
+	assert(not SandboxWorldTraffic.occupies_zebra(municipal))
+	assert(SandboxWorld.new().restore_snapshot(municipal.snapshot()))
+
+func _held_crossing_handoff() -> void:
+	var world: SandboxWorld=SandboxWorld.new(8)
+	assert(world.reposition("market","margin_gate") and SandboxVehicleExecution.bind(world,"player"))
+	var travel: Dictionary=SandboxVehicleExecution.trip(world,"player")
+	var facing: float=wrapf(SandboxVehicleExecution.tangent(travel,1.7).angle()+.2,-PI,PI)
+	assert(SandboxVehicleExecution.report(world,"player",1.7,0.0,facing,"pedestrian"))
+	assert(world.begin_crossing_yield())
+	var point: Vector2=SandboxVehicleExecution.screen(world,"player")
+	SandboxVehicleExecution.unbind(world,"player")
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()),"A sourced early crossing hold must survive presenter unload")
+	var forged: Dictionary=world.snapshot()
+	forged["events"]=forged["events"].filter(func(e: Dictionary)->bool:return e["kind"]!="vehicle_execution_handoff")
+	assert(not SandboxWorld.new().restore_snapshot(forged),"An unloaded held pose requires the matching source handoff event")
+	assert(world.advance(2))
+	assert(SandboxVehicleExecution.screen(world,"player",.8).distance_to(point)<.001)
+	assert(absf(angle_difference(SandboxVehicleExecution.heading(world,"player",.8),facing))<.00001,"Unloaded held taxi must not rotate toward the road tangent")
+	assert(SandboxVehicleExecution.bind(world,"player"))
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()),"Reentry must preserve the same early held source")
+	assert(absf(angle_difference(SandboxVehicleExecution.heading(world,"player"),facing))<.00001)

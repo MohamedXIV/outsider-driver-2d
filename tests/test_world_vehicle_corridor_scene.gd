@@ -31,5 +31,20 @@ func _run() -> void:
 	corridor.queue_free()
 	await process_frame
 	assert(not copy.vehicle_executor.is_valid())
+	# A pre-physics v12 hold has no native pose provenance. Keep its existing
+	# projection until pedestrian clearance; then enter without a visual jump.
+	var legacy: SandboxWorld=SandboxWorld.new(8)
+	assert(legacy.reposition("market","margin_gate"))
+	while not SandboxStreetRouteBinding.approaching(legacy): assert(legacy.advance(1))
+	assert(legacy.begin_crossing_yield() and legacy.vehicle_execution.is_empty())
+	var projected: Vector2=SandboxDirectedLanes.taxi_screen(legacy,0.0)
+	var legacy_corridor: SandboxWorldVehicleCorridor=SandboxWorldVehicleCorridor.new()
+	root.add_child(legacy_corridor);legacy_corridor.attach(legacy)
+	assert(not legacy_corridor.bodies.has("player"),"A legacy held projection must not materialize a blocking body on the reserved paint")
+	assert(legacy.route_hold_id==SandboxStreetRouteBinding.CROSSING_ID and SandboxDirectedLanes.taxi_screen(legacy,0.0).distance_to(projected)<.001)
+	assert(legacy.release_crossing_yield())
+	legacy_corridor.reconcile()
+	assert(legacy_corridor.bodies.has("player") and legacy_corridor.bodies["player"].position.distance_to(projected)<.001)
+	assert(SandboxWorld.new().restore_snapshot(legacy.snapshot()))
 	print("WORLD_VEHICLE_CORRIDOR_PASS automatic genuine ID, execution, exact reload, old World detach, canonical time skip")
 	quit()

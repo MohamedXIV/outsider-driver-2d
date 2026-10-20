@@ -266,3 +266,50 @@ repro retained an advancing genuine taxi at minute 512, segment 3, with no
 settlement yet. The Web test now allows 600 seconds of software-WebGL observation;
 its actual clinic arrival, identity, exactly-once economy, walking and reload
 assertions are unchanged. This deadline change is not a Web pass claim.
+
+## Reserved zebra, independent queues and retained held poses
+
+The exact `8d74f4a` full Native run failed shared crossing priority: the real
+npc:07 shuttle held at the zebra while the following taxi physically stopped
+before its integer approach window. Advancing planned minutes could not make
+that follower independently latch. The new `SandboxVehicleCrossings` module
+reads existing World pedestrian reservation events and current accepted vehicle
+footprints. Bodies service-brake before the whole 26-unit paint envelope; World
+then latches an at-rest physical approach or a real held leader's nearby queue.
+Native approaches do not fall back to a stale integer cursor. Aggregate legacy
+approaches retain their existing policy.
+
+Each new physical taxi yield records its actual journey source, progress, pose
+and heading in the existing World start event. An early held snapshot requires
+that original evidence and the validated execution registry. Its validity does
+not depend on the leader remaining held: the two real journeys can release
+independently. Deleting either the hold evidence, execution source or required
+handoff event is rejected. A retained early hold also survives native unload and
+reentry; its pose and heading remain fixed while unrelated city minutes advance.
+No new clock, fabricated resident, economic settlement or save version is added.
+
+A domain regression also reproduced the occupancy query ignoring an accepted
+native footprint ahead of its integer cursor. Pedestrian admission now checks the
+whole native rectangle against the authored zebra paint, in both taxi and real
+municipal queries, rather than advancing or delaying admission from that cursor.
+
+Focused domain and Native checks pass for both road directions, shuttle/player
+co-yield, independent release, unload/reload, source deletion rejection and held
+heading retention. At 30, 60 and 120 Hz and a .1-second native delta, actual
+reserved-zebra bodies accelerate, service-brake to rest before the paint, save a
+valid held pose and resume after the genuine reservation clears. The first new
+two-second observation still showed lawful deceleration (1.71 units/s); a bounded
+actual-stop observation replaces that arbitrary sampling instant without relaxing
+the acceleration/braking, stopped pose or release assertions.
+
+Pre-physics v12 holds without execution provenance can project a car onto the
+paint. The coordinator preserves that legacy projection until clearance instead
+of adding a blocking physical footprint there. After release, native execution
+enters at the identical visible position. New physically sourced held snapshots
+retain their native bodies and exact state. This bounded compatibility behavior
+is not a claim that old projection-only saves had physical collision.
+
+The `8d74f4a` Domain 46-case suite passed; its full Native run failed the shared
+crossing assertion above. Its exported attempt failed at a 30-second screenshot
+capture deadline, without a gameplay assertion failure. Those attempts are not
+accepted final suites. Complete gates on the crossing follow-up remain required.
