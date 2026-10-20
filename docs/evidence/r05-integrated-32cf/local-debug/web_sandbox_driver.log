@@ -1,0 +1,11 @@
+HEAD 0b44ee2e07c343e90bc40d8092e918f29817a6cd
+COMMAND ['node', '/workspace/outsider-driver-2d/work/corridor-lifecycle/tests/web_sandbox_driver.cjs']
+Debugger listening on ws://127.0.0.1:9229/bb5b820b-96e5-4fc6-927f-49f0147fe83b
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Debugger attached.
+Debugger ending on ws://127.0.0.1:9229/bb5b820b-96e5-4fc6-927f-49f0147fe83b
+For help, see: https://nodejs.org/learn/getting-started/debugging
+Debugger attached.
+Debugger ending on ws://127.0.0.1:9229/bb5b820b-96e5-4fc6-927f-49f0147fe83b
+For help, see: https://nodejs.org/learn/getting-started/debugging
+SANDBOX_DRIVER_WEB_PASS current graph, real controls and persisted canonical state

@@ -1,0 +1,3 @@
+HEAD 0b44ee2e07c343e90bc40d8092e918f29817a6cd
+COMMAND ['node', '/workspace/outsider-driver-2d/work/corridor-lifecycle/tests/web_ride_smoke.cjs']
+P1_RIDE_WEB_PASS: two shifts, once-only fares and upkeep, native Ink and garage persistence in Chromium

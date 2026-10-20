@@ -1,0 +1,28 @@
+--- tests/web_city_routes.cjs
++++ work/route-observation.cjs
+@@ -1,6 +1,6 @@
+ const assert = require('node:assert/strict');
+ const fs = require('node:fs');
+-const { openCity } = require('./city_browser.cjs');
++const { openCity } = require('../tests/city_browser.cjs');
+ 
+ (async () => {
+   const { browser, page, errors, data, click, shot } = await openCity();
+@@ -56,7 +56,7 @@
+     await shot('web-long-route');
+     await sequence('web-driving-sequence');
+     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
+-      null, { timeout: 240000 });
++      null, { timeout: 600000 });
+     await click('choice_2');
+     for (let i = 0; i < 60; i++) {
+       const actions = JSON.parse((await data()).playerActions);
+@@ -72,7 +72,7 @@
+     await click('talk');
+     await shot('web-short-route');
+     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
+-      null, { timeout: 180000 });
++      null, { timeout: 600000 });
+     assert.equal((await data()).sandboxSettlements, '2');
+     await click('choice_2');
+     assert.deepEqual(errors, []);

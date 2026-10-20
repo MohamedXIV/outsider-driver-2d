@@ -1,0 +1,41 @@
+{
+  "head": "0b44ee2e07c343e90bc40d8092e918f29817a6cd",
+  "scope": "fixture",
+  "suites": [
+    {
+      "name": "import-fixture",
+      "exit": 0,
+      "seconds": 7.88
+    },
+    {
+      "name": "export-fixture",
+      "exit": 0,
+      "seconds": 7.22
+    },
+    {
+      "name": "web_smoke",
+      "exit": 0,
+      "seconds": 14.27
+    },
+    {
+      "name": "web_ink_smoke",
+      "exit": 0,
+      "seconds": 18.02
+    },
+    {
+      "name": "web_ride_smoke",
+      "exit": 0,
+      "seconds": 125.97
+    }
+  ],
+  "exports": {
+    "fixture": {
+      "pck_sha256": "f18730c81ba97d0f7bbb5ec93678bed60100b0d990e12489528d7a80d150c49b",
+      "bytes": 772884
+    }
+  },
+  "fixture_override": "project.godot: main_scene scenes/sandbox.tscn -> scenes/main.tscn",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "node": "v24.19.0",
+  "passed": true
+}

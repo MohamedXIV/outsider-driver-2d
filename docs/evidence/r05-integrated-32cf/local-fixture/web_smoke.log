@@ -1,0 +1,3 @@
+HEAD 0b44ee2e07c343e90bc40d8092e918f29817a6cd
+COMMAND ['node', '/workspace/outsider-driver-2d/work/corridor-lifecycle/tests/web_smoke.cjs']
+Browser loaded Godot HTML canvas; screenshot saved.

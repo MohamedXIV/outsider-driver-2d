@@ -1,0 +1,9 @@
+(async()=>{
+ const targets=await(await fetch('http://127.0.0.1:9229/json/list')).json();const socket=new WebSocket(targets[0].webSocketDebuggerUrl);await new Promise(r=>socket.addEventListener('open',r,{once:true}));let id=0;const pending=new Map();socket.addEventListener('message',m=>{const d=JSON.parse(m.data);if(d.id){const {resolve,reject}=pending.get(d.id);pending.delete(d.id);d.error?reject(Error(JSON.stringify(d.error))):resolve(d.result);}});const call=(method,params={})=>new Promise((resolve,reject)=>{pending.set(++id,{resolve,reject});socket.send(JSON.stringify({id,method,params}));});
+ try{
+  const proto=await call('Runtime.evaluate',{expression:"process.mainModule.require('/workspace/outsider-driver-2d/work/toolchain/node/node_modules/playwright-core/lib/client/page.js').Page.prototype"});if(proto.exceptionDetails)throw Error(JSON.stringify(proto.exceptionDetails));
+  const objects=await call('Runtime.queryObjects',{prototypeObjectId:proto.result.objectId});
+  const data=await call('Runtime.callFunctionOn',{objectId:objects.objects.objectId,functionDeclaration:'async function(){const result=[];for(const page of this){if(!page.isClosed())result.push({url:page.url(),data:await page.evaluate(()=>({...document.documentElement.dataset}))});}return result;}',awaitPromise:true,returnByValue:true});
+  if(data.exceptionDetails)throw Error(JSON.stringify(data.exceptionDetails));console.log(JSON.stringify(data.result.value,null,2));
+ }finally{socket.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});
