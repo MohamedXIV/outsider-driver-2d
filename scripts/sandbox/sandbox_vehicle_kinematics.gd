@@ -1,6 +1,9 @@
 class_name SandboxVehicleKinematics
 extends RefCounted
 
+const BODY_SIZE: Vector2=Vector2(25,13)
+const CLEARANCE: float=4.0
+
 # Kinematics only for LOCAL Godot bodies and taxi's on-screen heading.
 # This module must not own travel minutes, car identity or fare settlement.
 const CRUISE: float = 36.0

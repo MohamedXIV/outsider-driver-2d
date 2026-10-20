@@ -163,7 +163,7 @@ static func heading(world: SandboxWorld,id: String,fraction: float=0.0) -> float
 	var state: Dictionary=world.vehicle_execution.get(id,{})
 	var desired: float=tangent(travel,progress(world,id,fraction)).angle()
 	if state.is_empty(): return desired
-	if bool(state["native"]): return float(state["heading"])
+	if bool(state["native"]) or bool(travel.get("held",false)): return float(state["heading"])
 	var elapsed: float=maxf(0.0,float(world.minute-int(state.get("handoff_minute",world.minute)))+
 			clampf(fraction,0.0,1.0)-float(state.get("handoff_fraction",0.0)))
 	return SandboxVehicleKinematics.turn_heading(float(state.get("handoff_heading",desired)),desired,elapsed)

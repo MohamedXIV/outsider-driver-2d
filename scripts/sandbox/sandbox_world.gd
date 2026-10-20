@@ -522,11 +522,12 @@ func begin_crossing_yield() -> bool:
 	if not route_hold_id.is_empty() or not SandboxStreetRouteBinding.approaching(self):
 		return false
 	route_hold_id=SandboxStreetRouteBinding.CROSSING_ID
-	_record("taxi_yield_started","player",{
-		"crossing":route_hold_id,
-		"edge":SandboxRoads.edge_key(SandboxStreetRouteBinding.FROM,
-				SandboxStreetRouteBinding.TO),
-		"elapsed":route_edge_elapsed})
+	var detail: Dictionary={"crossing":route_hold_id,
+		"edge":SandboxRoads.edge_key(SandboxStreetRouteBinding.FROM,SandboxStreetRouteBinding.TO),
+		"elapsed":route_edge_elapsed}
+	var execution: Dictionary=SandboxVehicleCrossings.hold_evidence(SandboxVehicleCrossings.context(self))
+	if not execution.is_empty(): detail["execution"]=execution
+	_record("taxi_yield_started","player",detail)
 	return true
 
 func release_crossing_yield() -> bool:
@@ -931,8 +932,9 @@ func restore_snapshot(value: Dictionary) -> bool:
 		if crossing_fraction<0.0 or not SandboxStreetRouteBinding.grounded():
 			return false
 		var edge_minutes: int=SandboxRoads.edge_minutes(from_node,to_node)
-		if edge_minutes<=1 or float(elapsed)/float(edge_minutes)>=crossing_fraction \
-				or float(elapsed+1)/float(edge_minutes)<crossing_fraction:
+		var integer_window: bool=edge_minutes>1 and float(elapsed)/float(edge_minutes)<crossing_fraction \
+				and float(elapsed+1)/float(edge_minutes)>=crossing_fraction
+		if (not integer_window or SandboxVehicleCrossings.has_hold_evidence(value)) and not SandboxVehicleCrossings.held_player(value):
 			return false
 	if active.is_empty() and relocation.is_empty():
 		if not route.is_empty() or not pending.is_empty() or not request.is_empty() \

@@ -8,8 +8,8 @@ var vehicle_id: String=""
 var _identity: String=""
 var identity: String:
 	get: return _identity
-const BODY_SIZE: Vector2=Vector2(25,13)
-const CLEARANCE: float=4.0
+const BODY_SIZE: Vector2=SandboxVehicleKinematics.BODY_SIZE
+const CLEARANCE: float=SandboxVehicleKinematics.CLEARANCE
 var _query: PhysicsShapeQueryParameters2D
 var _space_transform: Transform2D
 var _motion_query: PhysicsTestMotionParameters2D=PhysicsTestMotionParameters2D.new()
@@ -143,6 +143,9 @@ func step(delta: float) -> bool:
 	if total-at<=SandboxVehicleExecution.LOOKAHEAD_MINUTES:
 		available=minf(available,position.distance_to(SandboxVehicleExecution.point(travel,total)))
 		if available<36.0: reason="arrival"
+	var crossing_clearance: float=SandboxVehicleCrossings.clearance(world,travel,at,position)
+	if crossing_clearance<available:
+		available=crossing_clearance;reason="pedestrian"
 	var junction_stop: float=SandboxVehicleJunctions.stop_progress(world,vehicle_id)
 	if is_finite(junction_stop):
 		var hold_clearance: float=BODY_SIZE.x*.5+CLEARANCE

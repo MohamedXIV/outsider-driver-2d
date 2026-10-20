@@ -80,16 +80,19 @@ static func approaching_zebra(world: SandboxWorld,npc: Dictionary) -> bool:
 		return false
 	var elapsed: int=world.minute-int(npc.get("transit_started",0)) \
 			-int(npc.get("transit_pause_minutes",0))
+	if world.vehicle_execution.get(str(npc["id"]),{}).get("native",false):
+		return SandboxVehicleCrossings.native_approach(SandboxVehicleCrossings.context(world),str(npc["id"]))
 	return _at_zebra_window(npc,elapsed,true)
 
 
 static func occupies_zebra(world: SandboxWorld) -> bool:
 	if not SandboxStreetRouteBinding.grounded(): return false
 	for npc in world.residents:
-		if str(npc.get("transit_method",""))!="shuttle" \
-				or int(npc.get("transit_until",0))<=world.minute \
-				or not str(npc.get("transit_hold_crossing","")).is_empty():
+		if str(npc.get("transit_method",""))!="shuttle" or int(npc.get("transit_until",0))<=world.minute: continue
+		if world.vehicle_execution.get(str(npc["id"]),{}).get("native",false):
+			if SandboxVehicleCrossings.native_occupies(SandboxVehicleCrossings.context(world),str(npc["id"])): return true
 			continue
+		if not str(npc.get("transit_hold_crossing","")).is_empty(): continue
 		var elapsed: int=world.minute-int(npc.get("transit_started",0)) \
 				-int(npc.get("transit_pause_minutes",0))
 		if _at_zebra_window(npc,elapsed,false): return true
