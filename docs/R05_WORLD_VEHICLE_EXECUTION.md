@@ -342,3 +342,14 @@ late reservation, both directions, co-yield, snapshots, manual clock and the fou
 braking deltas. The additional aggregate/sourced compatibility variants pass in
 the corridor regression. The parent head's complete suites do not substitute for
 final exact-head CI on this follow-up.
+
+## Integrated CI observation budget
+
+The local parent gate measured 2.8 minutes for Domain and 12.48 minutes for
+Native. Earlier current-Web case timings plus the actual-arrival observation can
+bring the complete sequence near 50 minutes under software rendering. The driving
+workflow's total job budget is now 60 minutes rather than 32; its test list,
+pinned engine, per-case limits and assertions are unchanged. This avoids turning
+a verified but slow rendering sequence into a job-level false failure. The final
+CI head differs from runtime/test head `0b44ee2` only in this workflow budget and
+its documentation.

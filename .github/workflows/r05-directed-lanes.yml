@@ -12,7 +12,9 @@ permissions:
 jobs:
   godot:
     runs-on: ubuntu-latest
-    timeout-minutes: 32
+    # 51 native cases plus the physical current-world WebGL journeys can
+    # exceed 32 minutes under software rendering; per-case limits stay strict.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Godot 4.7.2
