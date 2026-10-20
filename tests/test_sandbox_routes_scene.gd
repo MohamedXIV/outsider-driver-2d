@@ -38,6 +38,9 @@ func _walkthrough() -> void:
 	assert(world.active_offer_id == chosen["id"])
 	assert(world.route_nodes == SandboxRoads.path("garage","market","depot"))
 	world.advance(1)
+	for physical_delay in range(60):
+		if world.route_edge_elapsed>=1: break
+		assert(world.advance(1))
 	scene.call("_render")
 	await process_frame
 	assert(world.player_district == "garage" and world.route_edge_elapsed == 1)
@@ -47,7 +50,7 @@ func _walkthrough() -> void:
 	scene.call("_on_load")
 	var recovered: SandboxWorld = scene.get("_world") as SandboxWorld
 	assert(recovered.route_edge_elapsed == 1 and recovered.route_nodes == world.route_nodes)
-	NativeRouteChecks.finish(recovered,true)
+	NativeRouteChecks.finish(recovered)
 	scene.call("_render")
 	await RenderingServer.frame_post_draw
 	_capture("route-arrived.png")
