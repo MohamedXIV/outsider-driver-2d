@@ -32,6 +32,8 @@ jobs:
           set -euo pipefail
           mkdir -p work/r05-player-ui
           /tmp/godot --headless --path . --editor --import --quit > work/r05-player-ui/import.log 2>&1
+          /tmp/godot --headless --path . --check-only --script res://scripts/sandbox/sandbox_cab_gear_plate.gd 2>&1 | tee work/r05-player-ui/gear-parse.log
+          /tmp/godot --headless --path . --check-only --script res://scripts/sandbox/sandbox_player_ui.gd 2>&1 | tee work/r05-player-ui/player-ui-parse.log
           timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_player_guidance_scene.gd 2>&1 | tee work/r05-player-ui/focused.log
           grep -q PLAYER_GUIDANCE_SCENE_PASS work/r05-player-ui/focused.log
           timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_passenger_speech_scene.gd 2>&1 | tee work/r05-player-ui/speech.log

@@ -403,9 +403,11 @@ func sync() -> void:
 	elif tab=="gear":
 		_label(trp("Cab equipment","تجهيزات التاكسي"),true)
 		var installed: PackedStringArray=[]
+		var en_languages: Dictionary={"trade":"Common","local":"Local","cant":"Cant"}
+		var ar_languages: Dictionary={"trade":"المشتركة","local":"المحلية","cant":"الكانت"}
 		for language in world.modules_installed:
-			installed.append(trp({"trade":"Common","local":"Local","cant":"Cant"}.get(language,language),
-				{"trade":"المشتركة","local":"المحلية","cant":"الكانت"}.get(language,language)))
+			installed.append(trp(str(en_languages.get(language,language)),
+				str(ar_languages.get(language,language))))
 		_begin_button_group(trp("Cab instruments","أجهزة المقصورة"),"CabInstrumentsSection")
 		if world.starter_device.is_empty():
 			_gear_readout("translator",trp("Translator","المترجم"),
@@ -414,7 +416,7 @@ func sync() -> void:
 			var starter_names: Dictionary={"gps":trp("GPS","الملاحة"),
 				"module:local":trp("Local translator","مترجم اللغة المحلية"),
 				"radio":trp("Radio","الراديو")}
-			var starter_kind: String="translator" if world.starter_device=="module:local" else world.starter_device
+			var starter_kind: String="translator_starter" if world.starter_device=="module:local" else world.starter_device
 			_gear_readout(starter_kind,str(starter_names.get(world.starter_device,world.starter_device)),
 				trp("Starter device","جهاز البداية"))
 		_gear_readout("translator",trp("Language cartridges","وحدات اللغة"),
@@ -444,8 +446,8 @@ func sync() -> void:
 		if world.ar_equipped and not controller._ar_note.is_empty():
 			var source: String=str(controller._ar_note.get("source",""))
 			var note: Label=Label.new()
-			note.text=str(controller._ar_note.get("text",""))+"\n"+
-				trp("Source: ","المصدر: ")+source
+			note.text="%s\n%s%s"%[str(controller._ar_note.get("text","")),
+				trp("Source: ","المصدر: "),source]
 			note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 			_button_group.add_child(note)
 		_end_button_group()
