@@ -1,0 +1,25 @@
+const {chromium}=require('playwright');
+const fs=require('node:fs/promises');
+(async()=>{
+ const browser=await chromium.launch({headless:true,args:['--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--disable-dev-shm-usage']});
+ try { for(const mode of ['integrated']) {
+  const out=`work/final-integrated-web-frames`;await fs.mkdir(out,{recursive:true});
+  const page=await browser.newPage({viewport:{width:1280,height:720}});const errors=[];
+  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+  try {
+   await page.goto(`http://127.0.0.1:8773/index.html`,{waitUntil:'domcontentloaded'});
+   await page.waitForFunction(()=>window.integratedProofDone||window.integratedProofFailure,null,{timeout:900000});
+   const state=await page.evaluate(()=>({failure:window.integratedProofFailure,done:window.integratedProofDone,records:window.integratedProofRecords,frames:window.integratedProofFrames}));
+   if(state.failure)throw Error(state.failure);if(!state.done)throw Error('Missing completion');
+   for(const [phase,frame] of Object.entries(state.frames||{})){
+    const png=Buffer.from(frame.png,'base64');if(png.length<1000||png.readUInt32BE(0)!==0x89504e47)throw Error('Invalid PNG '+phase);
+    await fs.writeFile(`${out}/${phase}.png`,png);await fs.writeFile(`${out}/${phase}.json`,JSON.stringify(frame.record,null,2));
+   }
+   await fs.writeFile(`${out}/sequence.json`,JSON.stringify({browser:browser.version(),records:state.records,errors},null,2));
+   if(errors.length)throw Error(errors.join('\n'));
+   if(Object.keys(state.frames||{}).length!==7)throw Error('Expected seven sequential frames');
+   console.log('INTEGRATED_WEB_PROOF_PASS',mode,Object.keys(state.frames));
+  }catch(e){await page.screenshot({path:out+'/failure.png'});console.error('ERRORS',errors);console.error('STATE',await page.evaluate(()=>({phase:window.integratedProofPhase,failure:window.integratedProofFailure,dataset:{...document.documentElement.dataset}})));throw e;}
+  finally{await page.close();}
+ }}finally{await browser.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

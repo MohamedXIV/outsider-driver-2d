@@ -1,0 +1,891 @@
+{
+  "bodies": {},
+  "fraction": 0.0,
+  "head": "32cf940629eddb4916d5695829ab8efc87c4de6f",
+  "minute": 525,
+  "phase": "02-clinic-stop",
+  "population": 9,
+  "world": {
+    "active_offer_id": "",
+    "ar_equipped": false,
+    "ar_owned": false,
+    "common_requests": {},
+    "credits": 9,
+    "engaged_offer_id": "",
+    "events": [
+      {
+        "detail": {
+          "clock_fraction": 0,
+          "expense": 3,
+          "from": "garage",
+          "nodes": [
+            "garage",
+            "margin_gate",
+            "old_square",
+            "market",
+            "basin_turn",
+            "clinic"
+          ],
+          "to": "clinic"
+        },
+        "id": "event:1",
+        "kind": "reposition",
+        "minute": 480,
+        "subject": "player"
+      },
+      {
+        "detail": {
+          "arrival_policy": "clinic-curb-v1",
+          "progress": 0.0,
+          "source": "event:1"
+        },
+        "id": "event:2",
+        "kind": "vehicle_execution_entered",
+        "minute": 480,
+        "subject": "player"
+      },
+      {
+        "detail": {
+          "base": 0.0,
+          "progress": 0.553294501431894,
+          "reason": "motion",
+          "source": "event:1"
+        },
+        "id": "event:3",
+        "kind": "vehicle_execution_wait",
+        "minute": 480,
+        "subject": "player"
+      },
+      {
+        "detail": {
+          "from": "garage",
+          "site": "patchworks:parts_counter",
+          "slot": 0
+        },
+        "id": "event:4",
+        "kind": "local_pedestrian_departed",
+        "minute": 483,
+        "subject": "npc:02"
+      },
+      {
+        "detail": {
+          "district": "garage",
+          "from": "available",
+          "to": "travelling"
+        },
+        "id": "event:5",
+        "kind": "npc_routine_changed",
+        "minute": 490,
+        "subject": "npc:02"
+      },
+      {
+        "detail": {
+          "district": "depot",
+          "from": "available",
+          "to": "working"
+        },
+        "id": "event:6",
+        "kind": "npc_routine_changed",
+        "minute": 490,
+        "subject": "npc:03"
+      },
+      {
+        "detail": {
+          "district": "market",
+          "from": "available",
+          "to": "working"
+        },
+        "id": "event:7",
+        "kind": "npc_routine_changed",
+        "minute": 490,
+        "subject": "npc:04"
+      },
+      {
+        "detail": {
+          "expense": 0,
+          "exposure": 0,
+          "from": "garage",
+          "to": "margin_gate"
+        },
+        "id": "event:8",
+        "kind": "route_segment_completed",
+        "minute": 490,
+        "subject": ""
+      },
+      {
+        "detail": {
+          "fraction": 0.0,
+          "heading": -0.245653539896011,
+          "progress": 9.50979565779286,
+          "source": "event:1",
+          "x": 367.76220703125,
+          "y": 714.298950195312
+        },
+        "id": "event:9",
+        "kind": "vehicle_execution_handoff",
+        "minute": 490,
+        "subject": "player"
+      },
+      {
+        "detail": {
+          "expense": 0,
+          "exposure": 0,
+          "from": "margin_gate",
+          "to": "old_square"
+        },
+        "id": "event:10",
+        "kind": "route_segment_completed",
+        "minute": 498,
+        "subject": ""
+      },
+      {
+        "detail": {
+          "affinity": 4,
+          "credits_shared": 0,
+          "district": "docks",
+          "fact": "residence:npc:00",
+          "language": "trade",
+          "recipient": "npc:06",
+          "rivalry": 3,
+          "value": "docks"
+        },
+        "id": "event:11",
+        "kind": "npc_peer_contact",
+        "minute": 500,
+        "subject": "npc:00"
+      },
+      {
+        "detail": {
+          "expense": 0,
+          "exposure": 0,
+          "from": "old_square",
+          "to": "market"
+        },
+        "id": "event:12",
+        "kind": "route_segment_completed",
+        "minute": 504,
+        "subject": ""
+      },
+      {
+        "detail": {
+          "expense": 0,
+          "exposure": 0,
+          "from": "market",
+          "to": "basin_turn"
+        },
+        "id": "event:13",
+        "kind": "route_segment_completed",
+        "minute": 514,
+        "subject": ""
+      },
+      {
+        "detail": {
+          "junction": "clinic",
+          "reservation": {
+            "entry": 41.5,
+            "exit": 43.0,
+            "kind": "curb_arrival",
+            "nodes": [
+              "basin_turn",
+              "clinic"
+            ],
+            "source": "event:1",
+            "vehicle": "player"
+          }
+        },
+        "id": "event:14",
+        "kind": "vehicle_junction_claimed",
+        "minute": 519,
+        "subject": "player"
+      },
+      {
+        "detail": {},
+        "id": "event:15",
+        "kind": "offer_expired",
+        "minute": 520,
+        "subject": "offer:npc:00:480"
+      },
+      {
+        "detail": {},
+        "id": "event:16",
+        "kind": "offer_expired",
+        "minute": 520,
+        "subject": "offer:npc:03:480"
+      },
+      {
+        "detail": {},
+        "id": "event:17",
+        "kind": "offer_expired",
+        "minute": 520,
+        "subject": "offer:npc:06:480"
+      },
+      {
+        "detail": {
+          "arrival_at": 560,
+          "cost": 0,
+          "from": "docks",
+          "method": "walking",
+          "offer_id": "offer:npc:00:480",
+          "to": "clinic"
+        },
+        "id": "event:18",
+        "kind": "npc_alternative_departed",
+        "minute": 520,
+        "subject": "npc:00"
+      },
+      {
+        "detail": {
+          "arrival_at": 660,
+          "cost": 0,
+          "from": "depot",
+          "method": "walking",
+          "offer_id": "offer:npc:03:480",
+          "to": "market"
+        },
+        "id": "event:19",
+        "kind": "npc_alternative_departed",
+        "minute": 520,
+        "subject": "npc:03"
+      },
+      {
+        "detail": {
+          "arrival_at": 596,
+          "cost": 0,
+          "from": "docks",
+          "method": "walking",
+          "offer_id": "offer:npc:06:480",
+          "to": "depot"
+        },
+        "id": "event:20",
+        "kind": "npc_alternative_departed",
+        "minute": 520,
+        "subject": "npc:06"
+      },
+      {
+        "detail": {
+          "base": 42.0,
+          "progress": 42.9998636371244,
+          "reason": "arrival",
+          "source": "event:1"
+        },
+        "id": "event:21",
+        "kind": "vehicle_execution_wait",
+        "minute": 523,
+        "subject": "player"
+      },
+      {
+        "detail": {},
+        "id": "event:22",
+        "kind": "offer_expired",
+        "minute": 524,
+        "subject": "offer:npc:01:480"
+      },
+      {
+        "detail": {},
+        "id": "event:23",
+        "kind": "offer_expired",
+        "minute": 524,
+        "subject": "offer:npc:04:480"
+      },
+      {
+        "detail": {},
+        "id": "event:24",
+        "kind": "offer_expired",
+        "minute": 524,
+        "subject": "offer:npc:07:480"
+      },
+      {
+        "detail": {
+          "arrival_at": 575,
+          "cost": 5,
+          "from": "docks",
+          "method": "shuttle",
+          "offer_id": "offer:npc:01:480",
+          "to": "shelter"
+        },
+        "id": "event:25",
+        "kind": "npc_alternative_departed",
+        "minute": 524,
+        "subject": "npc:01"
+      },
+      {
+        "detail": {
+          "arrival_at": 544,
+          "cost": 2,
+          "from": "market",
+          "method": "shuttle",
+          "offer_id": "offer:npc:04:480",
+          "to": "clinic"
+        },
+        "id": "event:26",
+        "kind": "npc_alternative_departed",
+        "minute": 524,
+        "subject": "npc:04"
+      },
+      {
+        "detail": {
+          "arrival_at": 547,
+          "cost": 2,
+          "from": "garage",
+          "method": "shuttle",
+          "offer_id": "offer:npc:07:480",
+          "to": "market"
+        },
+        "id": "event:27",
+        "kind": "npc_alternative_departed",
+        "minute": 524,
+        "subject": "npc:07"
+      },
+      {
+        "detail": {
+          "expense": 0,
+          "exposure": 0,
+          "from": "basin_turn",
+          "to": "clinic"
+        },
+        "id": "event:28",
+        "kind": "route_segment_completed",
+        "minute": 525,
+        "subject": ""
+      },
+      {
+        "detail": {
+          "to": "clinic"
+        },
+        "id": "event:29",
+        "kind": "reposition_arrived",
+        "minute": 525,
+        "subject": "player"
+      },
+      {
+        "detail": {
+          "arrival_policy": "clinic-curb-v1",
+          "from": "basin_turn",
+          "heading": -2.52065181732178,
+          "height": 0.0,
+          "minute": 525,
+          "parent_event": "event:29",
+          "source": "event:1",
+          "stop": "clinic",
+          "x": -82.6144561767578,
+          "y": 145.350524902344
+        },
+        "id": "event:30",
+        "kind": "vehicle_parked",
+        "minute": 525,
+        "subject": "player"
+      },
+      {
+        "detail": {
+          "junction": "clinic",
+          "source": "event:1"
+        },
+        "id": "event:31",
+        "kind": "vehicle_junction_released",
+        "minute": 525,
+        "subject": "player"
+      }
+    ],
+    "knowledge": [],
+    "market_stock": {
+      "cant": 1,
+      "local": 1
+    },
+    "meetings": [],
+    "minute": 525,
+    "modules_installed": [
+      "trade"
+    ],
+    "modules_owned": [
+      "trade"
+    ],
+    "offers": [
+      {
+        "channel": "official",
+        "created_at": 480,
+        "destination": "clinic",
+        "expires_at": 520,
+        "fare": 9,
+        "id": "offer:npc:00:480",
+        "npc_id": "npc:00",
+        "origin": "docks",
+        "purpose": "medical",
+        "status": "expired"
+      },
+      {
+        "channel": "street",
+        "created_at": 480,
+        "destination": "shelter",
+        "expires_at": 524,
+        "fare": 24,
+        "id": "offer:npc:01:480",
+        "npc_id": "npc:01",
+        "origin": "docks",
+        "purpose": "shelter",
+        "status": "expired"
+      },
+      {
+        "channel": "official",
+        "created_at": 480,
+        "destination": "market",
+        "expires_at": 520,
+        "fare": 20,
+        "id": "offer:npc:03:480",
+        "npc_id": "npc:03",
+        "origin": "depot",
+        "purpose": "supplies",
+        "status": "expired"
+      },
+      {
+        "channel": "street",
+        "created_at": 480,
+        "destination": "clinic",
+        "expires_at": 524,
+        "fare": 14,
+        "id": "offer:npc:04:480",
+        "npc_id": "npc:04",
+        "origin": "market",
+        "purpose": "medical",
+        "status": "expired"
+      },
+      {
+        "channel": "official",
+        "created_at": 480,
+        "destination": "depot",
+        "expires_at": 520,
+        "fare": 14,
+        "id": "offer:npc:06:480",
+        "npc_id": "npc:06",
+        "origin": "docks",
+        "purpose": "work",
+        "status": "expired"
+      },
+      {
+        "channel": "street",
+        "created_at": 480,
+        "destination": "market",
+        "expires_at": 524,
+        "fare": 13,
+        "id": "offer:npc:07:480",
+        "npc_id": "npc:07",
+        "origin": "garage",
+        "purpose": "supplies",
+        "status": "expired"
+      },
+      {
+        "channel": "underground",
+        "created_at": 520,
+        "destination": "shelter",
+        "expires_at": 561,
+        "fare": 11,
+        "id": "offer:npc:05:520",
+        "npc_id": "npc:05",
+        "origin": "lantern",
+        "purpose": "shelter",
+        "status": "open"
+      },
+      {
+        "channel": "underground",
+        "created_at": 520,
+        "destination": "clinic",
+        "expires_at": 561,
+        "fare": 31,
+        "id": "offer:npc:08:520",
+        "npc_id": "npc:08",
+        "origin": "terraces",
+        "purpose": "medical",
+        "status": "open"
+      }
+    ],
+    "pending_route_nodes": [],
+    "player_district": "clinic",
+    "remaining_minutes": 0,
+    "residents": [
+      {
+        "activity": "travelling",
+        "cash": 24,
+        "community": "newcomer",
+        "contacts": {
+          "npc:06": 1
+        },
+        "cooldown_until": 590,
+        "destination": "clinic",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "docks",
+        "id": "npc:00",
+        "language": "trade",
+        "last_peer_day": 0,
+        "location": "docks",
+        "need": 74,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "medical",
+        "speaks_common": true,
+        "species": "kind:a",
+        "taxi_offer": "",
+        "temperament": "cautious",
+        "transit_from_offer": "offer:npc:00:480",
+        "transit_hold_crossing": "",
+        "transit_method": "walking",
+        "transit_nodes": [
+          "docks",
+          "clinic"
+        ],
+        "transit_pause_minutes": 0,
+        "transit_started": 520,
+        "transit_to": "clinic",
+        "transit_until": 560,
+        "trust": 0,
+        "will_use_common": true,
+        "workplace": "depot"
+      },
+      {
+        "activity": "travelling",
+        "cash": 32,
+        "community": "harbor",
+        "contacts": {},
+        "cooldown_until": 605,
+        "destination": "shelter",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "docks",
+        "id": "npc:01",
+        "language": "local",
+        "last_peer_day": -1,
+        "location": "docks",
+        "need": 91,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "shelter",
+        "speaks_common": false,
+        "species": "kind:b",
+        "taxi_offer": "",
+        "temperament": "urgent",
+        "transit_from_offer": "offer:npc:01:480",
+        "transit_hold_crossing": "",
+        "transit_method": "shuttle",
+        "transit_nodes": [
+          "docks",
+          "quay_gate",
+          "freight_cross",
+          "worker_gate",
+          "bridge_west",
+          "bridge_east",
+          "margin_gate",
+          "garage",
+          "shelter"
+        ],
+        "transit_pause_minutes": 0,
+        "transit_started": 524,
+        "transit_to": "shelter",
+        "transit_until": 575,
+        "trust": 0,
+        "will_use_common": true,
+        "workplace": "market"
+      },
+      {
+        "activity": "travelling",
+        "cash": 50,
+        "community": "exchange",
+        "contacts": {},
+        "cooldown_until": 0,
+        "destination": "depot",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "garage",
+        "id": "npc:02",
+        "language": "cant",
+        "last_peer_day": -1,
+        "local_pedestrian_trip": {
+          "crossing_state": "approach",
+          "site": "patchworks:parts_counter",
+          "slot": 0,
+          "started": 483,
+          "status": "walking"
+        },
+        "location": "garage",
+        "need": 45,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "work",
+        "speaks_common": true,
+        "species": "kind:c",
+        "taxi_offer": "",
+        "temperament": "cautious",
+        "transit_from_offer": "",
+        "transit_hold_crossing": "",
+        "transit_method": "",
+        "transit_nodes": [],
+        "transit_pause_minutes": 0,
+        "transit_started": 0,
+        "transit_to": "",
+        "transit_until": 0,
+        "trust": 0,
+        "will_use_common": false,
+        "workplace": "clinic"
+      },
+      {
+        "activity": "travelling",
+        "cash": 63,
+        "community": "newcomer",
+        "contacts": {},
+        "cooldown_until": 690,
+        "destination": "market",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "depot",
+        "id": "npc:03",
+        "language": "trade",
+        "last_peer_day": -1,
+        "location": "depot",
+        "need": 62,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "supplies",
+        "speaks_common": true,
+        "species": "kind:d",
+        "taxi_offer": "",
+        "temperament": "urgent",
+        "transit_from_offer": "offer:npc:03:480",
+        "transit_hold_crossing": "",
+        "transit_method": "walking",
+        "transit_nodes": [
+          "depot",
+          "belt_arcade",
+          "civic_arcade",
+          "civic_gate",
+          "old_square",
+          "market"
+        ],
+        "transit_pause_minutes": 0,
+        "transit_started": 520,
+        "transit_to": "market",
+        "transit_until": 660,
+        "trust": 0,
+        "will_use_common": true,
+        "workplace": "depot"
+      },
+      {
+        "activity": "travelling",
+        "cash": 34,
+        "community": "harbor",
+        "contacts": {},
+        "cooldown_until": 574,
+        "destination": "clinic",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "market",
+        "id": "npc:04",
+        "language": "local",
+        "last_peer_day": -1,
+        "location": "market",
+        "need": 79,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "medical",
+        "speaks_common": true,
+        "species": "kind:a",
+        "taxi_offer": "",
+        "temperament": "cautious",
+        "transit_from_offer": "offer:npc:04:480",
+        "transit_hold_crossing": "",
+        "transit_method": "shuttle",
+        "transit_nodes": [
+          "market",
+          "basin_turn",
+          "clinic"
+        ],
+        "transit_pause_minutes": 0,
+        "transit_started": 524,
+        "transit_to": "clinic",
+        "transit_until": 544,
+        "trust": 0,
+        "will_use_common": true,
+        "workplace": "market"
+      },
+      {
+        "activity": "available",
+        "cash": 49,
+        "community": "exchange",
+        "contacts": {},
+        "cooldown_until": 0,
+        "destination": "shelter",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "lantern",
+        "id": "npc:05",
+        "language": "trade",
+        "last_peer_day": -1,
+        "location": "lantern",
+        "need": 57,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "shelter",
+        "speaks_common": false,
+        "species": "kind:b",
+        "taxi_offer": "",
+        "temperament": "urgent",
+        "transit_from_offer": "",
+        "transit_hold_crossing": "",
+        "transit_method": "",
+        "transit_nodes": [],
+        "transit_pause_minutes": 0,
+        "transit_started": 0,
+        "transit_to": "",
+        "transit_until": 0,
+        "trust": 0,
+        "will_use_common": false,
+        "workplace": "clinic"
+      },
+      {
+        "activity": "travelling",
+        "cash": 62,
+        "community": "newcomer",
+        "contacts": {
+          "npc:00": 1
+        },
+        "cooldown_until": 626,
+        "destination": "depot",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "docks",
+        "id": "npc:06",
+        "language": "trade",
+        "last_peer_day": 0,
+        "location": "docks",
+        "need": 74,
+        "passenger_alight": {},
+        "peer_knowledge": {
+          "residence:npc:00": {
+            "source": "event:11",
+            "speaker": "npc:00",
+            "value": "docks"
+          }
+        },
+        "purpose": "work",
+        "speaks_common": true,
+        "species": "kind:c",
+        "taxi_offer": "",
+        "temperament": "cautious",
+        "transit_from_offer": "offer:npc:06:480",
+        "transit_hold_crossing": "",
+        "transit_method": "walking",
+        "transit_nodes": [
+          "docks",
+          "quay_gate",
+          "rail_yard",
+          "depot"
+        ],
+        "transit_pause_minutes": 0,
+        "transit_started": 520,
+        "transit_to": "depot",
+        "transit_until": 596,
+        "trust": 0,
+        "will_use_common": true,
+        "workplace": "depot"
+      },
+      {
+        "activity": "travelling",
+        "cash": 33,
+        "community": "harbor",
+        "contacts": {},
+        "cooldown_until": 577,
+        "destination": "market",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "garage",
+        "id": "npc:07",
+        "language": "cant",
+        "last_peer_day": -1,
+        "location": "garage",
+        "need": 91,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "supplies",
+        "speaks_common": true,
+        "species": "kind:d",
+        "taxi_offer": "",
+        "temperament": "urgent",
+        "transit_from_offer": "offer:npc:07:480",
+        "transit_hold_crossing": "",
+        "transit_method": "shuttle",
+        "transit_nodes": [
+          "garage",
+          "margin_gate",
+          "old_square",
+          "market"
+        ],
+        "transit_pause_minutes": 0,
+        "transit_started": 524,
+        "transit_to": "market",
+        "transit_until": 547,
+        "trust": 0,
+        "will_use_common": true,
+        "workplace": "market"
+      },
+      {
+        "activity": "available",
+        "cash": 48,
+        "community": "exchange",
+        "contacts": {},
+        "cooldown_until": 0,
+        "destination": "clinic",
+        "driver_identity_facts": {},
+        "driver_memories": [],
+        "home": "terraces",
+        "id": "npc:08",
+        "language": "cant",
+        "last_peer_day": -1,
+        "location": "terraces",
+        "need": 57,
+        "passenger_alight": {},
+        "peer_knowledge": {},
+        "purpose": "medical",
+        "speaks_common": true,
+        "species": "kind:a",
+        "taxi_offer": "",
+        "temperament": "cautious",
+        "transit_from_offer": "",
+        "transit_hold_crossing": "",
+        "transit_method": "",
+        "transit_nodes": [],
+        "transit_pause_minutes": 0,
+        "transit_started": 0,
+        "transit_to": "",
+        "transit_until": 0,
+        "trust": 0,
+        "will_use_common": false,
+        "workplace": "clinic"
+      }
+    ],
+    "rider_route_request": {},
+    "risk": 0,
+    "route_edge_elapsed": 0,
+    "route_hold_id": "",
+    "route_nodes": [],
+    "route_segment": 0,
+    "seed": 8,
+    "starter_device": "",
+    "travel_destination": "",
+    "vehicle_departures": {},
+    "vehicle_execution": {},
+    "vehicle_fraction": 0.0,
+    "vehicle_junctions": {},
+    "vehicle_parking": {
+      "player": {
+        "arrival_policy": "clinic-curb-v1",
+        "from": "basin_turn",
+        "heading": -2.52065181732178,
+        "height": 0.0,
+        "minute": 525,
+        "parent_event": "event:29",
+        "source": "event:1",
+        "stop": "clinic",
+        "x": -82.6144561767578,
+        "y": 145.350524902344
+      }
+    },
+    "version": 12
+  }
+}

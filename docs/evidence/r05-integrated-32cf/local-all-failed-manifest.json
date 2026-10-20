@@ -1,0 +1,40 @@
+{
+  "head": "0b44ee2e07c343e90bc40d8092e918f29817a6cd",
+  "scope": "all",
+  "suites": [
+    {
+      "name": "import-city",
+      "exit": 0,
+      "seconds": 30.5
+    },
+    {
+      "name": "export-city",
+      "exit": 0,
+      "seconds": 17.95
+    },
+    {
+      "name": "web_camera_zoom",
+      "exit": 0,
+      "seconds": 313.8
+    },
+    {
+      "name": "web_city_playability",
+      "exit": 0,
+      "seconds": 451.39
+    },
+    {
+      "name": "web_city_routes",
+      "exit": 1,
+      "seconds": 409.85
+    }
+  ],
+  "exports": {
+    "city": {
+      "pck_sha256": "577ca38cefb4c536aedd2e77922fe0297436ad11acd268e22fe093babeefcdd2",
+      "bytes": 772900
+    }
+  },
+  "fixture_override": "project.godot: main_scene scenes/sandbox.tscn -> scenes/main.tscn",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "node": "v24.19.0"
+}

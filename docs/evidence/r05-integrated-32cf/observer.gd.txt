@@ -1,0 +1,97 @@
+extends Node2D
+const SOURCE_HEAD: String="32cf940629eddb4916d5695829ab8efc87c4de6f"
+const OUT: String="res://work/integrated-main-frames"
+var app: Node
+var records: Array=[]
+func _ready() -> void: call_deferred("_run")
+func _require(ok: bool,message: String) -> bool:
+	if ok: return true
+	push_error(message)
+	if OS.has_feature("web"): JavaScriptBridge.eval("window.integratedProofFailure="+JSON.stringify(message),true)
+	else: get_tree().quit(1)
+	return false
+func _read(label: String) -> Dictionary:
+	var w: SandboxWorld=app._world
+	var bodies: Dictionary={}
+	for id in app._vehicle_corridor.bodies:
+		var body: SandboxWorldVehicleBody=app._vehicle_corridor.bodies[id]
+		bodies[id]={"identity":body.identity,"x":body.position.x,"y":body.position.y,"heading":body.rotation}
+	return {"head":SOURCE_HEAD,"phase":label,"minute":w.minute,"fraction":w.vehicle_fraction,"bodies":bodies,"population":w.residents.size(),"world":w.snapshot()}
+func _quad(body: SandboxWorldVehicleBody) -> PackedVector2Array:
+	var result: PackedVector2Array=[]
+	for corner in [Vector2(-12.5,-6.5),Vector2(12.5,-6.5),Vector2(12.5,6.5),Vector2(-12.5,6.5)]: result.append(body.global_transform*corner)
+	return result
+func _safe() -> bool:
+	var vehicles: Array=app._vehicle_corridor.bodies.values()
+	for first in range(vehicles.size()):
+		for second in range(first+1,vehicles.size()):
+			for overlap in Geometry2D.intersect_polygons(_quad(vehicles[first]),_quad(vehicles[second])):
+				if not _require(SandboxIsoPresentation.polygon_area(overlap)<.001,"Genuine footprint overlap during manual Main execution"): return false
+	return _require(app._world.residents.size()==9,"Population changed")
+func _advance() -> bool:
+	if not _require(app._world.advance(1),"Real World minute rejected"): return false
+	app._vehicle_corridor.reconcile()
+	return _safe()
+func _finish() -> bool:
+	for minute in range(150):
+		if not app._world.is_travelling(): return true
+		if not _advance(): return false
+	return _require(false,"Real Main route did not drain")
+func _shot(label: String) -> void:
+	app._render()
+	await RenderingServer.frame_post_draw
+	var row: Dictionary=_read(label);records.append(row)
+	var png: PackedByteArray=get_tree().root.get_texture().get_image().save_png_to_buffer()
+	if not _require(png.size()>1000,"Viewport capture missing"): return
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.integratedProofFrames=window.integratedProofFrames||{};window.integratedProofFrames["+JSON.stringify(label)+"]="+JSON.stringify({"record":row,"png":Marshalls.raw_to_base64(png)})+";window.integratedProofPhase="+JSON.stringify(label),true)
+	else:
+		DirAccess.make_dir_recursive_absolute(OUT)
+		FileAccess.open(OUT.path_join(label+".png"),FileAccess.WRITE).store_buffer(png)
+		FileAccess.open(OUT.path_join(label+".json"),FileAccess.WRITE).store_string(JSON.stringify(row,"  "))
+	print("INTEGRATED_MAIN_FRAME ",label," minute=",app._world.minute)
+func _reload() -> bool:
+	app._on_save();var before: Dictionary=_read("before-load")
+	app._on_load();var after: Dictionary=_read("after-load")
+	records.append(before);records.append(after)
+	return _require(before["bodies"]==after["bodies"],"Saved current body identities or poses changed")
+func _run() -> void:
+	app=load("res://scenes/sandbox.tscn").instantiate();app._world=SandboxWorld.new(8);add_child(app)
+	await get_tree().process_frame
+	app.set_process(false)
+	if not _require(app._world.reposition("clinic"),"Real clinic route rejected"): return
+	for minute in range(3):
+		if not _advance(): return
+	await _shot("01-driven-departure")
+	if not _reload() or not _finish(): return
+	await _shot("02-clinic-stop")
+	if not _reload() or not _require(app._world.reposition("docks"),"Real docks route rejected"): return
+	for minute in range(3):
+		if not _advance(): return
+	await _shot("03-clinic-departure")
+	if not _finish(): return
+	await _shot("04-docks-stop")
+	var via: Array[String]=["clinic","basin_turn"]
+	if not _require(app._world.reposition("market","",via),"Real internal-turn route rejected"): return
+	var queued: bool=false
+	for minute in range(100):
+		if not app._world.is_travelling(): break
+		if not _advance(): return
+		var held: Dictionary=app._world.vehicle_junctions.get("clinic",{})
+		if not held.is_empty() and held["vehicle"]!="player" and app._vehicle_corridor.bodies.has(held["vehicle"]) and app._world.vehicle_execution.get("player",{}).get("reason","")=="junction":
+			queued=true;break
+	if not _require(queued,"Genuine clinic merge queue was not observed"): return
+	await _shot("05-frontage-queue")
+	if not _reload(): return
+	await _shot("06-restored-queue")
+	if not _finish(): return
+	await _shot("07-cleared-market")
+	if not _require(not app._world.vehicle_departures.is_empty(),"Actual public arrival/service transfer missing"): return
+	if not _require(SandboxWorld.new().restore_snapshot(app._world.snapshot()),"Final World invalid"): return
+	if not _require(not app._world.events.any(func(e: Dictionary)->bool:return e["kind"]=="fare_settled"),"Fareless proof invented a settlement"): return
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.integratedProofRecords="+JSON.stringify(records)+";window.integratedProofDone=true",true)
+	else:
+		FileAccess.open(OUT.path_join("sequence.json"),FileAccess.WRITE).store_string(JSON.stringify(records,"  "))
+		get_tree().quit()
+	print("INTEGRATED_MAIN_PROOF_PASS genuine three journeys, native peer clearance, frontage queue, exact body reload, nine residents")
