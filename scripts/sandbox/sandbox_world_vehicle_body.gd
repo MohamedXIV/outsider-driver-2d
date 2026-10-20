@@ -57,6 +57,25 @@ func _at_distance(travel: Dictionary,start: float,distance: float) -> float:
 		(float(low)+fraction)*ARC_STEP))
 
 
+func _pose_clear(at: Vector2,facing: float) -> bool:
+	var query: PhysicsShapeQueryParameters2D=PhysicsShapeQueryParameters2D.new()
+	query.shape=(get_child(0) as CollisionShape2D).shape
+	query.transform=global_transform*transform.affine_inverse()*Transform2D(facing,at)
+	query.collision_mask=collision_mask
+	query.exclude=[get_rid()]
+	# Half of the maximum .02-radian corner displacement. Consecutive
+	# footprints therefore cover the angular sweep, including small obstacles.
+	query.margin=.15
+	return get_world_2d().direct_space_state.intersect_shape(query,1).is_empty()
+
+func _turn_clear(at: Vector2,current: float,facing: float) -> bool:
+	var angle: float=angle_difference(current,facing)
+	var samples: int=maxi(1,int(ceil(absf(angle)/.02)))
+	for index in range(1,samples+1):
+		if not _pose_clear(at,current+angle*float(index)/float(samples)): return false
+	return true
+
+
 func step(delta: float) -> bool:
 	if world==null or not is_finite(delta) or delta<=0.0: return false
 	var travel: Dictionary=SandboxVehicleExecution.trip(world,vehicle_id)
@@ -88,7 +107,8 @@ func step(delta: float) -> bool:
 			if distance>available: break
 			var cursor: float=_at_distance(travel,at,distance)
 			var point: Vector2=SandboxVehicleExecution.point(travel,cursor)
-			if test_move(global_transform,point-position):
+			var predicted: float=SandboxVehicleKinematics.turn_heading(float(state["heading"]),SandboxVehicleExecution.tangent(travel,cursor).angle(),distance/maxf(speed,1.0))
+			if test_move(global_transform,point-position) or not _pose_clear(point,predicted):
 				available=maxf(0.0,distance-2.0-CLEARANCE)
 				reason="vehicle";break
 		target=minf(target,SandboxVehicleKinematics.braking_speed(available,delta))
@@ -103,8 +123,8 @@ func step(delta: float) -> bool:
 	var desired: float=SandboxVehicleExecution.tangent(travel,cursor).angle()
 	var facing: float=float(state["heading"]) if travel["held"] or (reason=="junction" and distance<.000001) else SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
 	# The final sweep fails closed, including obstacles inserted this frame.
-	if test_move(global_transform,point-position):
-		cursor=at;point=position;next=0.0;reason="vehicle"
+	if test_move(global_transform,point-position) or not _turn_clear(point,float(state["heading"]),facing):
+		cursor=at;point=position;next=0.0;reason="vehicle";facing=float(state["heading"])
 	if not SandboxVehicleExecution.report(world,vehicle_id,cursor,next,facing,reason,point): return false
 	position=point
 	rotation=facing

@@ -1,0 +1,12 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+OpenGL API 4.5 (Core Profile) Mesa 25.0.7-2+deb13u1 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 19.1.7, 256 bits)
+
+CLINIC_FRAME 01-departure minute=480
+CLINIC_FRAME 02-approach minute=522
+CLINIC_FRAME 03-curb-and-rider minute=524
+CLINIC_FRAME 04-restored minute=524
+CLINIC_FRAME 05-walking minute=524
+CLINIC_FRAME 06-intake minute=527
+CLINIC_MAIN_EVIDENCE_PASS genuine real-time fare, curb transfer, same saved poses, one settlement, nine residents

@@ -84,3 +84,26 @@ city-presentation test assumed planned minutes guaranteed arrival; its retained
 trace showed a stopped endpoint with one genuine World delay still outstanding.
 The test now advances to actual arrival within a bounded delay and validates the
 World snapshot before requesting the next route. All presentation assertions remain.
+
+## Angular clearance and automatic two-vehicle verification
+
+A focused genuine-taxi repro placed a small marked obstacle just outside the
+initial rectangle. The previous translation-only query allowed the taxi's corner
+to penetrate it while turning at zero speed. The physical adapter now queries
+predicted oriented footprints and covers the bounded angular sweep before it
+reports the next pose. The regression fails before this change and passes after
+it; variable-delta braking, native body/turn/reload, arrival and corridor checks
+also pass locally. Emergency clearance failure retains the previous safe heading.
+
+The automatic coordinator test stages a real seed1 reposition and lets the city
+produce its genuine npc:08 shuttle. It verifies both automatically attached
+bodies' polygons every frame, exact poses after reloading an occupied reservation,
+and both vehicles draining the exclusive connector without population changes.
+This is a controlled real-journey conflict test, not a spontaneous demand claim.
+
+Native real-time Main clinic frames and full read-only World traces are retained
+under `docs/evidence/r05-collision-corridor/clinic-e0ef24c`. That source's Domain
+46/46 passed; its full Native run failed the integration lifecycle test's second
+planned-duration assumption. The latter now waits for actual bounded World
+arrival before issuing its next route; all identity/queue assertions are retained
+and its focused run passes. No full integrated final gate is claimed yet.
