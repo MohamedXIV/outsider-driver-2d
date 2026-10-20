@@ -171,3 +171,23 @@ qualifies for cross-tab attention. This adds no knowledge or gameplay effects.
 cross-tab top restoration, same-tab scroll preservation and quiet nonurgent
 Gear mode. Human review still required; no new style, currency or World
 mechanics were approved.
+
+## Contact appointments and explicit tab-top navigation — 2026-10-20
+
+Reviewed fully green exact-head native + Chromium captures from
+[run #39364776762](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39364776762).
+The post-purchase Gear screenshot remaining in the middle is **expected**
+during in-tab purchases. Explicit tab clicks (including reselecting the
+current tab) now return to the heading; passive same-tab redraws preserve
+scroll. The Web test captures both fitted/scrolling and reselected/top Gear.
+
+Contacts now distinguishes **real World invitations**, a selected actual
+appointment (known location, slot, localized World status, current
+resident presence), and existing controller-gated scheduling actions.
+An active off-duty Ink scene occupies its own section, separate from actual
+indexed player replies. A source frame can contain directions rather than
+spoken lines, so it is not falsely assigned to the resident's portrait or
+translated without a legitimate module. No meeting, location, trust,
+identity, invitation or relationship outcomes are invented by this UI.
+Existing genuine player-contacts native regression covers source-accurate
+Ink, acceptance and completion. No World, NPC, economy or save changes.

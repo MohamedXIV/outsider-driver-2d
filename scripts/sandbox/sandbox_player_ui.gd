@@ -135,15 +135,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		toggle_debug();get_viewport().set_input_as_handled()
 
 func _tab(key: String) -> void:
-	var switched: bool=key!=tab
+	# Explicit navigation (even reselecting the active tab) returns to the
+	# heading. Passive model refresh/purchases still preserve scroll.
 	tab=key
-	# A new page must start at its heading. Keeping the old page's scroll
-	# buried the cab instruments below the fold after visiting Settings.
-	# Same-page refreshes (purchases, live fares) still preserve position.
-	if switched: _scroll.scroll_vertical=0
+	_scroll.scroll_vertical=0
 	_last_signature=""
 	sync()
-	if switched: _scroll.set_deferred("scroll_vertical",0)
+	_scroll.set_deferred("scroll_vertical",0)
 	_ack()
 
 func _label(text: String, heading: bool=false) -> Label:
@@ -186,6 +184,13 @@ func _begin_button_group(label: String, section_name: String) -> void:
 
 func _end_button_group() -> void:
 	_button_group=null
+
+func _group_note(words: String) -> void:
+	var note: Label=Label.new()
+	note.text=words
+	note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	note.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT if controller._ui_locale=="ar" else HORIZONTAL_ALIGNMENT_LEFT
+	(_button_group if _button_group!=null else _body).add_child(note)
 
 func _inline_passenger(speaker: Dictionary, words: String, locale: String,
 		font_path: String) -> void:
@@ -483,18 +488,61 @@ func sync() -> void:
 			_call.bind("_on_buy_ar"),controller._ar_buy.disabled)
 		_end_button_group()
 	elif tab=="contacts":
-		_label(trp("Contacts","المعارف"),true)
-		_label(controller._meeting_info.text)
-		for meeting in world.meetings:
-			_button("meeting_"+str(meeting["id"]),trp("Resident ","المقيم ")+str(meeting["npc_id"]).trim_prefix("npc:")+" · "+str(meeting["status"]),_select_meeting.bind(str(meeting["id"])))
-		_button("meeting_accept",trp("Accept invitation","اقبل الدعوة"),_call.bind("_on_meeting_accept"),controller._meeting_accept.disabled)
-		_button("meeting_decline",trp("Decline invitation","ارفض الدعوة"),_call.bind("_on_meeting_decline"),controller._meeting_decline.disabled)
-		_button("meeting_attend",trp("Meet here","التقِ هنا"),_call.bind("_on_meeting_attend"),controller._meeting_attend.disabled)
+		_label(trp("People & appointments","المعارف والمواعيد"),true)
+		var status_text: Dictionary={
+			"invited":trp("Invited","دعوة"),
+			"accepted":trp("Confirmed","مؤكد"),
+			"in_progress":trp("In progress","جارٍ"),
+			"completed":trp("Completed","مكتمل"),
+			"left":trp("Left","انتهى بالمغادرة"),
+			"missed":trp("Missed","فات الموعد"),
+			"declined":trp("Declined","مرفوض"),
+			"expired":trp("Expired","منتهٍ"),
+			"cancelled":trp("Cancelled","ملغى")}
+		if world.meetings.is_empty():
+			_label(trp("No invitations","لا توجد دعوات"))
+		else:
+			_begin_button_group(trp("Invitations & meetings","الدعوات والمواعيد"),"ContactsListSection")
+			for meeting in world.meetings:
+				var meeting_id: String=str(meeting["id"])
+				var meeting_state: String=str(meeting["status"])
+				var caption: String=trp("Resident ","المقيم ")+str(meeting["npc_id"]).trim_prefix("npc:")+" · "+str(status_text.get(meeting_state,meeting_state))
+				_button("meeting_"+meeting_id,caption,_select_meeting.bind(meeting_id))
+			_end_button_group()
+		var selected_meeting: Dictionary=world.meeting_by_id(controller._selected_meeting_id)
+		if not selected_meeting.is_empty():
+			var slot: int=int(selected_meeting["slot"])
+			var resident: Dictionary=world.resident(str(selected_meeting["npc_id"]))
+			var actual_presence: String=trp("Here","هنا") if str(resident.get("location",""))==str(selected_meeting["location"]) else trp("Elsewhere","في مكان آخر")
+			_begin_button_group(trp("Appointment","الموعد"),"ContactDetailsSection")
+			_group_note("%s · %s"%[place(str(selected_meeting["location"])),
+				str(status_text.get(str(selected_meeting["status"]),str(selected_meeting["status"])))])
+			_group_note("%s%d · %02d:%02d · %s"%[
+				trp("Day ","اليوم "),int(slot/1440)+1,int((slot%1440)/60),slot%60,
+				trp("Contact: ","الشخص: ")+actual_presence])
+			_end_button_group()
+			if controller._meeting_dialogue==null:
+				_begin_button_group(trp("Meeting actions","إجراءات الموعد"),"ContactActionsSection")
+				_button("meeting_accept",trp("Accept invitation","اقبل الدعوة"),
+					_call.bind("_on_meeting_accept"),controller._meeting_accept.disabled)
+				_button("meeting_decline",trp("Decline invitation","ارفض الدعوة"),
+					_call.bind("_on_meeting_decline"),controller._meeting_decline.disabled)
+				_button("meeting_attend",trp("Meet here","التقِ هنا"),
+					_call.bind("_on_meeting_attend"),controller._meeting_attend.disabled)
+				_end_button_group()
 		if controller._meeting_dialogue!=null:
-			_label(controller._meeting_text.text)
+			# A real Ink frame may contain stage directions, not speech; avoid
+			# giving them an invented speaker or an unauthorized translation.
+			_begin_button_group(trp("At the meeting","أثناء اللقاء"),"ContactSceneSection")
+			_group_note(controller._meeting_text.text)
+			_end_button_group()
 			var meeting_choices: Array=controller._meeting_dialogue.current_frame().get("choices",[])
-			for i in range(meeting_choices.size()):
-				_button("meeting_choice_"+str(i),str(meeting_choices[i]),controller._on_meeting_choice.bind(i))
+			if not meeting_choices.is_empty():
+				_begin_button_group(trp("Replies","الردود"),"ContactRepliesSection")
+				for i in range(meeting_choices.size()):
+					_button("meeting_choice_"+str(i),str(meeting_choices[i]),
+						controller._on_meeting_choice.bind(i))
+				_end_button_group()
 	elif tab=="settings":
 		_label(trp("Options","الخيارات"),true)
 		_button("english","English",controller._on_language_locale.bind("en"))

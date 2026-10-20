@@ -60,6 +60,10 @@ func _run() -> void:
 	for frame in range(3): await process_frame
 	assert(ui._scroll.scroll_vertical==gear_scroll,
 		"Same-tab equipment status refresh must preserve user scroll position")
+	ui._tab("gear")
+	for frame in range(4): await process_frame
+	assert(ui._scroll.scroll_vertical==0,
+		"Explicitly reselecting Gear should return to the instruments")
 	assert(scene._world.credits==credits,"Reading device status never charges the player")
 	scene._on_language_locale("ar")
 	ui._tab("gear")
