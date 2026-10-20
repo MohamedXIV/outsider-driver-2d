@@ -143,7 +143,7 @@ func step(delta: float) -> bool:
 	if total-at<=SandboxVehicleExecution.LOOKAHEAD_MINUTES:
 		available=minf(available,position.distance_to(SandboxVehicleExecution.point(travel,total)))
 		if available<36.0: reason="arrival"
-	var crossing_clearance: float=SandboxVehicleCrossings.clearance(world,travel,at,position)
+	var crossing_clearance: float=SandboxVehicleCrossings.clearance(world,vehicle_id,travel,at,position)
 	if crossing_clearance<available:
 		available=crossing_clearance;reason="pedestrian"
 	var junction_stop: float=SandboxVehicleJunctions.stop_progress(world,vehicle_id)

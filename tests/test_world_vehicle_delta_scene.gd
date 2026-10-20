@@ -28,6 +28,7 @@ func _run() -> void:
 		body.queue_free();block.queue_free();await physics_frame
 	for delta in [1.0/30.0,1.0/60.0,1.0/120.0,.1]:
 		await _reserved_zebra(delta)
+	await _late_reservation()
 	quit()
 
 func _reserved_zebra(delta: float) -> void:
@@ -61,4 +62,31 @@ func _reserved_zebra(delta: float) -> void:
 	assert(body.position.distance_to(held.origin)>.1 and world.residents.size()==9)
 	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
 	print("VARIABLE_ZEBRA_PASS delta=",delta," reserved source=",id," gradual stop, held pose, clear release")
+	body.queue_free();await physics_frame
+
+func _late_reservation() -> void:
+	var world: SandboxWorld=SandboxWorld.new(8)
+	var id: String=SandboxLocalPedestrianTrip.candidate(world)
+	assert(not id.is_empty() and SandboxLocalPedestrianTrip.begin(world,id,SandboxLocalPedestrianTrip.PATCHWORKS_PARTS))
+	assert(world.reposition("market","margin_gate"))
+	var body: SandboxWorldVehicleBody=SandboxWorldVehicleBody.new()
+	root.add_child(body);assert(body.bind(world,"player"))
+	await physics_frame
+	var reserved: bool=false
+	var cleared: bool=false
+	for frame in range(600):
+		world.vehicle_fraction=float(frame%60)/60.0
+		assert(body.step(1.0/60.0))
+		var occupies: bool=SandboxStreetRouteBinding.taxi_occupies_crosswalk(world)
+		if not reserved and occupies:
+			assert(SandboxLocalPedestrianTrip.reserve(world,id));reserved=true
+		if reserved and occupies:
+			assert(not SandboxStreetRouteBinding.approaching(world),"A taxi already on paint must clear before the waiting walker enters")
+		if reserved and not occupies:
+			cleared=true;break
+		if (frame+1)%60==0: assert(world.advance_elapsed(1))
+		await physics_frame
+	assert(reserved and cleared and world.residents.size()==9)
+	assert(SandboxWorld.new().restore_snapshot(world.snapshot()))
+	print("LATE_ZEBRA_PASS actual moving taxi clears occupied paint before a newly reserved real pedestrian")
 	body.queue_free();await physics_frame
