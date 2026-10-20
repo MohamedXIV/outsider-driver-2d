@@ -12,8 +12,10 @@ var _rtl: bool=false
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE
 	_backdrop=StyleBoxFlat.new()
+	# Painted enamel and warm worn-metal details echo the repaired cab
+	# rather than importing a generic messaging-app chat bubble.
 	_backdrop.bg_color=Color("182d31")
-	_backdrop.border_color=Color("7c8e7e")
+	_backdrop.border_color=Color("8d917d")
 	_backdrop.set_border_width_all(1)
 	_backdrop.set_corner_radius_all(10)
 	portrait=SandboxPassengerView.new()
@@ -35,7 +37,23 @@ func _ready() -> void:
 	_arrange()
 
 func _draw() -> void:
-	if _backdrop!=null: draw_style_box(_backdrop,Rect2(Vector2.ZERO,size))
+	if _backdrop==null or size.x<200.0: return
+	draw_style_box(_backdrop,Rect2(Vector2.ZERO,size))
+	# Physical seat-side join and stamped enamel trim. This is decorative;
+	# color does not predict a dialogue choice's morality or consequence.
+	var margin: float=10.0 if size.x<380.0 else 14.0
+	var portrait_width: float=124.0 if size.x<380.0 else 166.0
+	var split: float=portrait_width+margin*1.5 if _rtl else size.x-portrait_width-margin*1.5
+	var metal: Color=Color("a89a73")
+	var seam: Color=Color("5e7770")
+	draw_line(Vector2(margin,6.0),Vector2(size.x-margin,6.0),metal,2.0,true)
+	draw_line(Vector2(split,44.0),Vector2(split,size.y-17.0),seam,1.5,true)
+	var point: float=split-9.0 if _rtl else split+9.0
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(split,66.0),Vector2(point,74.0),Vector2(split,82.0)
+	]),metal)
+	var fix_x: float=size.x-margin if _rtl else margin
+	draw_circle(Vector2(fix_x,size.y-15.0),2.0,metal.darkened(0.20))
 
 func _arrange() -> void:
 	if portrait==null: return

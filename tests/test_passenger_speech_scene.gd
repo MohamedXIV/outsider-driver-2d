@@ -21,6 +21,12 @@ func _run() -> void:
 		str(scene._world.offer_by_id(scene._conversation.offer_id).get("npc_id",""))))
 	assert(ui._body.get_children().any(func(c: Node)->bool: return c.name=="RepliesSection"))
 	assert(ui._body.get_children().any(func(c: Node)->bool: return c.name=="ActionsSection"))
+	var reply_style: StyleBoxFlat=(ui._body.get_node("RepliesSection") as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
+	var action_style: StyleBoxFlat=(ui._body.get_node("ActionsSection") as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
+	assert(reply_style.border_color!=action_style.border_color,
+		"Player speech choices and other controls need distinguishable physical sections")
+	assert(ui._speech.speech_label.get_global_rect().end.x<=ui._speech.portrait.get_global_rect().position.x,
+		"English speech and the actual passenger portrait must not overlap")
 	assert(not ui._body.get_children().any(func(c: Node)->bool:
 		return c is Label and c.text==scene._dialogue_text.text))
 	assert(ui._actions.has("choice_0") and ui._actions.has("common"))
@@ -48,6 +54,8 @@ func _run() -> void:
 	assert(not ui._speech.get_global_rect().intersects(ui._panel.get_global_rect()),
 		"RTL passenger panel must stand opposite the player reply panel")
 	assert(ui._speech.position.x<=30.0,"RTL passenger surface stays on scene's left")
+	assert(ui._speech.portrait.get_global_rect().end.x<=ui._speech.speech_label.get_global_rect().position.x,
+		"Arabic passenger portrait and speech must remain distinct adjacent zones")
 	ui.toggle_debug()
 	assert(not ui._speech.visible)
 	print("PASSENGER_SPEECH_SCENE_PASS portrait+speech, Replies/Actions, compact, RTL, Debug")

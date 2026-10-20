@@ -130,6 +130,20 @@ func _begin_button_group(label: String, section_name: String) -> void:
 	var section: PanelContainer=PanelContainer.new()
 	section.name=section_name
 	section.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	# Source-accurate speech replies read as a warmer inset; actions stay
+	# neutral. This is a visual distinction, NOT semantic/moral choice coding.
+	var group_style: StyleBoxFlat=StyleBoxFlat.new()
+	var is_reply: bool=section_name=="RepliesSection"
+	group_style.bg_color=Color("1c3232") if is_reply else Color("142629")
+	group_style.border_color=Color("988c70") if is_reply else Color("607a73")
+	group_style.set_border_width_all(1)
+	group_style.border_width_top=2 if is_reply else 1
+	group_style.set_corner_radius_all(9)
+	group_style.content_margin_left=12
+	group_style.content_margin_right=12
+	group_style.content_margin_top=10
+	group_style.content_margin_bottom=12
+	section.add_theme_stylebox_override("panel",group_style)
 	_body.add_child(section)
 	var contents: VBoxContainer=VBoxContainer.new()
 	contents.name="Items"

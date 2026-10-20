@@ -74,3 +74,24 @@ separate `RepliesSection`/`ActionsSection`, and preserves the original
 Save/Load and once-only decision/event assertions. It is a UI-specific
 acceptance update on the child #77 branch; do not mistake it for a change to
 the upstream rider-initiative simulation or acceptance of the visual art.
+
+## Focused cabin-interface visual calibration — 2026-10-20
+
+Reviewed **real successful exported Chromium screenshots** from exact-head
+[run #39344278097](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39344278097):
+`web-passenger-speaks-first-en/ar`, `web-player-dialogue`,
+`web-player-travel`, `web-player-arrival` and the compact Arabic screen.
+Dialogue is adjacent to the real passenger in EN and Arabic, not part of the
+response panel, and the genuine fare/arrival and reply buttons passed. The
+presentation still feels like an early technical interface rather than final
+cab art, so acceptance remains explicitly pending.
+
+This small iteration introduces **physical cab-inspired material grouping**:
+painted enamel, restrained worn-metal seam/fasteners and an avatar-side join
+for the passenger-speech unit; differentiated Replies versus Actions trays
+using warm vs neutral surfaces. These tones indicate component ownership, not
+which choice is morally correct, safe, or favored. They are a revisable trial
+based on the original [3D visual direction](https://github.com/MohamedXIV/outsider-driver/blob/main/docs/STYLE_BIBLE.md),
+not the approval of a final style or a fabricated historical currency/logo.
+Exact-head native, browser, phone, Arabic RTL, actual Ink, rider initiative
+and Save/Load remain mandatory before a design-review build can be proposed.
