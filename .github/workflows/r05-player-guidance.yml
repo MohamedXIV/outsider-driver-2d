@@ -1,0 +1,71 @@
+name: R05 Player Mode contextual guidance
+on:
+  push:
+    branches: [feat/r05-player-guidance]
+    paths:
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/r05-player-guidance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  godot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Godot 4.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+      - name: Native contextual guidance and RTL regression
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p work/r05-player-ui
+          /tmp/godot --headless --path . --editor --import --quit > work/r05-player-ui/import.log 2>&1
+          /tmp/godot --headless --path . --check-only --script res://scripts/sandbox/sandbox_cab_gear_plate.gd 2>&1 | tee work/r05-player-ui/gear-parse.log
+          /tmp/godot --headless --path . --check-only --script res://scripts/sandbox/sandbox_player_ui.gd 2>&1 | tee work/r05-player-ui/player-ui-parse.log
+          timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_player_guidance_scene.gd 2>&1 | tee work/r05-player-ui/focused.log
+          grep -q PLAYER_GUIDANCE_SCENE_PASS work/r05-player-ui/focused.log
+          timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_passenger_speech_scene.gd 2>&1 | tee work/r05-player-ui/speech.log
+          grep -q PASSENGER_SPEECH_SCENE_PASS work/r05-player-ui/speech.log
+      - name: Complete Godot domain and native regressions
+        env:
+          GODOT_BIN: /tmp/godot
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          OD2D_LOGS=work/r05-player-ui/domain python3 tests/run_city_gate.py | tee work/r05-player-ui/domain-summary.log
+          OD2D_LOGS=work/r05-player-ui/native xvfb-run -a -s '-screen 0 1280x1400x24' python3 tests/run_city_gate.py --native | tee work/r05-player-ui/native-summary.log
+      - name: Install pinned Web export templates and Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip -d /tmp/godot-templates
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          cp /tmp/godot-templates/templates/web* ~/.local/share/godot/export_templates/4.7.2.stable/
+          npm install --prefix /tmp/od2d-node playwright@1.56.0
+          /tmp/od2d-node/node_modules/.bin/playwright install --with-deps chromium
+          echo 'NODE_PATH=/tmp/od2d-node/node_modules' >> "$GITHUB_ENV"
+      - name: Exact-head integrated Chromium current-world suites
+        env:
+          GODOT_BIN: /tmp/godot
+          OD2D_LOGS: work/r05-player-ui/chromium
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: python3 tests/run_exported_gate.py --scope current
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r05-player-ui-evidence
+          path: work/r05-player-ui/
+          retention-days: 7

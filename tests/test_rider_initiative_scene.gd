@@ -36,9 +36,16 @@ func _run() -> void:
 			"Brief answer must be visible only if passenger speech is understood")
 	assert(mode._actions.has("reply_deflect")==understood,
 			"Deflection must be visible only if passenger speech is understood")
+	# The passenger now owns the actual utterance and portrait. The player
+	# panel must contain only reply/action affordances, not duplicate speech.
+	assert(mode._speech.visible,"Passenger question must appear beside its actual portrait")
+	assert(mode._speech.speech_label.text==SandboxRiderInitiative.question(scene._world,"en"))
+	assert(mode._speech.portrait.npc==scene._world.resident(
+			str(scene._world.rider_initiative.get("npc_id",""))))
 	assert(mode._body.get_children().any(func(c: Node)->bool:
-		return c is Label and str(c.text).contains("passenger") or (
-			c is Label and str(c.text).contains("راكب"))))
+		return c.name=="RepliesSection"),"Responses must be grouped independently")
+	assert(mode._body.get_children().any(func(c: Node)->bool:
+		return c.name=="ActionsSection"),"Other actions need a separate section")
 	scene._on_save()
 	assert(scene._notice_text=="Sandbox saved.")
 	scene._on_load()

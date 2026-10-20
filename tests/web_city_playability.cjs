@@ -54,6 +54,8 @@ const { openCity } = require('./city_browser.cjs');
     assert.deepEqual(JSON.parse(equipped.sandboxInstalled), ['trade', 'local', 'cant']);
     assert.equal(equipped.sandboxAREquipped, 'true');
     assert.equal(equipped.sandboxCredits, '3');
+    await shot('web-gear-fitted');
+    await click('gear'); // Real tab reselect returns to top, unlike passive refresh.
     await shot('web-gear');
     await page.setViewportSize({ width: 720, height: 900 });
     await page.waitForFunction(() => JSON.parse(document.documentElement.dataset.playerViewport)[0] === 720);
