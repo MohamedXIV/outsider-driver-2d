@@ -63,6 +63,13 @@ func _run() -> void:
 	var visible_scroll: Rect2=mode._scroll.get_global_rect()
 	assert(visible_scroll.has_point(compact_line.get_global_rect().position + Vector2(4,4)),
 		"Compact Contacts must show the real Ink line before any scrolling")
+	# The previous 46%-height sheet showed the text but cut the first
+	# reply at the screen edge. A real player needs the complete action.
+	var first_reply: Button=mode._actions["meeting_choice_0"]
+	assert(visible_scroll.has_point(first_reply.get_global_rect().end - Vector2(4,4)),
+		"Compact Contacts must show the whole first Ink reply without scrolling")
+	assert(mode._panel.position.y>=194.0,
+		"Meeting focus must not cover compact navigation tabs")
 	root.size=Vector2i(1280,720)
 	for frame in range(4): await process_frame
 	assert(mode._off_duty_stage.visible,

@@ -86,9 +86,14 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
     'Arabic UI must not silently translate the source Ink meeting line');
   assert.equal((await data()).playerContactSceneTopVisible, 'true',
     'Arabic compact Contacts must show the real encounter text immediately');
+  const compactReplies = await actions();
   for (let i = 0; i < 3; i++)
-    assert.equal((await actions())['meeting_choice_' + i]?.disabled, false,
+    assert.equal(compactReplies['meeting_choice_' + i]?.disabled, false,
       'All sourced Ink replies must remain reachable on compact Arabic Web');
+  const firstReply = compactReplies.meeting_choice_0;
+  assert.ok(firstReply.y - firstReply.height / 2 >= firstReply.clipTop &&
+            firstReply.y + firstReply.height / 2 <= firstReply.clipBottom,
+    'Compact Arabic meeting must show the entire first actionable reply, not just its label');
   await shot('web-player-contact-compact-ar');
 
   // Return to wide English player-facing controls and finish through the

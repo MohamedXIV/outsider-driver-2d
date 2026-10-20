@@ -649,7 +649,7 @@ func _publish() -> void:
 				contact_scene_top_visible=top>=scroll_rect.position.y and top<scroll_rect.end.y-8.0
 	for key in _actions:
 		var button: Button=_actions[key]
-		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled,
+		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"height":button.get_global_rect().size.y,"disabled":button.disabled,
 			"clipTop":_scroll.get_global_rect().position.y,"clipBottom":_scroll.get_global_rect().end.y}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
@@ -668,7 +668,14 @@ func _fit_panel() -> void:
 	if area.x<600:
 		# Fixed-height compact bottom sheet leaves the living city readable.
 		# Do not resize/reposition Wait as autonomous offers change height.
-		var height: float=minf(available,maxf(180.0,area.y*0.46))
+		var preferred_height: float=area.y*0.46
+		# A genuine Ink encounter is a focused conversation, unlike an
+		# ordinary Street/market browsing panel. Let its real replies fit
+		# together when the available viewport permits; otherwise scroll.
+		if tab=="contacts" and controller._meeting_dialogue!=null:
+			preferred_height=maxf(preferred_height,
+				minf(area.y*0.69,_body.get_combined_minimum_size().y+32.0))
+		var height: float=minf(available,maxf(180.0,preferred_height))
 		_panel.size.y=height
 		_panel.position.y=maxf(panel_top,area.y-height-24)
 		return
