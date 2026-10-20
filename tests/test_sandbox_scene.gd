@@ -86,7 +86,7 @@ func _walkthrough() -> void:
 	scene.call("_render")
 	await RenderingServer.frame_post_draw
 	_capture("generated-offers.png")
-	NativeRouteChecks.finish(recovered,true)
+	NativeRouteChecks.finish(recovered)
 	scene.call("_render")
 	await RenderingServer.frame_post_draw
 	_capture("settled-demand.png")

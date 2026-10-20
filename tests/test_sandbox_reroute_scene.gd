@@ -39,12 +39,16 @@ func _walkthrough() -> void:
 	var recovered: SandboxWorld = scene.get("_world") as SandboxWorld
 	assert(recovered.pending_route_nodes == world.pending_route_nodes)
 	recovered.advance(SandboxRoads.edge_minutes(recovered.route_nodes[0],recovered.route_nodes[1]))
+	for physical_delay in range(60):
+		if recovered.pending_route_nodes.is_empty(): break
+		assert(recovered.advance(1))
+	assert(recovered.pending_route_nodes.is_empty(),"The real taxi must reach its queued junction")
 	scene.call("_render")
 	await process_frame
 	assert(recovered.route_nodes[0] == "margin_gate" and recovered.route_segment == 0)
 	await RenderingServer.frame_post_draw
 	_capture("rider-reroute-junction.png")
-	NativeRouteChecks.finish(recovered,true)
+	NativeRouteChecks.finish(recovered)
 	scene.call("_render")
 	assert(recovered.active_offer_id.is_empty())
 	await RenderingServer.frame_post_draw
