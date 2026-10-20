@@ -1,0 +1,93 @@
+extends Node2D
+const HEAD: String="7faa5cc45e6ad77bc25c5bb7e54573a6d58e34b4"
+var app: Node
+var records: Array=[]
+var mode: String="public"
+func _ready() -> void: call_deferred("_run")
+func _require(ok: bool,message: String) -> bool:
+	if ok: return true
+	push_error(message)
+	JavaScriptBridge.eval("window.worldProofFailure="+JSON.stringify(message),true)
+	return false
+func _read(label: String) -> Dictionary:
+	var w: SandboxWorld=app._world
+	var bodies: Dictionary={}
+	for id in app._vehicle_corridor.bodies:
+		var body: SandboxWorldVehicleBody=app._vehicle_corridor.bodies[id]
+		bodies[id]={"identity":body.identity,"x":body.position.x,"y":body.position.y,"heading":body.rotation}
+	var point: Vector2=SandboxDirectedLanes.taxi_screen(w,w.vehicle_fraction)
+	var people: Dictionary={}
+	for npc in w.residents:
+		var at: Vector2=SandboxVehicleDepartures.resident_screen(w,npc,w.vehicle_fraction)
+		if at.is_finite(): people[npc["id"]]=[at.x,at.y]
+	return {"head":HEAD,"mode":mode,"phase":label,"minute":w.minute,"fraction":w.vehicle_fraction,
+		"taxi":[point.x,point.y],"bodies":bodies,"curb_residents":people,"population":w.residents.size(),"world":w.snapshot()}
+func _shot(label: String) -> void:
+	await RenderingServer.frame_post_draw
+	var row: Dictionary=_read(label)
+	records.append(row)
+	var png: PackedByteArray=get_tree().root.get_texture().get_image().save_png_to_buffer()
+	if not _require(png.size()>1000,"WebGL viewport PNG missing"): return
+	JavaScriptBridge.eval("window.worldProofFrames=window.worldProofFrames||{};window.worldProofFrames["+JSON.stringify(label)+"]="+JSON.stringify({"record":row,"png":Marshalls.raw_to_base64(png)})+";window.worldProofPhase="+JSON.stringify(label),true)
+func _run() -> void:
+	mode=str(JavaScriptBridge.eval("new URLSearchParams(location.search).get('proof')||'public'",true))
+	app=load("res://scenes/sandbox.tscn").instantiate();app._world=SandboxWorld.new(9);add_child(app)
+	if mode=="public":
+		if not _require(app._world.reposition("clinic"),"No real clinic reposition"): return
+	else:
+		var offer: Dictionary={}
+		for item in app._world.open_offers():
+			if item["origin"]=="garage" and SandboxPassengerAlight.applicable(item): offer=item;break
+		if not _require(not offer.is_empty() and app._world.accept(str(offer["id"])),"No genuine medical fare"): return
+	app._render()
+	await _shot("departure")
+	if mode=="public": await _public()
+	else: await _reroute()
+	if not _require(SandboxWorld.new().restore_snapshot(app._world.snapshot()),"Final World invalid"): return
+	if not _require(app._world.residents.size()==9,"Population changed"): return
+	JavaScriptBridge.eval("window.worldProofRecords="+JSON.stringify(records)+";window.worldProofDone=true",true)
+func _public() -> void:
+	var identity: String=""
+	var service: String=""
+	for frame in range(18000):
+		await get_tree().physics_frame
+		if identity.is_empty():
+			for npc in app._world.residents:
+				if npc.get("transit_method","")=="shuttle" and npc.get("transit_to","")=="clinic" and int(npc["transit_until"])-app._world.minute<=2 and app._vehicle_corridor.bodies.has(npc["id"]):
+					identity=app._vehicle_corridor.bodies[npc["id"]].identity;await _shot("approach");break
+		if not app._world.vehicle_departures.is_empty(): service=str(app._world.vehicle_departures.keys()[0]);break
+	if not _require(not service.is_empty() and identity==service,"Shuttle identity did not survive rider arrival"): return
+	await _shot("rider-exit")
+	var credits: int=app._world.credits
+	app._on_save();var before: Dictionary=_read("saved")
+	app._on_load();var after: Dictionary=_read("restored")
+	if not _require(before["bodies"]==after["bodies"] and before["curb_residents"]==after["curb_residents"],"Public saved poses changed"): return
+	await _shot("restored")
+	await get_tree().create_timer(.7).timeout
+	await _shot("return")
+	await get_tree().create_timer(1.5).timeout
+	await _shot("intake")
+	_require(app._world.credits==credits and not app._world.events.any(func(e: Dictionary)->bool:return e["kind"]=="fare_settled"),"Empty service invented player economy")
+func _reroute() -> void:
+	var boundary: float=SandboxRoads.edge_minutes(app._world.route_nodes[0],app._world.route_nodes[1])
+	var queued: bool=false
+	for frame in range(6000):
+		await get_tree().physics_frame
+		if app._world.route_segment==0 and SandboxVehicleExecution.progress(app._world,"player",app._world.vehicle_fraction)>boundary:
+			await _shot("handoff")
+			var before: Dictionary=_read("before-command")
+			if not _require(app._world.queue_reroute("depot"),"Real reroute rejected"): return
+			var after: Dictionary=_read("after-command")
+			if not _require(before["taxi"]==after["taxi"],"Queue moved the actual taxi"): return
+			records.append(before);records.append(after);queued=true;app._render();await _shot("queued");break
+	if not _require(queued,"No physical handoff window observed"): return
+	var rebased: bool=false
+	for frame in range(1800):
+		await get_tree().physics_frame
+		if app._world.vehicle_execution.get("player",{}).has("rebase_event"): rebased=true;break
+	if not _require(rebased,"Reroute lost its physical execution"): return
+	await _shot("rebased")
+	app._on_save();var before: Dictionary=_read("saved")
+	app._on_load();var after: Dictionary=_read("restored")
+	if not _require(before["taxi"]==after["taxi"],"Rerouted saved pose changed"): return
+	await _shot("restored")

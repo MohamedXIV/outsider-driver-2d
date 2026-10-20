@@ -1,0 +1,8 @@
+MAIN_WEB_PROOF_PASS public [
+  'departure',
+  'approach',
+  'rider-exit',
+  'restored',
+  'return',
+  'intake'
+]

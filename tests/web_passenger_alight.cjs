@@ -17,7 +17,9 @@ const {openCity} = require('./city_browser.cjs');
     await click('accept');
     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'true');
     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
-      null,{timeout:240000});
+      // Software WebGL can take over 240s while the genuine World route is
+      // still progressing; keep the arrival/economy assertions unchanged.
+      null,{timeout:600000});
     const arrived = await data(), trip=JSON.parse(arrived.alightTrip), events=JSON.parse(arrived.alightEvents);
     assert.equal(arrived.sandboxSettlements,'1');
     assert.equal(arrived.sandboxDistrict,'clinic');

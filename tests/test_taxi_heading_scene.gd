@@ -91,11 +91,24 @@ func _run() -> void:
 	assert(world.route_nodes.slice(0,3) == ["docks","clinic","basin_turn"])
 	var edge_minutes: int = SandboxRoads.edge_minutes("docks","clinic")
 	assert(world.advance(edge_minutes-1))
+	for delay in range(60):
+		if world.route_edge_elapsed==edge_minutes-1: break
+		assert(world.advance(1))
+	assert(world.route_segment==0 and world.route_edge_elapsed==edge_minutes-1)
+	# Supply real physical motion first, then inspect the instantaneous World
+	# edge commitment. Comparing across advance(1) also measured a full second
+	# of legitimate steering, rather than an edge-switch discontinuity.
+	for delay in range(60):
+		scene._vehicle_corridor.step(1.0)
+		if SandboxVehicleExecution.progress(world,"player",world.vehicle_fraction)>=float(edge_minutes): break
+		assert(world.advance_elapsed(1))
+	assert(SandboxVehicleExecution.progress(world,"player",world.vehicle_fraction)>=float(edge_minutes))
 	var road_before: float = SandboxCityView.world_road_heading(world,0.99)
 	city.visual_fraction=0.99
 	city._process(0.016)
 	var facing_before: float=city.saved_taxi_heading()
-	assert(world.advance(1))
+	assert(world.advance_elapsed(1))
+	assert(world.route_segment==1,"The observed commitment must cross the actual internal edge")
 	var road_after: float = SandboxCityView.world_road_heading(world,0.01)
 	assert(absf(angle_difference(road_before,road_after))<0.08,
 			"World's edge switch may not snap the taxi road-facing target")
