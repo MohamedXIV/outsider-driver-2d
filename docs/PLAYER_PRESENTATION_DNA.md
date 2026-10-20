@@ -242,3 +242,29 @@ Native and Chromium acceptance now assert the contextual controls before
 the actual time window and their absence after the real Ink settlement.
 No trust, status, invitation, residence, translated content or controller
 behaviour was changed. Final art approval remains separate.
+
+## Off-duty stage in Player Contacts — 2026-10-20
+
+The previous exact-head UI correction [#39440468715](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39440468715)
+is **FULL GREEN**. Actual screenshots confirm no nonurgent starter
+onboarding card and no stale completed-meeting scheduling buttons. The
+off-duty encounter still read as a column of text on top of the ordinary
+moving-city road scene.
+
+The Player UI now reuses the already-proven **`SandboxMeetingStage`**
+venue/kiosk vignette, separate from the Ink words and response buttons,
+ONLY when the authoritative selected World meeting has
+`status=="in_progress"` and a sufficiently wide viewport. Its companion
+identifier, location, and provisional skin phenotype come exclusively from
+that actual resident; it neither spawns another World actor nor changes
+movement, trust or dialogue. Old developer labels are not shown in Player
+Mode because they are hard-coded English and are unnecessary when the
+localized appointment detail names the participant. Compact viewports
+retain the city and actual Ink options, and no extra controls intercept
+touches or mouse clicks. When the actual World meeting settles, the
+vignette disappears; the existing Debug stage retains its labels.
+
+Native and browser Contacts tests now verify **stage absent before,
+present during, absent after** an actually earned and saved/restored
+World encounter. Screenshots provide aesthetic review evidence, but
+visual approval remains a separate user decision.

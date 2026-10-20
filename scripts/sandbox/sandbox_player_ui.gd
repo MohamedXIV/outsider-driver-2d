@@ -15,6 +15,7 @@ var _scroll: ScrollContainer
 var _portrait: SandboxPassengerView
 var _portrait_title: Label
 var _speech: SandboxPassengerSpeech
+var _off_duty_stage: SandboxMeetingStage
 var _button_group: VBoxContainer
 var _guide: SandboxPlayerGuidance
 var _tabs: GridContainer
@@ -83,6 +84,14 @@ func bind(host: Node) -> void:
 	_portrait=SandboxPassengerView.new();root.add_child(_portrait);_portrait.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	_portrait_title=Label.new();root.add_child(_portrait_title);_portrait_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	_speech=SandboxPassengerSpeech.new();_speech.name="PassengerSpeech";root.add_child(_speech)
+	# Reuse the exact scene's presentation renderer; show only if World
+	# proves an actual off-duty encounter in progress.
+	_off_duty_stage=SandboxMeetingStage.new()
+	_off_duty_stage.name="OffDutyStage"
+	_off_duty_stage.show_labels=false # Avoid English debug IDs in RTL art.
+	_off_duty_stage.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	root.add_child(_off_duty_stage)
+	_off_duty_stage.visible=false
 	_guide=SandboxPlayerGuidance.new();_guide.name="PlayerGuidance";root.add_child(_guide)
 	_guide.tab_requested.connect(_tab)
 	get_viewport().size_changed.connect(_layout)
@@ -114,6 +123,9 @@ func _layout() -> void:
 	_speech.position=Vector2(area.x-542,120)
 	_speech.size=Vector2(512,184)
 	_speech.visible=false
+	_off_duty_stage.position=Vector2(area.x-462.0,140.0)
+	_off_duty_stage.size=Vector2(438.0,110.0)
+	_off_duty_stage.visible=false
 	_guide.position=Vector2(24 if controller._ui_locale=="ar" else area.x-306,
 			365 if _portrait.visible else 120)
 	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
@@ -261,6 +273,17 @@ func sync() -> void:
 	if conversation!=null: speaker=world.resident(str(world.offer_by_id(conversation.offer_id).get("npc_id","")))
 	elif not world.active_offer_id.is_empty(): speaker=world.resident(str(world.offer_by_id(world.active_offer_id).get("npc_id","")))
 	var area: Vector2=get_viewport().get_visible_rect().size
+	# The authored Ink meeting's visual stage is an observation, not a
+	# second simulation or a speech bubble attributed to the resident.
+	var active_meeting: Dictionary=world.meeting_by_id(controller._selected_meeting_id)
+	_off_duty_stage.visible=not debug_mode and tab=="contacts" and (
+		str(active_meeting.get("status",""))=="in_progress") and area.x>=980.0
+	if _off_duty_stage.visible:
+		_off_duty_stage.venue=str(active_meeting["location"])
+		_off_duty_stage.companion=str(active_meeting["npc_id"])
+		_off_duty_stage.companion_species=str(world.resident(str(active_meeting["npc_id"])).get("species",""))
+		_off_duty_stage.position=Vector2(area.x-462.0,140.0)
+		_off_duty_stage.queue_redraw()
 	var utterance: String=""
 	var script_font: String=""
 	if conversation!=null:
@@ -622,7 +645,8 @@ func _publish() -> void:
 			"playerRiderStatus":str(controller._world.rider_initiative.get("status","")),
 			"playerRiderQuestion":SandboxRiderInitiative.question(controller._world,controller._ui_locale),
 			"playerContactSections":JSON.stringify(contact_sections),
-			"playerContactSceneText":contact_scene_text}),true)
+			"playerContactSceneText":contact_scene_text,
+			"playerContactStage":str(_off_duty_stage.visible).to_lower()}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size

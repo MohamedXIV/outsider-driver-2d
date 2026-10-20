@@ -20,6 +20,7 @@ func _run() -> void:
 	assert(mode._body.has_node("ContactsListSection"))
 	assert(mode._body.has_node("ContactDetailsSection"))
 	assert(mode._body.has_node("ContactActionsSection"))
+	assert(not mode._off_duty_stage.visible,"No stage until a real World meeting starts")
 	assert(mode._body.get_node("ContactDetailsSection/Items").get_child_count()>=3)
 	assert(not mode._guide.visible,
 		"Routine equipment tips should not cover a personal meeting")
@@ -34,6 +35,14 @@ func _run() -> void:
 	scene._render();scene._render()
 	var count: int=scene._meeting_dialogue.current_frame()["choices"].size()
 	assert(mode._body.has_node("ContactSceneSection"))
+	assert(mode._off_duty_stage.visible,
+		"Use real off-duty stage only while a sourced encounter is running")
+	assert(mode._off_duty_stage.venue==str(world.meetings[0]["location"]))
+	assert(mode._off_duty_stage.companion==who)
+	assert(mode._off_duty_stage.companion_species==str(world.resident(who)["species"]))
+	assert(not mode._off_duty_stage.show_labels,
+		"Untranslated debug ID text must not leak into Player Mode art")
+	assert(mode._off_duty_stage.mouse_filter==Control.MOUSE_FILTER_IGNORE)
 	assert(mode._body.has_node("ContactRepliesSection"))
 	assert(not mode._body.has_node("ContactActionsSection"),
 		"In-person Ink responses must not mix with scheduling actions")
@@ -51,6 +60,8 @@ func _run() -> void:
 	assert(mode._body.has_node("ContactDetailsSection"))
 	assert(not mode._body.has_node("ContactActionsSection"),
 		"A settled meeting must not show three inert scheduling buttons")
+	assert(not mode._off_duty_stage.visible,
+		"Stage should vanish when World closes the encounter")
 	assert(not mode._actions.has("meeting_attend"))
 	assert(not mode._guide.visible)
 	print("PLAYER_CONTACTS_PASS real appointment lifecycle, no stale actions, source-exact Ink")

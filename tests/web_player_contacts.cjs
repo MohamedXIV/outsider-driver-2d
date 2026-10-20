@@ -32,6 +32,7 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
   assert.equal(confirmed.ContactDetailsSection, true);
   assert.equal(confirmed.ContactActionsSection, true);
   assert.equal(confirmed.ContactRepliesSection, false);
+  assert.equal((await data()).playerContactStage, 'false');
   assert.equal((await actions()).meeting_accept, undefined);
   assert.equal((await actions()).meeting_decline, undefined);
   assert.ok((await actions()).meeting_attend.disabled,
@@ -54,6 +55,8 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
   assert.equal(during.ContactDetailsSection, true);
   assert.equal(during.ContactSceneSection, true);
   assert.equal(during.ContactRepliesSection, true);
+  assert.equal((await data()).playerContactStage, 'true',
+    'Player Mode should show the actual source-backed off-duty stage');
   assert.equal(during.ContactActionsSection, false);
   assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText,
     'Rendered Ink must equal the current sourced meeting frame');
@@ -66,6 +69,7 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
     document.documentElement.dataset.sandboxMeetingStatus === 'completed');
   assert.equal((await data()).sandboxMeetingStatus, 'completed');
   assert.equal((await sections()).ContactRepliesSection, false);
+  assert.equal((await data()).playerContactStage, 'false');
   assert.equal((await sections()).ContactActionsSection, false,
     'Completed encounters must not show nonfunctional invitation controls');
   assert.equal((await actions()).meeting_attend, undefined);
