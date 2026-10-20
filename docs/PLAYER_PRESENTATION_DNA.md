@@ -149,3 +149,25 @@ buttons, responsive compact sheet and Debug exclusion. The existing
 Chromium integration must still purchase/install Local and Cant, equip AR
 and perform one real fare. This slice is deliberately **not** the final
 visual identity or a general-purpose inventory rewrite.
+
+## In-world Gear screen: cross-tab navigation and city priority (2026-10-20)
+
+Exact-head [CI #39361967888](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39361967888)
+**passed all native + Chromium suites** on `3e58c0b`, confirming actual
+GPS selection, market purchases, Local/Cant installation, AR wear, real trips
+and Save/Load. Screenshot review exposed a UI issue unrelated to World:
+when switching into Gear from a scrolled-down Settings/Street panel, Godot
+reused the previous tab's scroll offset, so the cab equipment heading and
+top instrument plates could be missing entirely. The fix resets scroll
+**only when changing tabs**, preserving position on purchase and live
+refreshes of the same page. Active navigation has a selected visual state.
+
+An unneeded "No nearby fares" cross-tab guidance panel also took up a large
+part of the city while using Gear. Gear now suppresses **routine** guidance,
+but an actual open conversation or pending rider-initiated question still
+qualifies for cross-tab attention. This adds no knowledge or gameplay effects.
+
+`test_cab_gear_scene.gd` now validates initial gear layout, tab ownership,
+cross-tab top restoration, same-tab scroll preservation and quiet nonurgent
+Gear mode. Human review still required; no new style, currency or World
+mechanics were approved.

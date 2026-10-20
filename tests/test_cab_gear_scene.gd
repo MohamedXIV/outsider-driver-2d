@@ -22,6 +22,8 @@ func _run() -> void:
 	assert(ui._actions.has("buy_local") and ui._actions.has("install_local"))
 	assert(ui._actions.has("buy_cant") and ui._actions.has("install_cant"))
 	assert(ui._actions.has("ar_buy") and ui._actions.has("ar_wear"))
+	assert((ui._tabs.get_node("gear") as Button).button_pressed)
+	assert(not (ui._tabs.get_node("settings") as Button).button_pressed)
 	var translator: SandboxCabGearPlate=ui._body.get_node(
 		"CabInstrumentsSection/Items/Device_translator")
 	assert(translator.heading.text.length()>0)
@@ -31,13 +33,33 @@ func _run() -> void:
 	(ui._actions["gps"] as Button).pressed.emit()
 	for frame in range(3): await process_frame
 	assert(scene._world.starter_device=="gps","Real starter action must remain connected")
+	assert(not ui._guide.visible,
+		"Routine distant fare guidance must not blanket the equipment/city view")
 	assert(not ui._body.has_node("StarterGearSection"))
 	assert(ui._body.has_node("CabInstrumentsSection/Items/Device_gps"))
 	assert(ui._body.has_node("FittingGearSection") and ui._body.has_node("MarketGearSection"))
 	assert(ui._actions.has("buy_local") and ui._actions.has("install_local"))
+	# Cross-tab scroll must reset to the top; same-tab model refresh must not.
+	ui._tab("settings")
+	for frame in range(3): await process_frame
+	ui._scroll.scroll_vertical=360
+	for frame in range(3): await process_frame
+	assert(ui._scroll.scroll_vertical>0,"Settings must be tall enough to scroll")
+	ui._tab("gear")
+	for frame in range(4): await process_frame
+	assert(ui._scroll.scroll_vertical==0,"Opening Gear must show cab instruments first")
+	assert((ui._tabs.get_node("gear") as Button).button_pressed)
+	assert(not (ui._tabs.get_node("settings") as Button).button_pressed)
+	ui._scroll.scroll_vertical=190
+	for frame in range(2): await process_frame
+	var gear_scroll: int=ui._scroll.scroll_vertical
+	assert(gear_scroll>0)
 	var credits: int=scene._world.credits
 	ui._last_signature=""
 	ui.sync()
+	for frame in range(3): await process_frame
+	assert(ui._scroll.scroll_vertical==gear_scroll,
+		"Same-tab equipment status refresh must preserve user scroll position")
 	assert(scene._world.credits==credits,"Reading device status never charges the player")
 	scene._on_language_locale("ar")
 	ui._tab("gear")

@@ -135,7 +135,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		toggle_debug();get_viewport().set_input_as_handled()
 
 func _tab(key: String) -> void:
-	tab=key;_last_signature="";sync();_ack()
+	var switched: bool=key!=tab
+	tab=key
+	# A new page must start at its heading. Keeping the old page's scroll
+	# buried the cab instruments below the fold after visiting Settings.
+	# Same-page refreshes (purchases, live fares) still preserve position.
+	if switched: _scroll.scroll_vertical=0
+	_last_signature=""
+	sync()
+	if switched: _scroll.set_deferred("scroll_vertical",0)
+	_ack()
 
 func _label(text: String, heading: bool=false) -> Label:
 	var label: Label=Label.new();label.text=text;label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -230,6 +239,8 @@ func sync() -> void:
 	var font: Font=_arabic_font if locale=="ar" else ThemeDB.fallback_font
 	if root.theme.default_font!=font: root.theme.default_font=font
 	for child in _tabs.get_children():
+		child.toggle_mode=true
+		child.button_pressed=child.name==tab
 		child.text={"requests":trp("Street","الشارع"),"map":trp("Map","الخريطة"),"gear":trp("Gear","الأجهزة"),"contacts":trp("Contacts","المعارف"),"settings":trp("Options","الخيارات")}[child.name]
 		if child.name=="requests" and world.rider_initiative.get("status","")=="pending":
 			child.text+=" •"
@@ -274,7 +285,14 @@ func sync() -> void:
 	# RTL moves the actual Settings/Street panels to the right, so our card
 	# must be on the opposite side rather than covering their hit targets.
 	var relevant_tab: String=str(objective.get("tab","requests"))
-	_guide.visible=not debug_mode and area.x>=820 and area.y>=570 and relevant_tab!=tab and not _speech.visible
+	# When browsing equipment, nonurgent "no fares" guidance competes with
+	# the city for no useful reason. Passenger conversation / initiative can
+	# still signal that attention is needed back on Street.
+	var passenger_needs_attention: bool=conversation!=null or (
+		world.rider_initiative.get("status","")=="pending")
+	_guide.visible=not debug_mode and area.x>=820 and area.y>=570 and (
+		relevant_tab!=tab) and not _speech.visible and (
+		tab!="gear" or passenger_needs_attention)
 	_guide.position=Vector2(24 if locale=="ar" else area.x-306,
 			365 if _portrait.visible else 120)
 	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
