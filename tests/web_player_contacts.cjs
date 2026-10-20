@@ -64,6 +64,42 @@ checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, sho
     assert.ok((await actions())['meeting_choice_' + i],
       'Every actual Ink choice must remain a Player Mode action');
   await shot('web-player-contact-meeting');
+
+  // Same genuinely active Ink meeting, but on a compact Arabic Web
+  // viewport: scene and choices stay sourced; off-duty art must not cover
+  // the city or phone-sized player controls.
+  await page.setViewportSize({ width: 480, height: 760 });
+  await page.waitForFunction(() =>
+    JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 480);
+  assert.equal((await data()).playerContactStage, 'false',
+    'Compact Contacts must not overlay the city with a desktop vignette');
+  await click('settings');
+  await click('arabic');
+  await click('contacts');
+  assert.equal((await data()).playerLocale, 'ar');
+  assert.equal((await data()).playerTab, 'contacts');
+  assert.equal((await data()).sandboxMeetingStatus, 'in_progress');
+  assert.equal((await sections()).ContactSceneSection, true);
+  assert.equal((await sections()).ContactRepliesSection, true);
+  assert.equal((await data()).playerContactStage, 'false');
+  assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText,
+    'Arabic UI must not silently translate the source Ink meeting line');
+  for (let i = 0; i < 3; i++)
+    assert.equal((await actions())['meeting_choice_' + i]?.disabled, false,
+      'All sourced Ink replies must remain reachable on compact Arabic Web');
+  await shot('web-player-contact-compact-ar');
+
+  // Return to wide English player-facing controls and finish through the
+  // same authentic reply as the baseline. No debug shortcut to settle it.
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.waitForFunction(() =>
+    JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 1280);
+  await click('settings');
+  await click('english');
+  await click('contacts');
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.playerContactStage === 'true');
+  assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText);
   await click('meeting_choice_0');
   await page.waitForFunction(() =>
     document.documentElement.dataset.sandboxMeetingStatus === 'completed');

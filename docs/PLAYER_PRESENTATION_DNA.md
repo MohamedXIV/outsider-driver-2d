@@ -268,3 +268,23 @@ Native and browser Contacts tests now verify **stage absent before,
 present during, absent after** an actually earned and saved/restored
 World encounter. Screenshots provide aesthetic review evidence, but
 visual approval remains a separate user decision.
+
+## Compact Arabic browser meeting acceptance — 2026-10-20
+
+Latest full-green exact-head [#39444467799](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39444467799)
+includes real-world confirmed/in-progress/completed Contacts, a small
+off-duty vignette only during an actual Ink meeting, and native compact
+suppression. Screenshot review verified that stage and disabled-action
+cleanup, but the browser had **not yet tested the combined 480×760 Arabic
+RTL + in-progress off-duty dialogue** scenario.
+
+The extended `web_player_contacts.cjs` changes only browser viewport and
+the *real* Player Settings Arabic/English controls during the same earned,
+saved/restored meeting. It asserts compact stage suppression, live
+`ContactSceneSection` and `ContactRepliesSection`, all three existing
+Ink reply controls enabled, source-exact text (no silent translation), and
+captures `web-player-contact-compact-ar.png`. After switching back to
+desktop English it confirms the authenticated stage appears again and
+selects the actual Ink reply, proving completed World settlement without a
+synthetic bridge. This is a regression test and screenshot artifact only:
+no UI layout or simulation mechanics have been changed by this slice.
