@@ -1,6 +1,9 @@
 extends SceneTree
 func _initialize() -> void: call_deferred("_run")
 func _run() -> void:
+	# Native SceneTree default viewport is not guaranteed desktop-sized.
+	# The off-duty vignette intentionally requires a wide display.
+	root.size=Vector2i(1280,720)
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate();root.add_child(scene);scene.set_process(false)
 	var world: SandboxWorld=scene._world
 	var who: String="npc:07"
@@ -43,7 +46,17 @@ func _run() -> void:
 	assert(not mode._off_duty_stage.show_labels,
 		"Untranslated debug ID text must not leak into Player Mode art")
 	assert(mode._off_duty_stage.mouse_filter==Control.MOUSE_FILTER_IGNORE)
+	# Narrow mode must not occupy city pixels with an ornamental stage,
+	# while keeping the real Ink text and reply controls intact.
+	root.size=Vector2i(480,760)
+	for frame in range(4): await process_frame
+	assert(not mode._off_duty_stage.visible,
+		"Narrow contacts must prioritize dialogue over the optional vignette")
 	assert(mode._body.has_node("ContactRepliesSection"))
+	root.size=Vector2i(1280,720)
+	for frame in range(4): await process_frame
+	assert(mode._off_duty_stage.visible,
+		"Returning to desktop restores the same World-backed stage")
 	assert(not mode._body.has_node("ContactActionsSection"),
 		"In-person Ink responses must not mix with scheduling actions")
 	var story_note: Label=mode._body.get_node("ContactSceneSection/Items").get_child(1) as Label
