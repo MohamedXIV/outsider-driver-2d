@@ -95,3 +95,28 @@ based on the original [3D visual direction](https://github.com/MohamedXIV/outsid
 not the approval of a final style or a fabricated historical currency/logo.
 Exact-head native, browser, phone, Arabic RTL, actual Ink, rider initiative
 and Save/Load remain mandatory before a design-review build can be proposed.
+
+## UI scene instrument and street dispatch pass — 2026-10-20
+
+Reviewed prior passing Chromium captures from #39350544708. The major
+remaining "technical Godot form" issue was the single header string
+`OUTSIDER / location · N cr`, and the undifferentiated street
+`Wait / Talk / Accept / Decline / [fare]` action list. These were
+presentational, not authoritative World/Ink decisions.
+
+The driver HUD now shows the **actual current stop** as a place heading,
+**region/time/grounded travel state** as a quieter instrument line, and the
+existing numeric `cr` amount in its own small money counter. This is
+**not** currency canon; Rin/Tal/Vara are still undecided. The system
+Debug toggle remains visibly separated rather than disguised as gameplay.
+The Street panel preserves the stable Wait target, then presents
+**SelectedFareSection** (actions on the selected, actual visible fare) and
+**FaresSection** (real open local fares) in separate readable trays; the
+compact viewport no longer repeats helper/narrator prose between them.
+The map legend is now a concise key rather than a tutorial paragraph.
+No offers, prices, eligibility, risk or player decisions are fabricated.
+
+Native regression now asserts distinct location/wallet/device surfaces,
+stable mobile layout and a real local dispatch group; the full linked
+Chromium click/route tests remain required. Gear/device visuals are a
+separate future step; no unrelated simulation or controller rewrite.

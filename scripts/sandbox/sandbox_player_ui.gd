@@ -8,6 +8,7 @@ var tab: String = "requests"
 var root: Control
 var _header: Label
 var _hint: Label
+var _wallet: Label
 var _body: VBoxContainer
 var _panel: PanelContainer
 var _scroll: ScrollContainer
@@ -55,6 +56,18 @@ func bind(host: Node) -> void:
 	root.theme=theme
 	_header=Label.new();root.add_child(_header);_header.position=Vector2(24,16);_header.add_theme_font_size_override("font_size",23)
 	_hint=Label.new();root.add_child(_hint);_hint.position=Vector2(24,50);_hint.add_theme_color_override("font_color",Color("a9c2b4"))
+	_wallet=Label.new();_wallet.name="Wallet";root.add_child(_wallet)
+	_wallet.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	_wallet.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+	_wallet.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	_wallet.add_theme_font_size_override("font_size",18)
+	_wallet.add_theme_color_override("font_color",Color("eed6a6"))
+	var wallet_finish: StyleBoxFlat=StyleBoxFlat.new()
+	wallet_finish.bg_color=Color("253b3b")
+	wallet_finish.border_color=Color("a29474")
+	wallet_finish.set_border_width_all(1)
+	wallet_finish.set_corner_radius_all(6)
+	_wallet.add_theme_stylebox_override("normal",wallet_finish)
 	# World place labels must not compete with the status text behind the HUD.
 	var status_style: StyleBoxFlat=StyleBoxFlat.new();status_style.bg_color=panel_style.bg_color
 	status_style.set_corner_radius_all(4)
@@ -86,6 +99,10 @@ func _layout() -> void:
 	# The unused third cell of the second compact tab row keeps the mode
 	# toggle accessible without covering the status line in either locale.
 	_mode.position=Vector2(area.x-154,136 if area.x<600 else 18)
+	# Cab instrument grouping: district/location and trip telemetry are
+	# distinct from the money counter and the explicit developer toggle.
+	_wallet.position=Vector2(area.x-132 if area.x<600 else area.x-274,17)
+	_wallet.size=Vector2(108,40)
 	_body.custom_minimum_size.x=minf(380,area.x-48)-40
 	for child in _body.get_children():
 		if child is Label: child.custom_minimum_size.x=_body.custom_minimum_size.x
@@ -102,8 +119,8 @@ func _layout() -> void:
 	_guide.size=Vector2(282,_guide.get_combined_minimum_size().y)
 	_guide.visible=false # sync() decides if cross-tab guidance is actionable
 	_header.add_theme_font_size_override("font_size",20 if area.x<600 else 23)
-	_header.size.x=area.x-48 if area.x<600 else area.x-200
-	_hint.size.x=_header.size.x
+	_header.size.x=area.x-173 if area.x<600 else area.x-335
+	_hint.size.x=area.x-48 if area.x<600 else area.x-200
 	_header.clip_text=true;_hint.clip_text=true
 	_last_signature=""
 	call_deferred("sync");call_deferred("_fit_panel");call_deferred("_publish")
@@ -134,8 +151,11 @@ func _begin_button_group(label: String, section_name: String) -> void:
 	# neutral. This is a visual distinction, NOT semantic/moral choice coding.
 	var group_style: StyleBoxFlat=StyleBoxFlat.new()
 	var is_reply: bool=section_name=="RepliesSection"
-	group_style.bg_color=Color("1c3232") if is_reply else Color("142629")
-	group_style.border_color=Color("988c70") if is_reply else Color("607a73")
+	var is_selected: bool=section_name=="SelectedFareSection"
+	group_style.bg_color=Color("1c3232") if is_reply else (
+		Color("1c3031") if is_selected else Color("142629"))
+	group_style.border_color=Color("988c70") if is_reply else (
+		Color("a09170") if is_selected else Color("607a73"))
 	group_style.set_border_width_all(1)
 	group_style.border_width_top=2 if is_reply else 1
 	group_style.set_corner_radius_all(9)
@@ -190,7 +210,7 @@ func _drive(stop: String) -> void:
 func sync() -> void:
 	if controller==null: return
 	controller.get_node("HUD").visible=debug_mode
-	_panel.visible=not debug_mode;_tabs.visible=not debug_mode;_header.visible=not debug_mode;_hint.visible=not debug_mode
+	_panel.visible=not debug_mode;_tabs.visible=not debug_mode;_header.visible=not debug_mode;_hint.visible=not debug_mode;_wallet.visible=not debug_mode
 	_mode.text=trp("Player · F3","اللعب · F3") if debug_mode else trp("Debug · F3","التشخيص · F3")
 	controller._city.reduced_motion=controller._reduced_motion
 	controller._city.ui_rtl=controller._ui_locale=="ar"
@@ -203,8 +223,12 @@ func sync() -> void:
 		child.text={"requests":trp("Street","الشارع"),"map":trp("Map","الخريطة"),"gear":trp("Gear","الأجهزة"),"contacts":trp("Contacts","المعارف"),"settings":trp("Options","الخيارات")}[child.name]
 		if child.name=="requests" and world.rider_initiative.get("status","")=="pending":
 			child.text+=" •"
-	_header.text=trp("OUTSIDER / ","غريب / ")+SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["ar" if locale=="ar" else "name"]+"   ·   %d cr"%world.credits
-	_hint.text="%02d:%02d  ·  %s  ·  %s"%[(world.minute%1440)/60,world.minute%60,place(world.player_district),trp("On the road · %dm remaining","على الطريق · المتبقي %d د")%world.remaining_minutes if world.is_travelling() else trp("Parked · look for a fare","متوقف · ابحث عن راكب")]
+	var region_name: String=str(SandboxCityData.REGIONS[
+		SandboxRoads.district_for(world.player_district)]["ar" if locale=="ar" else "name"])
+	_header.text=place(world.player_district)
+	_wallet.text="%d cr"%world.credits # Technical unit only; fiction currency still undecided.
+	var travel_state: String=trp("En route · %dm","في الطريق · %d د")%world.remaining_minutes if world.is_travelling() else trp("Parked","متوقف")
+	_hint.text="%02d:%02d  ·  %s  ·  %s"%[(world.minute%1440)/60,world.minute%60,region_name,travel_state]
 	if world.risk>0: _hint.text+=trp(" · Attention %d"," · الانتباه %d")%world.risk
 	var conversation: SandboxConversation=controller._conversation
 	var speaker: Dictionary={}
@@ -310,32 +334,36 @@ func sync() -> void:
 				_button("talk",trp("Talk","تحدث"),_call.bind("_on_talk"))
 				_end_button_group()
 		else:
-			_label(trp("Street requests","طلبات الشارع"),true)
-			# Keep the time control above the autonomous offer list. Offers can
-			# expire between pointer-down and delivery; moving Wait underneath
-			# those rows made a legitimate click hit empty space instead.
+			_label(trp("Street fares","توصيلات الشارع"),true)
+			# Keep Wait immediately below this stable heading. Demand changes
+			# must never relocate its live pointer target mid-click.
 			_button("wait",trp("Wait 20 minutes","انتظر ٢٠ دقيقة"),_call.bind("_on_wait"))
-			# Do not put dynamic offer-dependent guidance above Wait: its
-			# physical hit target must stay stable while autonomous offers expire.
-			if area.x<820:
-				_label(str(objective["title"])+" · "+str(objective["detail"]))
 			var chosen: Dictionary=world.offer_by_id(controller._selected_id)
 			if not chosen.is_empty() and chosen["origin"]==world.player_district:
-				_label(trp("Selected: ","المحدد: ")+place(str(chosen["destination"])))
+				_begin_button_group(trp("Selected fare","التوصيلة المحددة")+" · "+
+					place(str(chosen["destination"])),"SelectedFareSection")
 				_button("talk",trp("Speak to the resident","تحدث مع المقيم"),_call.bind("_on_talk"))
 				_button("accept",trp("Take this fare","اقبل التوصيلة"),_call.bind("_on_accept"),chosen["channel"]=="official")
 				_button("decline",trp("Decline","ارفض"),_call.bind("_on_decline"))
-			var count: int=0
+				_end_button_group()
+			var local_offers: Array=[]
 			for offer in world.open_offers():
-				if offer["origin"]!=world.player_district: continue
-				count+=1
-				_button("fare_"+str(offer["id"]),"%s · %d cr%s"%[place(str(offer["destination"])),offer["fare"],trp(" · licensed"," · مرخص") if offer["channel"]=="official" else ""],_local_select.bind(str(offer["id"])))
-			if count==0: _label(trp("No one is hailing here. Wait a little or use the map to find another rank.","لا أحد يطلب توصيلة هنا. انتظر قليلًا أو اتجه إلى موقف آخر على الخريطة."))
+				if offer["origin"]==world.player_district: local_offers.append(offer)
+			if not local_offers.is_empty():
+				_begin_button_group(trp("Available fares","التوصيلات المتاحة"),"FaresSection")
+				for offer in local_offers:
+					_button("fare_"+str(offer["id"]),
+						"%s · %d cr%s"%[place(str(offer["destination"])),offer["fare"],
+						trp(" · licensed"," · مرخص") if offer["channel"]=="official" else ""],
+						_local_select.bind(str(offer["id"])))
+				_end_button_group()
+			else:
+				_label(trp("No fares at this stop","لا توجد توصيلات في هذا الموقف"))
 		_label(controller._notice_text)
 	elif tab=="map":
 		_label(trp("The charter port","مدينة الميناء"),true)
 		var map: SandboxMapView=SandboxMapView.new();map.world=world;map.locale=locale;map.selected=_map_selected;_body.add_child(map);map.stop_selected.connect(_map_pick)
-		_label(trp("Bright rings show currently visible requests. Select a stop. Roads connect only at marked junctions.","الحلقات المضيئة تشير إلى الطلبات المتاحة. اختر موقفًا. تتصل الطرق عند التقاطعات المحددة فقط."))
+		_label(trp("Rings: available fares · Lines: connected roads","الحلقات: التوصيلات المتاحة · الخطوط: الطرق المتصلة"))
 		var picker: OptionButton=OptionButton.new();picker.custom_minimum_size.y=44;_body.add_child(picker);_actions["destination"]=picker;picker.pressed.connect(_ack)
 		for stop in SandboxRoads.DISTRICTS:
 			picker.add_item(place(stop));picker.set_item_metadata(picker.item_count-1,stop)

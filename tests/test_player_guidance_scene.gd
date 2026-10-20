@@ -14,6 +14,14 @@ func _run() -> void:
 	# not obscure a large section of the city when its target tab is current.
 	assert(not guide.visible)
 	assert(guide.title_label.text.length()>0)
+	# Status is a small instrument cluster, not an all-in-one debug ticker.
+	assert(ui._header.text==ui.place(scene._world.player_district))
+	assert(not ui._header.text.contains("OUTSIDER"))
+	assert(ui._wallet.text=="%d cr"%scene._world.credits)
+	assert(not ui._wallet.get_global_rect().intersects(ui._header.get_global_rect()))
+	assert(not ui._wallet.get_global_rect().intersects(ui._mode.get_global_rect()))
+	assert(ui._actions.has("wait"))
+	assert(ui._body.has_node("FaresSection"),"Real visible offers own a separate dispatch list")
 	ui._tab("settings")
 	for frame in range(3): await process_frame
 	assert(guide.visible,"Guide should reappear when its action opens a different tab")
@@ -114,6 +122,8 @@ func _run() -> void:
 	assert(ui._panel.position.y>=380,"Compact bottom sheet should leave visible city under the tabs")
 	assert(ui._panel.size.y<=760*0.46+1.0,
 		"Compact UI should not expand over the native world when requests change")
+	assert(not ui._wallet.get_global_rect().intersects(ui._header.get_global_rect()),
+		"Compact wallet must not obscure the stop name")
 	assert(ui._actions.has("wait") or scene._world.is_travelling())
 	var wait_point: Vector2=ui._actions["wait"].get_global_rect().get_center()
 	assert(wait_point.y>=ui._panel.position.y)
@@ -123,10 +133,9 @@ func _run() -> void:
 	ui.sync()
 	for frame in range(3): await process_frame
 	assert(wait_point.distance_to(ui._actions["wait"].get_global_rect().get_center())<1.0)
-	assert(ui._body.get_children().any(func(child: Node)->bool:
-		return child is Label and str(child.text).contains(str(
-			SandboxPlayerGuidance.describe(scene._world,"ar",scene._selected_id,
-				scene._conversation!=null)["title"]))))
+	assert(ui._body.has_node("FaresSection") or not scene._world.open_offers().any(
+		func(offer: Dictionary)->bool: return offer.get("origin","")==scene._world.player_district),
+		"Compact dispatch presents real fares instead of redundant narrator hints")
 	ui.toggle_debug();assert(not guide.visible)
 	ui.toggle_debug();assert(not guide.visible)
 	assert(scene._world.snapshot()==before,"Presentation never mutates the world")
