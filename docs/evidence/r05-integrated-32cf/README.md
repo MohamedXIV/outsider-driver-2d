@@ -10,7 +10,8 @@ Each PNG has its matching full World/body JSON. sequence.json also contains sync
 
 ## Verification status at capture
 
-- Exact-head canonical and rider CI: complete Domain/Native steps PASS; current Chromium pending at publication.
+- Final exact-head canonical CI **SUCCESS**: Domain **46/46**, Native **51/51**, current Chromium **6/6** at 32cf940.
+- Final exact-head rider CI **SUCCESS**: Domain **47/47**, Native **52/52**, current Chromium **7/7** at 81a3791. Complete logs are retained beside this README. All original route/settlement assertions passed within their original wait windows in CI. No second CI dispatch was needed.
 - Local exact 0b44ee2 (runtime/tests identical to 32cf940; only CI budget/docs differ): Domain 46/46 PASS.
 - Local prior 2f83098: Domain 46/46, Native 51/51 PASS. Later crossing changes passed twelve focused cases and the expanded aggregate/legacy held-body scene. These are not a full local Native gate at 32cf940.
 - Local ALL exported attempt at 0b44ee2: **FAIL** at web_city_routes observation timeout (240 seconds after starting the long journey). Camera/playability PASS; remaining current/debug/fixture NOT RUN in that attempt. The trace progressed from 72 to 23 remaining minutes; it does not establish a deadlock or a completed route. A longer diagnostic observation is being run separately, without counting it as the original suite passing.
