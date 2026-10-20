@@ -589,6 +589,19 @@ func _publish() -> void:
 	if not is_inside_tree(): return
 	var bounds: Dictionary={}
 	var mode_rect: Rect2=_mode.get_global_rect()
+	# Browser evidence is read from the actual rendered Player UI, never a
+	# second synthetic meeting model or fabricated labels. Stage directions
+	# remain unattributed until an authored speaker exists.
+	var contact_sections: Dictionary={}
+	var contact_scene_text: String=""
+	if not debug_mode and tab=="contacts":
+		for section_name in ["ContactsListSection","ContactDetailsSection",
+				"ContactActionsSection","ContactSceneSection","ContactRepliesSection"]:
+			contact_sections[section_name]=_body.has_node(section_name)
+		if _body.has_node("ContactSceneSection/Items"):
+			var scene_items: Node=_body.get_node("ContactSceneSection/Items")
+			if scene_items.get_child_count()>1 and scene_items.get_child(1) is Label:
+				contact_scene_text=(scene_items.get_child(1) as Label).text
 	for key in _actions:
 		var button: Button=_actions[key]
 		bounds[key]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":button.disabled,
@@ -597,7 +610,9 @@ func _publish() -> void:
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower(),
 			"playerRiderStatus":str(controller._world.rider_initiative.get("status","")),
-			"playerRiderQuestion":SandboxRiderInitiative.question(controller._world,controller._ui_locale)}),true)
+			"playerRiderQuestion":SandboxRiderInitiative.question(controller._world,controller._ui_locale),
+			"playerContactSections":JSON.stringify(contact_sections),
+			"playerContactSceneText":contact_scene_text}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size

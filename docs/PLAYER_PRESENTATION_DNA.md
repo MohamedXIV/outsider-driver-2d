@@ -191,3 +191,26 @@ translated without a legitimate module. No meeting, location, trust,
 identity, invitation or relationship outcomes are invented by this UI.
 Existing genuine player-contacts native regression covers source-accurate
 Ink, acceptance and completion. No World, NPC, economy or save changes.
+
+## Browser acceptance for genuine Player Mode contacts — 2026-10-20
+
+The original `web_sandbox_meeting.cjs` validates the actual two-ride meeting
+lifecycle through debug controls, but that is **not** visual acceptance of
+the Contacts tab. The distinct `web_player_contacts.cjs` suite reuses
+real diagnostic inputs only to earn an actual invitation from two settled
+rides, accept it, arrive at its real slot and start the authentic Ink
+scene. It then switches into **Player Mode** to verify the rendered
+`ContactsListSection` / `ContactDetailsSection` / `ContactActionsSection`
+with the genuine pre-arrival disabled state, and captures that UI.
+
+After a real Save/Load of the in-progress meeting, the test switches into
+Player Mode again, confirms the displayed meeting frame is byte-for-byte
+the source Ink text, verifies all three genuine indexed choices, captures
+a second screenshot and **physically chooses the first response in Player
+Mode**. It confirms real World meeting completion and captures the
+completed view. The test uses only read-only browser observability
+(`playerContactSections` and `playerContactSceneText`) for the
+rendered UI; no direct command bridge, fabricated appointment or trust
+mutation was added. Its source is registered in the current Web gate.
+Aesthetic approval and eventual choice semantics still require human
+review after exact-head evidence.
