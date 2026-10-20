@@ -11,10 +11,25 @@ static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: 
 	if not SandboxLocalPedestrianTrip.valid_presentation(world,presentation.get("street_state",{})) \
 			or not SandboxPassengerAlight.valid_presentation(world,presentation.get("alight_state",{})) \
 			or not _valid_taxi_heading(presentation): return false
+	var stored_presentation: Dictionary=presentation.duplicate(true)
+	if stored_presentation.has("clock_fraction"):
+		var fraction: Variant=stored_presentation["clock_fraction"]
+		if not (fraction is float or fraction is int) or not is_finite(float(fraction)) \
+				or float(fraction)<0.0 or float(fraction)>=1.0: return false
+		# Both JSON formatting and Godot's number parser can round a valid
+		# fraction one ULP below 1 up to 1. Keep a one-picosecond presentation
+		# margin; never change the authoritative World minute/event ledger.
+		stored_presentation["clock_fraction"]=minf(float(fraction),0.999999999999)
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"version": VERSION, "world": world.snapshot(), "dialogue": dialogue, "presentation": presentation}))
+	var snapshot: Dictionary=world.snapshot()
+	# Godot's JSON reader does not retain Variant float/int distinctions or
+	# every binary mantissa bit. Keep its built-in typed value encoding as
+	# the exact copy, and verify it against the readable JSON before use.
+	file.store_string(JSON.stringify({"version": VERSION, "world": snapshot,
+		"world_exact":Marshalls.variant_to_base64(snapshot,false),
+		"dialogue": dialogue, "presentation": stored_presentation},"",true,true))
 	file.close()
 	return true
 
@@ -31,6 +46,14 @@ static func load_bundle(file_path: String = PATH) -> Dictionary:
 		return {}
 	if not (value.get("world") is Dictionary) or not (value.get("dialogue") is Dictionary):
 		return {}
+	if value.has("world_exact"):
+		if not value["world_exact"] is String: return {}
+		# Objects are never permitted in a world snapshot.
+		var exact: Variant=Marshalls.base64_to_variant(value["world_exact"],false)
+		if not exact is Dictionary: return {}
+		var readable: Variant=_canonical_json_numbers(JSON.parse_string(JSON.stringify(exact,"",true,true)))
+		if readable!=value["world"]: return {} # never ignore edits to either copy
+		value["world"]=exact
 	var world: SandboxWorld = SandboxWorld.new()
 	if not world.restore_snapshot(value["world"]):
 		return {}

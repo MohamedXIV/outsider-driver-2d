@@ -5,6 +5,7 @@ extends Node2D
 var world: SandboxWorld
 var npc_id: String = ""
 var resume_state: Dictionary = {}
+var reentry_fraction: float=0.0
 var walker: SandboxAlightWalker
 var _trip: Dictionary
 
@@ -12,8 +13,10 @@ func _ready() -> void:
 	_trip = world.resident(npc_id).get("passenger_alight", {})
 	if _trip.is_empty(): return
 	var fraction: float = 0.0
+	var far_pose: Vector2=Vector2.INF
 	if _trip.get("status", "") == "offscreen":
-		fraction = SandboxPassengerAlight.resume(world, npc_id)
+		far_pose=SandboxPassengerAlight.offscreen_position(world,npc_id,reentry_fraction)
+		fraction = SandboxPassengerAlight.resume(world, npc_id,reentry_fraction)
 		if fraction < 0.0: return
 	elif _trip.get("status", "") != "walking": return
 	var a: Vector2 = SandboxAlightGeometry.start(_trip)
@@ -31,7 +34,7 @@ func _ready() -> void:
 	add_child(region)
 	walker = SandboxAlightWalker.new()
 	walker.name = "Resident_" + npc_id.replace(":", "_")
-	var start_position: Vector2 = SandboxAlightGeometry.at(_trip,fraction)
+	var start_position: Vector2 = far_pose if far_pose.is_finite() else SandboxAlightGeometry.at(_trip,fraction)
 	if not resume_state.is_empty() and resume_state.get("npc_id", "") == npc_id:
 		start_position = Vector2(float(resume_state["x"]), float(resume_state["y"]))
 	walker.position = start_position
@@ -45,10 +48,10 @@ func _on_reached(point: Vector2) -> void:
 		walker.queue_free()
 		walker = null
 
-func handoff() -> bool:
+func handoff(clock_fraction: float=0.0) -> bool:
 	if walker == null or not is_instance_valid(walker): return false
 	return SandboxPassengerAlight.handoff(world,npc_id,
-			minf(.999999,SandboxAlightGeometry.progress(_trip,walker.position)))
+			minf(.999999,SandboxAlightGeometry.progress(_trip,walker.position)),walker.position,clock_fraction)
 
 func visual_snapshot() -> Dictionary:
 	if walker == null or not is_instance_valid(walker): return {}

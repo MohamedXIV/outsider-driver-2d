@@ -41,6 +41,19 @@ func _run() -> void:
 			both_held=true
 			break
 	assert(both_held,"Player and real shuttle did not independently yield at the same zebra")
+	assert(SandboxWorld.new().restore_snapshot(scene._world.snapshot()))
+	var independent: SandboxWorld=SandboxWorld.new()
+	assert(independent.restore_snapshot(scene._world.snapshot()))
+	assert(independent.release_shuttle_crossing_yield(shuttle_id))
+	assert(independent.route_hold_id==SandboxStreetRouteBinding.CROSSING_ID)
+	assert(SandboxWorld.new().restore_snapshot(independent.snapshot()),"One real leader releasing must not invalidate the other independently held source")
+	var forged: Dictionary=scene._world.snapshot()
+	for event in forged["events"]:
+		if event["kind"]=="taxi_yield_started": event["detail"].erase("execution")
+	assert(not SandboxWorld.new().restore_snapshot(forged),"Early queue holds require the original source/pose evidence in their World event")
+	forged=scene._world.snapshot()
+	forged["vehicle_execution"].erase("player")
+	assert(not SandboxWorld.new().restore_snapshot(forged),"An early physical queue hold requires its genuine native execution source")
 	# Unrelated NPC animation must keep fractional progress while these two
 	# real trips yield. Each held actor already clamps its own fraction.
 	scene._elapsed=0.0

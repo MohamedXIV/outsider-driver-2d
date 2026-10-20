@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 # R05 regression: the player-facing heading is a persistent presentation pose,
 # resolved from genuine road tangents/events, NEVER a new movement authority.
@@ -49,7 +50,7 @@ func _run() -> void:
 	assert(absf(angle_difference(heading_before, city._heading)) < .001,
 			"Mid-curve Save/Load must retain the exact smoothed facing")
 	world = scene._world
-	world.advance(world.remaining_minutes)
+	NativeRouteChecks.finish(world)
 	city._process(0.0)
 	assert(world.player_district == "clinic" and not world.is_travelling())
 	var clinic_facing: float = SandboxCityView.world_road_heading(world)
@@ -70,7 +71,7 @@ func _run() -> void:
 	# independent city travel after the first fareless reposition).
 	world = scene._world
 	assert(world.reposition("docks"))
-	world.advance(world.remaining_minutes)
+	NativeRouteChecks.finish(world)
 	city._process(0.0)
 	var back_facing: float = SandboxCityView.world_road_heading(world)
 	assert(absf(angle_difference(back_facing, city._heading)) < .001)
@@ -81,6 +82,48 @@ func _run() -> void:
 	scene._on_load()
 	assert(absf(angle_difference(back_facing, city._heading)) < .001)
 
+	# The same taxi must keep a valid road-facing tangent at a REAL internal
+	# segment handoff. No fabricated route or modified player clock.
+	world = scene._world
+	# Basin Bend is a true junction, not a public service stop. Route a
+	# legitimate reposition to Market THROUGH that real junction.
+	assert(world.reposition("market","",["clinic","basin_turn"]))
+	assert(world.route_nodes.slice(0,3) == ["docks","clinic","basin_turn"])
+	var edge_minutes: int = SandboxRoads.edge_minutes("docks","clinic")
+	assert(world.advance(edge_minutes-1))
+	for delay in range(60):
+		if world.route_edge_elapsed==edge_minutes-1: break
+		assert(world.advance(1))
+	assert(world.route_segment==0 and world.route_edge_elapsed==edge_minutes-1)
+	# Supply real physical motion first, then inspect the instantaneous World
+	# edge commitment. Comparing across advance(1) also measured a full second
+	# of legitimate steering, rather than an edge-switch discontinuity.
+	for delay in range(60):
+		scene._vehicle_corridor.step(1.0)
+		if SandboxVehicleExecution.progress(world,"player",world.vehicle_fraction)>=float(edge_minutes): break
+		assert(world.advance_elapsed(1))
+	assert(SandboxVehicleExecution.progress(world,"player",world.vehicle_fraction)>=float(edge_minutes))
+	var road_before: float = SandboxCityView.world_road_heading(world,0.99)
+	city.visual_fraction=0.99
+	city._process(0.016)
+	var facing_before: float=city.saved_taxi_heading()
+	assert(world.advance_elapsed(1))
+	assert(world.route_segment==1,"The observed commitment must cross the actual internal edge")
+	var road_after: float = SandboxCityView.world_road_heading(world,0.01)
+	assert(absf(angle_difference(road_before,road_after))<0.08,
+			"World's edge switch may not snap the taxi road-facing target")
+	city.visual_fraction=0.01
+	city._process(0.016)
+	var facing_after: float=city.saved_taxi_heading()
+	assert(absf(angle_difference(facing_before,facing_after)) <= \
+			SandboxVehicleKinematics.TURN_RATE*.016+.001,
+			"Native view heading must honor the angular steering cap at lane junction")
+	scene._on_save()
+	var saved_turn: float=city.saved_taxi_heading()
+	city._heading=0.0
+	scene._on_load()
+	assert(absf(angle_difference(saved_turn,city.saved_taxi_heading()))<.001,
+			"Save/Load at a REAL two-edge lane turn must restore the exact pose")
 	var tampered: Dictionary = {"taxi_heading": INF}
 	assert(not SandboxSave.save_world(scene._world,"user://r05-tamper.json",{},tampered),
 			"Non-finite heading must not enter a save")

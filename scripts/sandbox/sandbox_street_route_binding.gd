@@ -2,8 +2,8 @@ class_name SandboxStreetRouteBinding
 extends RefCounted
 
 # The authored Patchworks crossing lies ON the actual ground-level taxi
-# road, not at an unrelated point painted over the city. The main taxi still
-# uses SandboxRoads' authoritative route until a future full lane-physics pass.
+# road, not at an unrelated point painted over the city. Native execution
+# reports progress and footprints on that same World-owned authored route.
 const FROM: String = "garage"
 const TO: String = "margin_gate"
 const CROSS_FRACTION: float = 0.35
@@ -41,6 +41,8 @@ static func street_transform() -> Transform2D:
 static func approaching(world: SandboxWorld) -> bool:
 	if not on_edge(world) or not grounded():
 		return false
+	if world.vehicle_execution.get("player",{}).get("native",false):
+		return SandboxVehicleCrossings.native_approach(SandboxVehicleCrossings.context(world),"player")
 	var from_node: String=world.route_nodes[world.route_segment]
 	var to_node: String=world.route_nodes[world.route_segment+1]
 	var minutes: int=SandboxRoads.edge_minutes(from_node,to_node)
@@ -62,6 +64,8 @@ static func in_neighborhood(world: SandboxWorld) -> bool:
 			<=crossing_fraction(from_node,to_node)+0.10
 
 static func taxi_occupies_crosswalk(world: SandboxWorld) -> bool:
+	if world.vehicle_execution.get("player",{}).get("native",false):
+		return SandboxVehicleCrossings.native_occupies(SandboxVehicleCrossings.context(world),"player")
 	if not on_edge(world) or not grounded() or not world.route_hold_id.is_empty():
 		return false
 	var from_node: String=world.route_nodes[world.route_segment]

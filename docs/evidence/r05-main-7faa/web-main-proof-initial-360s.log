@@ -1,0 +1,7 @@
+MAIN_WEB_PROOF_PASS reroute [ 'departure', 'handoff', 'queued', 'rebased', 'restored' ]
+ERRORS []
+STATE { phase: 'departure', failure: undefined }
+page.waitForFunction: Timeout 360000ms exceeded.
+    at /workspace/outsider-driver-2d/work/corridor-lifecycle/work/web-main-proof.cjs:11:15 {
+  name: 'TimeoutError'
+}

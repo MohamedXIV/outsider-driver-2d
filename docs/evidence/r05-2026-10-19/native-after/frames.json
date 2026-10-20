@@ -1,0 +1,82 @@
+[
+  {
+    "fraction": 0.0,
+    "frame": 0,
+    "hold": "patchworks:garage-feeder-zebra",
+    "minute": 483,
+    "resident_count": 9,
+    "screen": [
+      200.664993286133,
+      811.209533691406
+    ],
+    "world": [
+      8699.986328125,
+      0.0,
+      6756.77490234375
+    ]
+  },
+  {
+    "fraction": 0.2375,
+    "frame": 1,
+    "hold": "patchworks:garage-feeder-zebra",
+    "minute": 483,
+    "resident_count": 9,
+    "screen": [
+      200.664993286133,
+      811.209533691406
+    ],
+    "world": [
+      8699.986328125,
+      0.0,
+      6756.77490234375
+    ]
+  },
+  {
+    "fraction": 0.475,
+    "frame": 2,
+    "hold": "patchworks:garage-feeder-zebra",
+    "minute": 483,
+    "resident_count": 9,
+    "screen": [
+      200.664993286133,
+      811.209533691406
+    ],
+    "world": [
+      8699.986328125,
+      0.0,
+      6756.77490234375
+    ]
+  },
+  {
+    "fraction": 0.7125,
+    "frame": 3,
+    "hold": "patchworks:garage-feeder-zebra",
+    "minute": 483,
+    "resident_count": 9,
+    "screen": [
+      200.664993286133,
+      811.209533691406
+    ],
+    "world": [
+      8699.986328125,
+      0.0,
+      6756.77490234375
+    ]
+  },
+  {
+    "fraction": 0.95,
+    "frame": 4,
+    "hold": "patchworks:garage-feeder-zebra",
+    "minute": 483,
+    "resident_count": 9,
+    "screen": [
+      200.664993286133,
+      811.209533691406
+    ],
+    "world": [
+      8699.986328125,
+      0.0,
+      6756.77490234375
+    ]
+  }
+]

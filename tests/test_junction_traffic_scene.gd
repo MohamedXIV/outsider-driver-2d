@@ -9,8 +9,19 @@ func _run() -> void:
 	var traffic: SandboxJunctionTraffic=pilot.junction
 	traffic.set_physics_process(false)
 	traffic.exit_blocked=true
+	var saw_approach_acceleration: bool=false
+	var saw_approach_braking: bool=false
+	var previous_speed: float=0.0
 	for frame in range(180):
 		traffic.step(1.0/60.0);await physics_frame
+		var speed: float=traffic.actors["main"].current_speed
+		if speed>0.1 and speed<SandboxVehicleKinematics.CRUISE-.1:
+			saw_approach_acceleration=true
+		if speed<previous_speed-.01 and traffic.distances["main"]<traffic.STOP_DISTANCE-.5:
+			saw_approach_braking=true
+		previous_speed=speed
+	assert(saw_approach_acceleration and saw_approach_braking,
+			"Junction approach must accelerate and brake before the priority stop")
 	assert(traffic.priority.owner.is_empty())
 	for body in traffic.actors.values():
 		for crossing_x in [SandboxStreetModule.EAST_CROSS_X,1100.0]:
@@ -18,13 +29,20 @@ func _run() -> void:
 	assert(traffic.actors["main"].position.x<=780.01)
 	assert(traffic.actors["branch"].position.y<=290.01)
 	assert(traffic.actors["following"].position.x<=traffic.actors["main"].position.x-41.99)
+	assert(traffic.actors["main"].current_speed<0.01 and
+			traffic.actors["branch"].current_speed<0.01,
+			"Vehicles must rest at a blocked priority stop")
 	await _shot("junction-blocked-queue")
 	traffic.exit_blocked=false
+	var accelerated_after_release: bool=false
 	var captured: bool=false
 	var blocked_owner: bool=false
 	for frame in range(1600):
 		traffic.step(1.0/60.0)
 		await physics_frame
+		if traffic.priority.owner=="main" and traffic.actors["main"].current_speed>0.01 \
+				and traffic.actors["main"].current_speed<SandboxJunctionTraffic.SPEED*.5:
+			accelerated_after_release=true
 		assert(SandboxLocalPedestrianTrip.valid_presentation(pilot.world,pilot.visual_snapshot()),"Every ordinary physical frame must be saveable")
 		var occupied: int=0
 		for id in traffic.IDS:
@@ -45,13 +63,17 @@ func _run() -> void:
 			var saved: Dictionary=traffic.snapshot()
 			assert(SandboxJunctionTraffic.valid_snapshot(saved))
 			var before: Dictionary={}
-			for id in traffic.IDS: before[id]=traffic.actors[id].position
+			for id in traffic.IDS:
+				before[id]={"position":traffic.actors[id].position,
+						"speed":traffic.actors[id].current_speed}
 			traffic.free()
 			traffic=SandboxJunctionTraffic.new();traffic.resume_state=saved;pilot.add_child(traffic)
 			traffic.set_physics_process(false);pilot.junction=traffic
 			for id in traffic.IDS:
 				print("JUNCTION_RESTORE ",id," ",before[id]," -> ",traffic.actors[id].position," at ",traffic.distances[id])
-				assert(traffic.actors[id].position.distance_to(before[id])<.02)
+				assert(traffic.actors[id].position.distance_to(before[id]["position"])<.02)
+				assert(is_equal_approx(traffic.actors[id].current_speed,float(before[id]["speed"])),
+						"Mid-turn native vehicle speed must persist, not reset to cruise")
 			captured=true
 			await _shot("junction-branch-admitted")
 	assert(captured)
@@ -61,7 +83,8 @@ func _run() -> void:
 	for body in traffic.actors.values():
 		for crossing_x in [SandboxStreetModule.EAST_CROSS_X,1100.0]:
 			assert(absf(body.position.x-crossing_x)>=27.0,"The final queue must clear both marked zebras")
-	assert(blocked_owner)
+	assert(blocked_owner and accelerated_after_release,
+			"FIFO release must resume with gradual native acceleration")
 	assert(SandboxJunctionTraffic.valid_snapshot(traffic.snapshot()))
 	print("JUNCTION_TRAFFIC_PASS blocked downstream, native FIFO merge, whole-body exclusion, headway, save/reconstruct and queue drain")
 	quit()

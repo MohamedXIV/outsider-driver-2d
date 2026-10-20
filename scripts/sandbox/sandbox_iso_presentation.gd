@@ -15,6 +15,12 @@ static func project(point: Vector3) -> Vector2:
 	return Vector2((point.x-point.z)*WORLD_TO_SCREEN,
 			(point.x+point.z)*WORLD_TO_SCREEN*0.5-point.y*HEIGHT_TO_SCREEN)
 
+static func unproject(point: Vector2,elevation: float=0.0) -> Vector3:
+	if not point.is_finite() or not is_finite(elevation): return Vector3.INF
+	var horizontal: float=point.x/WORLD_TO_SCREEN
+	var vertical: float=2.0*(point.y+elevation*HEIGHT_TO_SCREEN)/WORLD_TO_SCREEN
+	return Vector3((horizontal+vertical)*.5,elevation,(vertical-horizontal)*.5)
+
 static func lane_offset(heading: float) -> Vector2:
 	# One signed visual lane: following a reversed route flips this vector.
 	return Vector2.RIGHT.rotated(heading).orthogonal()*LANE_SHIFT
@@ -27,17 +33,18 @@ static func road_points(a: String, b: String) -> PackedVector2Array:
 
 static func draw_clinic_road(canvas: Node2D, a: String, b: String, pass_index: int) -> void:
 	var centre: PackedVector2Array=road_points(a,b)
+	var asphalt: float=SandboxDirectedLanes.screen_road_width(a,b)
 	match pass_index:
 		-1:
 			for i in range(4): draw_clinic_road(canvas,a,b,i)
 		0:
-			canvas.draw_polyline(centre, Color("1a343a"),CLINIC_ROAD_OUTER,true)
+			canvas.draw_polyline(centre, Color("1a343a"),asphalt+14.0,true)
 		1:
 			# Sidewalk shoulders on *both* sides; future path ownership must
 			# use authored world geometry, not these pixels as navigation.
-			canvas.draw_polyline(centre, Color("8d9d8c"),40.0,true)
+			canvas.draw_polyline(centre, Color("8d9d8c"),asphalt+10.0,true)
 		2:
-			canvas.draw_polyline(centre, Color("36484c"),CLINIC_ASPHALT,true)
+			canvas.draw_polyline(centre, Color("36484c"),asphalt,true)
 		3:
 			var left: PackedVector2Array=[]
 			var right: PackedVector2Array=[]
@@ -45,12 +52,46 @@ static func draw_clinic_road(canvas: Node2D, a: String, b: String, pass_index: i
 				var tangent: Vector2=(centre[mini(i+1,48)]-centre[maxi(0,i-1)]).normalized()
 				if tangent.length_squared()<0.5: continue
 				var normal: Vector2=tangent.orthogonal()
-				left.append(centre[i]-normal*15.0)
-				right.append(centre[i]+normal*15.0)
+				left.append(centre[i]-normal*(asphalt*.5+.5))
+				right.append(centre[i]+normal*(asphalt*.5+.5))
 			canvas.draw_polyline(left,Color("c5c5a6"),1.6,true)
 			canvas.draw_polyline(right,Color("c5c5a6"),1.6,true)
 			for i in range(3,45,5):
 				canvas.draw_line(centre[i],centre[i+2],Color("cfbd80"),1.25,true)
+
+static func draw_arterial_road(canvas: Node2D, a: String, b: String, pass_index: int) -> void:
+	if pass_index == -1:
+		for i in range(4): draw_arterial_road(canvas,a,b,i)
+		return
+	var centre: PackedVector2Array=road_points(a,b)
+	var asphalt: float=SandboxDirectedLanes.screen_road_width(a,b)
+	match pass_index:
+		0:
+			canvas.draw_polyline(centre,Color("162f35"),asphalt+9.0,true)
+		1:
+			canvas.draw_polyline(centre,Color("82958f"),asphalt+5.0,true)
+		2:
+			canvas.draw_polyline(centre,Color("35494e"),asphalt,true)
+		3:
+			# Four authored directional lanes: two per direction. The
+			# divider stays on the real road centre; opposite flows are
+			# allocated to distinct lane trajectories, not fake NPCs.
+			canvas.draw_polyline(centre,Color("bfb292"),1.8,true)
+			for from_node in [a,b]:
+				var to_node: String=b if from_node==a else a
+				for lane in range(2):
+					var markers: PackedVector2Array=[]
+					for i in range(49):
+						var world_point: Vector3=SandboxDirectedLanes.lane_point(
+								from_node,to_node,float(i)/48.0,lane)
+						markers.append(project(world_point))
+					if lane==0:
+						# Directional lane guides are derived from the same
+						# metric geometry used by taxi pose calculation.
+						for k in range(2,44,7):
+							canvas.draw_line(markers[k],markers[k+3],Color("d3bd8c"),1.0,true)
+					else:
+						canvas.draw_polyline(markers,Color("819b96"),0.65,true)
 
 static func vehicle_quad(anchor: Vector2, heading: float, height: float = 0.0) -> PackedVector2Array:
 	var facing: Vector2=Vector2.RIGHT.rotated(heading)

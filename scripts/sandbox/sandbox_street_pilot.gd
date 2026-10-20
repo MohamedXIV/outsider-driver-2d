@@ -17,6 +17,7 @@ var follower: SandboxTrafficVehicle
 var car_yielded: bool=false
 var embedded: bool=false
 var resume_state: Dictionary={}
+var reentry_fraction: float=0.0
 var junction: SandboxJunctionTraffic
 
 func _actor_snapshot(actor: SandboxPedestrianActor) -> Dictionary:
@@ -74,13 +75,8 @@ func _spawn_resident(id: String) -> void:
 	var slot: int=int(trip.get("slot",0))
 	var at: Vector2=SandboxStreetModule.waypoints(slot)[0]
 	if trip.get("status","")=="offscreen":
-		var phase: float=SandboxLocalPedestrianTrip.offscreen_progress(world,id)
-		var old_phase: float=float(trip["handoff_progress"])
-		var anchor: Vector2=Vector2(float(trip.get("handoff_x",SandboxStreetModule.position_at(old_phase,slot).x)),
-				float(trip.get("handoff_y",SandboxStreetModule.position_at(old_phase,slot).y)))
-		var offset: Vector2=anchor-SandboxStreetModule.position_at(old_phase,slot)
-		at=SandboxStreetModule.position_at(phase,slot)+offset*clampf(1.0-(phase-old_phase)/.15,0.0,1.0)
-		SandboxLocalPedestrianTrip.resume(world,id)
+		at=SandboxLocalPedestrianTrip.offscreen_position(world,id,reentry_fraction)
+		SandboxLocalPedestrianTrip.resume(world,id,reentry_fraction)
 	var saved: Dictionary=resume_state.get("actors",{}).get(id,{})
 	if saved.is_empty() and resume_state.get("npc_id","")==id: saved=resume_state
 	if not saved.is_empty(): at=Vector2(float(saved.get("pedestrian_x",at.x)),float(saved.get("pedestrian_y",at.y)))
@@ -159,13 +155,13 @@ func cancel_resident(id: String) -> bool:
 			walking_npc_id=str(pedestrians.keys()[0]);pedestrian=pedestrians[walking_npc_id]
 	return true
 
-func handoff_all() -> void:
+func handoff_all(clock_fraction: float=0.0) -> void:
 	reconcile_reservations()
 	for id in pedestrians:
 		var actor: SandboxPedestrianActor=pedestrians[id]
 		var slot: int=int(world.resident(str(id)).get("local_pedestrian_trip",{}).get("slot",0))
 		var phase: float=minf(.999999,SandboxStreetModule.progress_of(actor.position,slot))
-		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position)
+		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position,clock_fraction)
 
 func _make_lane_car(label: String,start: Vector2) -> SandboxTrafficVehicle:
 	var vehicle: SandboxTrafficVehicle=SandboxTrafficVehicle.new()
@@ -193,7 +189,9 @@ func _physics_process(delta: float) -> void:
 			car.position.x,occupied,false,delta,walker_ahead_of_leader)
 	if occupied and car.position.x<=SandboxStreetPriority.stop_line() and not walker_ahead_of_leader:
 		leader_limit=minf(leader_limit,SandboxVehicleKinematics.braking_speed(
-				SandboxStreetPriority.stop_line()-car.position.x))
+				SandboxStreetPriority.stop_line()-car.position.x,delta))
+	leader_limit=minf(leader_limit,SandboxVehicleKinematics.braking_speed(
+			SandboxStreetPriority.LANE_END_X-car.position.x,delta))
 	car.current_speed=SandboxVehicleKinematics.next_speed(car.current_speed,leader_limit,delta)
 	# Never advance beyond a protected stop line even under a long frame.
 	car.current_speed=minf(car.current_speed,leader_limit)
@@ -203,10 +201,10 @@ func _physics_process(delta: float) -> void:
 	var follower_limit: float=SandboxStreetPriority.follower_velocity(
 			follower.position.x,car.position.x,occupied,false,delta,walker_ahead_of_follower)
 	var gap_left: float=car.position.x-SandboxStreetPriority.FOLLOW_SPACING-follower.position.x
-	follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(gap_left))
+	follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(gap_left,delta))
 	if occupied and follower.position.x<=SandboxStreetPriority.stop_line() and not walker_ahead_of_follower:
 		follower_limit=minf(follower_limit,SandboxVehicleKinematics.braking_speed(
-				SandboxStreetPriority.stop_line()-follower.position.x))
+				SandboxStreetPriority.stop_line()-follower.position.x,delta))
 	follower.current_speed=SandboxVehicleKinematics.next_speed(follower.current_speed,follower_limit,delta)
 	follower.current_speed=minf(follower.current_speed,follower_limit)
 	follower.velocity=global_transform.x.normalized()*follower.current_speed

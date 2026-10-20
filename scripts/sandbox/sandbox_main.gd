@@ -69,6 +69,7 @@ var _world: SandboxWorld = SandboxWorld.new(8)
 var _selected_id: String = ""
 var _notice_text: String = "Patchworks Garage, Outer Margin. Your shift begins at home."
 var _elapsed: float = 0.0
+var _vehicle_corridor: SandboxWorldVehicleCorridor
 var _conversation: SandboxConversation
 var _last_intent: String = ""
 var _last_outcome: String = ""
@@ -92,6 +93,9 @@ var _debug_action_serial: int=0
 
 func _ready() -> void:
 	_city.world = _world
+	_vehicle_corridor=SandboxWorldVehicleCorridor.new()
+	_city.add_child(_vehicle_corridor)
+	_vehicle_corridor.attach(_world)
 	for district in SandboxRoads.DISTRICTS:
 		_districts.add_item(district.capitalize())
 	_districts.select(0)
@@ -160,6 +164,7 @@ func _process(delta: float) -> void:
 		if _reveal_elapsed >= REVEAL_SECONDS:
 			_finish_language_reveal()
 	if _world.meeting_in_progress():
+		_world.vehicle_fraction=0.0
 		_elapsed = 0.0 # Freeze automatic ticks while the player is choosing at the meeting.
 		_city.visual_fraction = 0.0
 		_city.queue_redraw()
@@ -171,14 +176,23 @@ func _process(delta: float) -> void:
 	_sync_passenger_alight()
 	_update_player_crossing_yield()
 	_update_shuttle_crossing_yields()
-	_elapsed += maxf(delta, 0.0)
-	while _elapsed >= REAL_SECONDS_PER_STEP:
-		_elapsed -= REAL_SECONDS_PER_STEP
-		_update_player_crossing_yield()
-		_update_shuttle_crossing_yields()
-		_world.advance(1)
-		_sync_passenger_alight()
-		_render()
+	_vehicle_corridor.attach(_world)
+	var physical_left: float=maxf(delta,0.0)
+	while physical_left>.0000001:
+		var slice: float=minf(physical_left,REAL_SECONDS_PER_STEP-_elapsed)
+		_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+		_vehicle_corridor.step(slice)
+		_elapsed+=slice
+		physical_left-=slice
+		if _elapsed>=REAL_SECONDS_PER_STEP-.0000001:
+			_elapsed=0.0
+			_update_player_crossing_yield()
+			_update_shuttle_crossing_yields()
+			_world.advance_elapsed(1)
+			_sync_passenger_alight()
+			_render()
+	_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+	_vehicle_corridor.reconcile()
 	# Nearby NPCs keep walking when the player's taxi is parked. The visual
 	# fraction belongs to presentation time, NOT the player's travel state.
 	_city.visual_fraction = clampf(_elapsed / REAL_SECONDS_PER_STEP, 0.0, 1.0)
@@ -552,6 +566,10 @@ func _traffic_only_state(state: Dictionary) -> Dictionary:
 	return retained
 
 
+func _street_clock_fraction() -> float:
+	return minf(fposmod(maxf(_elapsed,0.0),REAL_SECONDS_PER_STEP)/REAL_SECONDS_PER_STEP,.999999999999)
+
+
 func _handoff_restored_pedestrians() -> void:
 	# A far load has saved physical poses but must not instantiate nearby
 	# bodies. Transfer those validated poses into the same world's far policy.
@@ -564,13 +582,13 @@ func _handoff_restored_pedestrians() -> void:
 		var saved: Dictionary=actors[id]
 		var at: Vector2=Vector2(float(saved["pedestrian_x"]),float(saved["pedestrian_y"]))
 		var phase: float=minf(.999999,SandboxStreetModule.progress_of(at,int(trip.get("slot",0))))
-		SandboxLocalPedestrianTrip.handoff(_world,str(id),phase,at)
+		SandboxLocalPedestrianTrip.handoff(_world,str(id),phase,at,_street_clock_fraction())
 
 
 func _sync_local_pedestrian() -> void:
 	if not SandboxStreetRouteBinding.in_neighborhood(_world):
 		if _street_pilot!=null:
-			_street_pilot.handoff_all()
+			_street_pilot.handoff_all(_street_clock_fraction())
 			_street_restore_state=_traffic_only_state(_street_pilot.visual_snapshot())
 			_street_pilot.queue_free();_street_pilot=null
 		elif not _street_restore_state.get("actors",{}).is_empty() or _street_restore_state.has("npc_id"):
@@ -586,6 +604,7 @@ func _sync_local_pedestrian() -> void:
 	if ids.is_empty() and _street_restore_state.get("actors",{}).is_empty() and not _street_restore_state.has("junction"): return
 	var local: SandboxStreetPilot=SandboxStreetPilot.new()
 	local.name="PatchworksStreetTraffic";local.embedded=true;local.world=_world
+	local.reentry_fraction=_street_clock_fraction()
 	local.walking_npc_id=ids[0] if not ids.is_empty() else "";local.resume_state=_street_restore_state.duplicate(true)
 	local.transform=SandboxStreetRouteBinding.street_transform();local.z_index=5
 	_street_pilot=local;add_child(local)
@@ -606,7 +625,7 @@ func _sync_passenger_alight() -> void:
 		var status: String = str(_world.resident(id).get("passenger_alight", {}).get("status", ""))
 		if not nearby or status not in ["walking", "arrived"]:
 			if status == "walking" and _alight_view.walker != null:
-				_alight_view.handoff()
+				_alight_view.handoff(_street_clock_fraction())
 			_alight_view.queue_free()
 			_alight_view = null
 	if not nearby or _alight_view != null: return
@@ -617,6 +636,7 @@ func _sync_passenger_alight() -> void:
 		var local: SandboxAlightView = SandboxAlightView.new()
 		local.world = _world
 		local.npc_id = str(npc["id"])
+		local.reentry_fraction=_street_clock_fraction()
 		local.resume_state = _alight_restore_state.duplicate(true)
 		local.z_index = 6
 		local.name = "NightClinicResidentAlight"
@@ -642,6 +662,7 @@ func _on_new_seed() -> void:
 	_reset_passenger_alight()
 	_reset_local_pedestrian()
 	_world = SandboxWorld.new(_world.seed + 1)
+	_vehicle_corridor.attach(_world)
 	_conversation = null
 	_last_intent = ""
 	_last_outcome = ""
@@ -700,6 +721,8 @@ func _on_load() -> void:
 	_meeting_dialogue = null
 	_route_waypoint = ""
 	_elapsed = float(bundle.get("presentation",{}).get("clock_fraction",0.0))
+	_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+	_vehicle_corridor.attach(_world)
 	_city.visual_fraction=_elapsed
 	_ui_locale=str(bundle.get("presentation",{}).get("locale",_ui_locale))
 	_reduced_motion=bool(bundle.get("presentation",{}).get("reduced_motion",_reduced_motion))
@@ -1281,6 +1304,39 @@ func _observe_street_actors() -> Array:
 	return actors
 
 
+# Identity and visibility diagnostics only. The authority field distinguishes
+# a true native body from its event-owned far projection, never another NPC.
+func _observe_actor_lifecycle() -> Array:
+	var result: Array=[]
+	for npc in _world.residents:
+		var id: String=str(npc["id"])
+		var point: Vector2=Vector2.INF
+		var authority: String=""
+		if _street_pilot!=null and _street_pilot.pedestrians.has(id):
+			point=_street_pilot.pedestrians[id].global_position
+			authority="native_pedestrian"
+		elif _alight_view!=null and _alight_view.npc_id==id and _alight_view.walker!=null:
+			point=_alight_view.walker.global_position
+			authority="native_alight"
+		else:
+			var local: Dictionary=SandboxActorLifecycle.pose(_world,npc,_city.visual_fraction)
+			if not local.is_empty():
+				point=local["position"];authority="world_"+str(local["kind"])
+			else:
+				var shuttle: Dictionary=SandboxWorldTraffic.shuttle_pose(_world,npc,_city.visual_fraction)
+				if not shuttle.is_empty():
+					point=SandboxCityView.project(shuttle["render_position"]);authority="world_shuttle"
+		if not point.is_finite(): continue
+		var canonical: Vector3=_world.npc_position(npc,_city.visual_fraction)
+		var viewport_point: Vector2=_city.get_canvas_transform()*point
+		result.append({"id":id,"authority":authority,"minute":_world.minute,
+			"world":[canonical.x,canonical.y,canonical.z],"render":[point.x,point.y],
+			"viewport":[viewport_point.x,viewport_point.y],
+			"visible":get_viewport().get_visible_rect().has_point(viewport_point),
+			"fraction":_city.visual_fraction})
+	return result
+
+
 func _publish_street_boundary(field: String) -> void:
 	if not OS.has_feature("web"): return
 	# Observe actual bodies at the Save/Load boundary before another physics
@@ -1300,7 +1356,8 @@ func _publish_street_web() -> void:
 		junction={"owner":local.priority.owner,"queue":local.priority.queue.duplicate(),"admitted":local.admitted.duplicate(),"bodies":{}}
 		for id in local.actors:
 			var body: CharacterBody2D=local.actors[id]
-			junction["bodies"][id]={"x":body.position.x,"y":body.position.y}
+			junction["bodies"][id]={"x":body.position.x,"y":body.position.y,
+				"speed":body.current_speed,"heading":body.rotation}
 	for npc in _world.residents:
 		if not npc.get("local_pedestrian_trip",{}).is_empty(): trips[npc["id"]]=npc["local_pedestrian_trip"].duplicate(true)
 	var local_events: Array=[]
@@ -1337,8 +1394,20 @@ func _publish_street_web() -> void:
 		for i in range(_via.item_count): via_options.append(str(_via.get_item_metadata(i)))
 		var popup: PopupMenu=_via.get_popup()
 		if popup.visible: via_popup=[popup.position.x,popup.position.y,popup.size.x,popup.size.y]
+	# Read-only evidence ties the visible taxi to its authoritative route and
+	# hold. Browser checks can inspect continuity without issuing World commands.
+	var authoritative: Vector3=_world.player_position(_city.visual_fraction)
+	var rendered: Vector2=SandboxDirectedLanes.taxi_screen(_world,_city.visual_fraction)
+	var taxi_pose: Dictionary={"id":"player","minute":_world.minute,
+		"world":[authoritative.x,authoritative.y,authoritative.z],
+		"render":[rendered.x,rendered.y],"heading":_city._heading,
+		"fraction":_city.visual_fraction,"hold":_world.route_hold_id,
+		"segment":_world.route_segment,"elapsed":_world.route_edge_elapsed,
+		"route":_world.route_nodes.duplicate(),"visible":true}
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"streetActors":JSON.stringify(actors),"streetTrips":JSON.stringify(trips),"streetEvents":JSON.stringify(local_events),"streetJunction":JSON.stringify(junction),
+		"streetTaxiPose":JSON.stringify(taxi_pose),
+		"actorLifecycle":JSON.stringify(_observe_actor_lifecycle()),
 		"alightTrip":JSON.stringify(alight_trip),"alightActor":JSON.stringify(alight_actor),
 		"alightEvents":JSON.stringify(alight_events),
 		"streetSeed":str(_world.seed),"streetPopulation":str(_world.residents.size()),"streetTaxiHold":_world.route_hold_id,

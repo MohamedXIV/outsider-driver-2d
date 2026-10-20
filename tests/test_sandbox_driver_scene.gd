@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 const SHOTS: String = "/tmp/od2d-ink-evidence/sandbox"
 
@@ -18,7 +19,7 @@ func _walk() -> void:
 	var accept: Button = scene.get_node("HUD/DockPanel/Content/Actions/Accept")
 	assert(not accept.disabled)
 	accept.pressed.emit()
-	assert(world.advance(world.remaining_minutes))
+	assert(NativeRouteChecks.finish(world))
 	scene.call("_render")
 	assert(SandboxDriverMemory.recognizes(world.resident(speaker)))
 	var second_id: String = ""

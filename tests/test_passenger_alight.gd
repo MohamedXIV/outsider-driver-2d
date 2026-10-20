@@ -26,7 +26,16 @@ func _run() -> void:
 	var restored: SandboxWorld = SandboxWorld.new()
 	assert(restored.restore_snapshot(world.snapshot()), "Walking alight must survive world restore")
 	var id: String = str(npc["id"])
-	assert(SandboxPassengerAlight.handoff(world,id,.4))
+	var anchor: Vector2=SandboxAlightGeometry.at(trip,.4)+Vector2(1,-1)
+	assert(SandboxPassengerAlight.handoff(world,id,.4,anchor))
+	assert(SandboxPassengerAlight.offscreen_position(world,id).distance_to(anchor)<.001)
+	assert(SandboxActorLifecycle.pose(world,npc)["position"].distance_to(anchor)<.001)
+	assert(restored.restore_snapshot(world.snapshot()))
+	assert(SandboxPassengerAlight.offscreen_position(restored,id).distance_to(anchor)<.001)
+	var false_anchor: Dictionary=world.snapshot()
+	for person in false_anchor["residents"]:
+		if person["id"]==id: person["passenger_alight"]["handoff_x"]+=1.0
+	assert(not SandboxWorld.new().restore_snapshot(false_anchor))
 	assert(not SandboxPassengerAlight.handoff(world,id,.6), "No duplicate offscreen transitions")
 	assert(world.advance(1))
 	assert(is_equal_approx(SandboxPassengerAlight.offscreen_progress(world,id),.9))

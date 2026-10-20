@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 const SHOTS: String="/tmp/od2d-city-evidence"
 var scene: Node
 var world: SandboxWorld
@@ -20,11 +21,11 @@ func _run() -> void:
 	scene._on_load();world=scene._world
 	assert(world.player_position(scene._elapsed).distance_to(at)<.01)
 	await shot("04-long-city-ride")
-	world.advance(world.remaining_minutes);scene._render()
+	NativeRouteChecks.finish(world);scene._render()
 	assert(scene._conversation!=null and scene._conversation.still_valid(world))
 	await shot("05-arrival-readable")
 	scene._on_dialogue_choice(2)
-	assert(world.reposition("clinic"));world.advance(world.remaining_minutes)
+	assert(world.reposition("clinic"));NativeRouteChecks.finish(world)
 	assert(world.reposition("depot","",["basin_turn","market","margin_gate","bridge_east","bridge_west"]))
 	assert(world.route_nodes.has("basin_turn") and world.route_nodes.has("bridge_west"))
 	var captured: Dictionary={}

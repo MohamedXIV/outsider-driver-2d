@@ -1,0 +1,32 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[
+  {
+    "maximum": 9.20637321472168,
+    "minimum_opposing_lane_clearance": 6.44370365142822,
+    "physical_fit": false,
+    "road": "basin_turn|clinic",
+    "visible_body_width": 13.0
+  },
+  {
+    "maximum": 9.20643901824951,
+    "minimum_opposing_lane_clearance": 5.45758438110352,
+    "physical_fit": false,
+    "road": "clinic|docks",
+    "visible_body_width": 13.0
+  },
+  {
+    "maximum": 7.19423532485962,
+    "minimum_opposing_lane_clearance": 4.13964033126831,
+    "physical_fit": false,
+    "road": "freight_cross|quay_gate",
+    "visible_body_width": 13.0
+  },
+  {
+    "maximum": 6.8304648399353,
+    "minimum_opposing_lane_clearance": 3.77469992637634,
+    "physical_fit": false,
+    "road": "garage|margin_gate",
+    "visible_body_width": 13.0
+  }
+]

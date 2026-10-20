@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 # Native Linux-visible physical market + installed/absent Ink comprehension.
 const SHOTS: String = "/tmp/od2d-ink-evidence/sandbox"
@@ -32,7 +33,7 @@ func _walkthrough() -> void:
 	district.select(1)
 	scene.call("_on_reposition")
 	var moving_world: SandboxWorld=scene.get("_world")
-	if moving_world.is_travelling(): moving_world.advance(moving_world.remaining_minutes)
+	if moving_world.is_travelling(): NativeRouteChecks.finish(moving_world)
 	scene.call("_render")
 	await process_frame
 	assert(world.player_district == "market" and world.credits == 10)
@@ -85,7 +86,7 @@ func _walkthrough() -> void:
 	scene.call("_render")
 	await RenderingServer.frame_post_draw
 	_capture("generated-offers.png")
-	recovered.advance(recovered.remaining_minutes)
+	NativeRouteChecks.finish(recovered)
 	scene.call("_render")
 	await RenderingServer.frame_post_draw
 	_capture("settled-demand.png")

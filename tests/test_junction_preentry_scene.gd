@@ -19,6 +19,8 @@ func _run() -> void:
 		traffic.distances[id]=159.9 if id=="main" else 50.0
 		traffic._place(id)
 	traffic.priority.owner="main";traffic.priority.queue.assign(["branch","following"])
+	# Already accelerating when the vehicle is about to clear the box.
+	traffic.actors["main"].current_speed=12.0
 	traffic.step(1.0/60.0)
 	assert(traffic.actors["main"].position.x>=traffic.EXIT_X)
 	assert(SandboxJunctionTraffic.valid_snapshot(traffic.snapshot()),"The clearance frame must remain saveable")

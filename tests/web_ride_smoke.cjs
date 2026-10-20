@@ -133,7 +133,14 @@ const { chromium } = require('playwright');
     await page.mouse.click(170, 467); // Repeat authored route-information reply.
     await phase('arrived');
     await page.mouse.click(614, 614);
-    await page.waitForFunction(() => document.documentElement.dataset.arrivalOffer === 'true', null, { timeout: 15000 });
+    await page.waitForFunction(() => {
+      const d = document.documentElement.dataset;
+      return d.arrivalOffer === 'true' && d.choiceVisible === 'true' && d.choiceCount === '2';
+    }, null, { timeout: 15000 });
+    // Godot publishes the Ink frame before deferred VBox layout has painted.
+    // Wait for that canvas frame before sending the real choice click.
+    await page.evaluate(() => new Promise(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))));
     await page.mouse.click(170, 467);
     await phase('completed');
     await check(() => {

@@ -22,7 +22,7 @@ var path_blocked: bool = false
 
 func _ready() -> void:
 	collision_layer = 2
-	collision_mask = 2 | 4 | 8
+	collision_mask = 2 | 4 | 8 | 16
 	var shape: CollisionShape2D = CollisionShape2D.new()
 	var circle: CircleShape2D = CircleShape2D.new()
 	circle.radius = SandboxStreetModule.PEDESTRIAN_RADIUS

@@ -35,11 +35,17 @@ static func edge_heading(from: String, to: String, fraction: float) -> float:
 	return (q - p).angle() if p.distance_squared_to(q) > .000001 else 0.0
 
 static func world_road_heading(state: SandboxWorld, fraction: float = 0.0) -> float:
+	if state.vehicle_execution.has("player"): return SandboxVehicleExecution.heading(state,"player",fraction)
+	if not state.is_travelling() and state.vehicle_parking.get("player",{}).get("stop","")==state.player_district:
+		return float(state.vehicle_parking["player"]["heading"])
 	if state.is_travelling():
+		var elapsed: float = SandboxDirectedLanes.taxi_elapsed_minutes(state,fraction)
+		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(
+				state.route_nodes,elapsed)
+		if tangent.length_squared() > 0.000001: return tangent.angle()
 		var a: String = state.route_nodes[state.route_segment]
-		var b: String = state.route_nodes[state.route_segment + 1]
-		var progress: float = (float(state.route_edge_elapsed) + fraction) / float(SandboxRoads.edge_minutes(a, b))
-		return edge_heading(a, b, progress)
+		var b: String = state.route_nodes[state.route_segment+1]
+		return edge_heading(a,b,float(state.route_edge_elapsed)/float(SandboxRoads.edge_minutes(a,b)))
 	for i in range(state.events.size() - 1, -1, -1):
 		var event: Dictionary = state.events[i]
 		if event.get("kind", "") != "route_segment_completed": continue
@@ -82,13 +88,14 @@ func _ready() -> void:
 			var b: Vector3 = SandboxRoads.sample_edge(ends[0], ends[1], minf(t + .01,1))
 			var tangent: Vector2 = (project(b)-project(a)).normalized()
 			for side in [-1,1]:
-				var at: Vector2 = project(a) + tangent.orthogonal()*float(side)*rng.randf_range(45,75)
+				var verge: float=maxf(45.0,SandboxDirectedLanes.screen_road_width(ends[0],ends[1])*.5+22.0)
+				var at: Vector2 = project(a) + tangent.orthogonal()*float(side)*rng.randf_range(verge,verge+30.0)
 				var valid: bool = true
 				for other in SandboxCityData.EDGES:
 					var pair: PackedStringArray = str(other).split("|")
 					for j in range(21):
 						var road: Vector3=SandboxRoads.sample_edge(pair[0],pair[1],float(j)/20)
-						if at.distance_to(project(road)) < 32:
+						if Rect2(at,Vector2(42,45)).grow(SandboxDirectedLanes.screen_road_width(pair[0],pair[1])*.5+8.0).has_point(project(road)):
 							valid = false
 						if road.y>0.0:
 							road.y=0.0
@@ -112,16 +119,15 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if world == null: return
 	if not _heading_initialized: restore_taxi_heading()
-	var taxi: Vector2 = project(world.player_position(visual_fraction))
+	var taxi: Vector2 = SandboxDirectedLanes.taxi_screen(world,visual_fraction)
 	var ahead: Vector2 = taxi
 	if world.is_travelling():
 		_last_parked_stop = ""
-		var a: String = world.route_nodes[world.route_segment]
-		var b: String = world.route_nodes[world.route_segment+1]
-		var t: float = (float(world.route_edge_elapsed)+visual_fraction)/float(SandboxRoads.edge_minutes(a,b))
-		var tangent: Vector2 = project(SandboxRoads.sample_edge(a,b,minf(.999,t+.003)))-project(SandboxRoads.sample_edge(a,b,maxf(0,t-.003)))
-		if tangent.length() > .001:
-			_heading = SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
+		var elapsed: float = SandboxDirectedLanes.taxi_elapsed_minutes(world,visual_fraction)
+		var tangent: Vector2 = SandboxDirectedLanes.route_screen_tangent_at_minutes(
+				world.route_nodes,elapsed)
+		if tangent.length_squared() > .000001:
+			_heading = SandboxVehicleExecution.heading(world,"player",visual_fraction) if world.vehicle_execution.has("player") else SandboxVehicleKinematics.turn_heading(_heading,tangent.angle(),delta)
 			ahead += tangent.normalized()*65
 	elif _last_parked_stop != world.player_district:
 		# A just-finished route has no active nodes. Face its last legal edge,
@@ -144,6 +150,9 @@ func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int
 	if not elevated and (a == "clinic" or b == "clinic"):
 		SandboxIsoPresentation.draw_clinic_road(canvas, a, b, pass_index)
 		return
+	if not elevated and SandboxRoads.edge_key(a,b) == "freight_cross|quay_gate":
+		SandboxIsoPresentation.draw_arterial_road(canvas,a,b,pass_index)
+		return
 	var points: PackedVector2Array = []
 	for i in range(49): points.append(project(SandboxRoads.sample_edge(a,b,float(i)/48)))
 	if elevated and pass_index in [-1,0]:
@@ -152,9 +161,10 @@ func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int
 			var p: Vector3=SandboxRoads.sample_edge(a,b,float(i)/48.0)
 			underside.append(points[i]+Vector2(0,SandboxBridgePresentation.thickness(p.y)))
 		canvas.draw_polyline(underside,Color("4d605a"),33.0,true)
-	if pass_index in [-1,0]: canvas.draw_polyline(points,Color("202e32"),34,true)
-	if pass_index in [-1,1]: canvas.draw_polyline(points,Color("8c9d91") if elevated else Color("667773"),28,true)
-	if pass_index in [-1,2]: canvas.draw_polyline(points,Color("374b50"),23,true)
+	var asphalt: float=SandboxDirectedLanes.screen_road_width(a,b)
+	if pass_index in [-1,0]: canvas.draw_polyline(points,Color("202e32"),asphalt+11.0,true)
+	if pass_index in [-1,1]: canvas.draw_polyline(points,Color("8c9d91") if elevated else Color("667773"),asphalt+5.0,true)
+	if pass_index in [-1,2]: canvas.draw_polyline(points,Color("374b50"),asphalt,true)
 	if pass_index not in [-1,3]: return
 	for i in range(0,47,3):
 		canvas.draw_line(points[i],points[i+1],Color("d2bc7d"),1.1,true)
@@ -230,10 +240,23 @@ func paint(canvas: Node2D, role: String) -> void:
 			canvas.draw_rect(Rect2(at+Vector2(3,4),Vector2(12,8)),Color("62796e"))
 		elif block["region"] == "upper_terraces":
 			canvas.draw_circle(at+Vector2(10,10),8,Color("658a79"))
-	for key in SandboxCityData.EDGES:
-		var pair: PackedStringArray = str(key).split("|")
-		if SandboxRoads.map_position(pair[0]).y == 0 and SandboxRoads.map_position(pair[1]).y == 0:
-			_road(canvas,pair[0],pair[1],false)
+	for pass_index in range(4):
+		for key in SandboxCityData.EDGES:
+			var pair: PackedStringArray = str(key).split("|")
+			if SandboxRoads.map_position(pair[0]).y == 0 and SandboxRoads.map_position(pair[1]).y == 0:
+				_road(canvas,pair[0],pair[1],false,pass_index)
+		if pass_index==3: continue
+		for node in SandboxCityData.NODES:
+			if SandboxRoads.map_position(node).y!=0.0: continue
+			var count: int=0
+			var width: float=23.0
+			for neighbor in SandboxRoads.LINKS[node]:
+				if SandboxRoads.map_position(neighbor).y!=0.0: continue
+				count+=1
+				width=maxf(width,SandboxDirectedLanes.screen_road_width(node,neighbor))
+			if count<2: continue
+			canvas.draw_circle(project(SandboxRoads.map_position(node)),(width+[11.0,5.0,0.0][pass_index])*.5,
+				[Color("202e32"),Color("8d9d8c"),Color("374b50")][pass_index])
 	# Patchworks is an inhabited repair court with a shutter, shelter and stall.
 	var home: Vector2=project(SandboxRoads.map_position("garage"))+Vector2(38,-32)
 	canvas.draw_colored_polygon(PackedVector2Array([home,home+Vector2(48,-12),home+Vector2(58,20),home+Vector2(10,32)]),Color("b78b62"))
@@ -255,27 +278,42 @@ func paint(canvas: Node2D, role: String) -> void:
 func _draw_people(canvas: Node2D, elevated: bool) -> void:
 	for npc in world.residents:
 		if not str(npc.get("taxi_offer","")).is_empty(): continue
-		if npc.get("passenger_alight", {}).get("status", "") in ["walking", "offscreen", "arrived"]:
+		if npc.get("passenger_alight", {}).get("status", "") in ["walking", "arrived"] \
+				and npc.get("location","")=="clinic" and int(npc.get("transit_until",0))==0 \
+				and not SandboxVehicleDepartures.resident_screen(world,npc,visual_fraction).is_finite():
 			# The same resident is represented by the local native actor or
 			# is inside the clinic; never draw a second static node marker.
 			continue
-		if (str(npc.get("id",""))==local_active_npc_id or local_active_npc_ids.has(str(npc.get("id","")))) \
-				or npc.get("local_pedestrian_trip",{}).get("status","")=="offscreen": continue
+		if str(npc.get("id",""))==local_active_npc_id or local_active_npc_ids.has(str(npc.get("id",""))): continue
+		var local: Dictionary=SandboxActorLifecycle.pose(world,npc,visual_fraction)
+		if not local.is_empty():
+			if elevated: continue
+			var point: Vector2=local["position"]
+			if local["kind"]=="local_pedestrian":
+				canvas.draw_circle(point,6.0,Color("d5be91") if int(local["slot"])==0 else Color("91bdd5"))
+				canvas.draw_circle(point+Vector2(-1,-2),2.0,Color("496778"))
+			else:
+				canvas.draw_circle(point+Vector2(1,3),7.5,Color("172b30"))
+				canvas.draw_circle(point,6.0,Color("c8b592"))
+				canvas.draw_circle(point+Vector2(0,-3),2.5,Color("86b5aa"))
+			continue
 		var pos: Vector3 = world.npc_position(npc,visual_fraction)
 		if (pos.y>0) != elevated: continue
 		var shuttle: Dictionary=SandboxWorldTraffic.shuttle_pose(world,npc,visual_fraction)
 		if not shuttle.is_empty():
 			# Same resident and world trip, shown as transport rather than a
 			# second walking NPC (or an invented municipal driver).
-			var next_pos: Vector2=project(shuttle["ahead"])
-			var here: Vector2=project(pos)
-			var tangent: Vector2=next_pos-here
-			_draw_world_shuttle(canvas,here,tangent.angle() if tangent.length()>0.001 else 0.0)
+			var here: Vector2=project(shuttle["render_position"])
+			_draw_world_shuttle(canvas,here,float(shuttle["render_heading"]))
 			continue
 		var p: Vector2 = project(pos)+Vector2(15,12)
 		canvas.draw_circle(p+Vector2(2,3),4,Color("172a30"))
 		canvas.draw_line(p,p-Vector2(0,5),Color("c3b797"),4)
 		canvas.draw_circle(p-Vector2(0,6),2.5,Color("a5bbac"))
+
+	for id in world.vehicle_departures:
+		if SandboxVehicleDepartures.elevated(world,str(id),visual_fraction)!=elevated: continue
+		_draw_world_shuttle(canvas,SandboxVehicleDepartures.screen(world,str(id),visual_fraction),SandboxVehicleDepartures.heading(world,str(id),visual_fraction))
 
 # A world-owned passenger's independently timed shuttle trip. The car
 # silhouette is presentation only; city travel/arrival stays in SandboxWorld.
@@ -284,11 +322,8 @@ func _draw_world_shuttle(canvas: Node2D, point: Vector2, heading: float) -> void
 
 
 func _taxi(canvas: Node2D) -> void:
-	var taxi: Vector2 = project(world.player_position(visual_fraction))
-	# Lane placement for the clinic pilot is presentation-only: it makes the
-	# two directed lanes readable without lying about authoritative routing.
-	if world.player_district == "clinic" or (world.is_travelling() and
-			(world.route_nodes[world.route_segment] == "clinic" or
-			world.route_nodes[world.route_segment+1] == "clinic")):
-		taxi += SandboxIsoPresentation.lane_offset(_heading)
+	# Render the world-owned taxi on its authored directed lane trajectory,
+	# instead of displacing a flat sprite by an arbitrary screen offset.
+	# Economic route minutes and collision authority remain with SandboxWorld.
+	var taxi: Vector2 = SandboxDirectedLanes.taxi_screen(world,visual_fraction)
 	SandboxIsoPresentation.draw_vehicle(canvas, taxi, _heading, true)

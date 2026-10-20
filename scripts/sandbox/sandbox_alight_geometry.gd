@@ -19,6 +19,7 @@ static func goal(_trip: Dictionary) -> Vector2:
 	return SandboxCityView.project(SandboxRoads.map_position("clinic")) + Vector2(53.0,-55.0)
 
 static func start(trip: Dictionary) -> Vector2:
+	if not trip.get("curb",{}).is_empty(): return SandboxVehicleBays.alight_start(str(trip["from"]))
 	var centre: Vector2 = SandboxCityView.project(SandboxRoads.map_position("clinic"))
 	var normal: Vector2 = tangent(trip).orthogonal()
 	if normal.dot(goal(trip)-centre) < 0.0: normal = -normal

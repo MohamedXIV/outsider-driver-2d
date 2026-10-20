@@ -21,6 +21,7 @@ var _planned_via: String = ""
 var _map_selected: String = "market"
 var _last_signature: String = ""
 var _action_serial: int = 0
+var _sync_pending: bool = false
 var _arabic_font: Font
 
 func bind(host: Node) -> void:
@@ -169,6 +170,12 @@ func sync() -> void:
 		"settings": context=[controller._notice_text,controller._city.zoom_preference]
 	var signature: String=JSON.stringify([tab,debug_mode,locale,controller._reduced_motion,context])
 	if signature==_last_signature: return
+	# Preserve the actual pressed Control until pointer-up. A stable target
+	# position alone does not preserve Godot's pointer capture when the old
+	# button is freed between the browser's down/up input deliveries.
+	if _controls_pressed():
+		_sync_after_release()
+		return
 	_last_signature=signature
 	var scroll_position: int=_scroll.scroll_vertical
 	for child in _body.get_children(): _body.remove_child(child);child.queue_free()
@@ -196,6 +203,10 @@ func sync() -> void:
 				_button("talk",trp("Talk to your passenger","تحدث مع الراكب"),_call.bind("_on_talk"))
 		else:
 			_label(trp("Street requests","طلبات الشارع"),true)
+			# Keep the time control above the autonomous offer list. Offers can
+			# expire between pointer-down and delivery; moving Wait underneath
+			# those rows made a legitimate click hit empty space instead.
+			_button("wait",trp("Wait 20 minutes","انتظر ٢٠ دقيقة"),_call.bind("_on_wait"))
 			var count: int=0
 			for offer in world.open_offers():
 				if offer["origin"]!=world.player_district: continue
@@ -208,7 +219,6 @@ func sync() -> void:
 				_button("talk",trp("Speak to the resident","تحدث مع المقيم"),_call.bind("_on_talk"))
 				_button("accept",trp("Take this fare","اقبل التوصيلة"),_call.bind("_on_accept"),chosen["channel"]=="official")
 				_button("decline",trp("Decline","ارفض"),_call.bind("_on_decline"))
-			_button("wait",trp("Wait 20 minutes","انتظر ٢٠ دقيقة"),_call.bind("_on_wait"))
 		_label(controller._notice_text)
 	elif tab=="map":
 		_label(trp("The charter port","مدينة الميناء"),true)
@@ -286,6 +296,18 @@ func sync() -> void:
 	_scroll.set_deferred("scroll_vertical",scroll_position)
 	call_deferred("_fit_panel")
 	call_deferred("_publish")
+
+func _controls_pressed() -> bool:
+	for action in _actions.values():
+		if is_instance_valid(action) and action.is_pressed(): return true
+	return false
+
+func _sync_after_release() -> void:
+	if _sync_pending: return
+	_sync_pending=true
+	while is_inside_tree() and _controls_pressed(): await get_tree().process_frame
+	_sync_pending=false
+	if is_inside_tree(): sync()
 
 func _map_pick(stop: String) -> void:
 	_map_selected=stop;_last_signature="";sync()
