@@ -6,6 +6,7 @@ const CLINIC: String="clinic-curb-v1"
 const SHUTTLE: String="clinic-shuttle-v1"
 const BLEND: float=.15
 const CAR_OFFSET: float=40.0
+const SHUTTLE_STANDOFF: float=36.0
 const DOOR_CLEARANCE: float=14.0
 
 static func normal(from: String) -> Vector2:
@@ -39,4 +40,4 @@ static func alight_start(from: String) -> Vector2:
 	return point(from)+normal(from)*DOOR_CLEARANCE
 
 static func shuttle_point(from: String) -> Vector2:
-	return point(from)-SandboxAlightGeometry.tangent({"from":from})*36.0
+	return point(from)-SandboxAlightGeometry.tangent({"from":from})*SHUTTLE_STANDOFF

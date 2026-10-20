@@ -12,6 +12,8 @@ const BODY_SIZE: Vector2=Vector2(25,13)
 const CLEARANCE: float=4.0
 var _query: PhysicsShapeQueryParameters2D
 var _space_transform: Transform2D
+var _motion_query: PhysicsTestMotionParameters2D=PhysicsTestMotionParameters2D.new()
+var _peers: Array=[]
 
 func bind(state: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 	if world!=null or not SandboxVehicleExecution.bind(state,id,fraction): return false
@@ -29,6 +31,7 @@ func bind(state: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 	_query.collision_mask=collision_mask;_query.margin=.15
 	position=SandboxVehicleExecution.screen(world,id,fraction)
 	rotation=SandboxVehicleExecution.heading(world,id,fraction)
+	add_to_group("_world_vehicle_execution_bodies")
 	return true
 
 func release(fraction: float=0.0) -> void:
@@ -76,9 +79,41 @@ func _sample_point(at: float) -> Vector2:
 	var index: int=mini(int(clampf(at,0.0,_arc_total)/ARC_STEP),_arc_points.size()-2)
 	return _arc_points[index].lerp(_arc_points[index+1],clampf((at-float(index)*ARC_STEP)/ARC_STEP,0.0,1.0))
 
+# Kinematic server transforms commit on the next engine physics frame. A
+# manual World advance can execute several vehicles before that frame. Use
+# their actual current footprints, while retaining native sweeps for obstacles.
+func _refresh_peers() -> void:
+	_peers.clear()
+	var excluded: Array[RID]=[get_rid()]
+	for peer in get_tree().get_nodes_in_group("_world_vehicle_execution_bodies"):
+		if peer==self or peer.world!=world or peer.collision_layer==0: continue
+		_peers.append(peer);excluded.append(peer.get_rid())
+	_query.exclude=excluded
+	_motion_query.exclude_bodies=excluded
+
+func _motion_blocked(point: Vector2) -> bool:
+	_motion_query.from=global_transform
+	_motion_query.motion=_space_transform.basis_xform(point-position)
+	return PhysicsServer2D.body_test_motion(get_rid(),_motion_query)
+
+func _peer_clear(pose: Transform2D) -> bool:
+	var half: Vector2=BODY_SIZE*.5
+	for peer in _peers:
+		var other: Transform2D=peer.global_transform
+		var offset: Vector2=other.origin-pose.origin
+		var separated: bool=false
+		for basis in [pose.x,pose.y,other.x,other.y]:
+			var axis: Vector2=Vector2(basis).normalized()
+			var reach: float=half.x*(absf(axis.dot(pose.x))+absf(axis.dot(other.x))) \
+				+half.y*(absf(axis.dot(pose.y))+absf(axis.dot(other.y)))
+			if absf(axis.dot(offset))>reach+_query.margin:
+				separated=true;break
+		if not separated: return false
+	return true
+
 func _pose_clear(at: Vector2,facing: float) -> bool:
 	_query.transform=_space_transform*Transform2D(facing,at)
-	return get_world_2d().direct_space_state.intersect_shape(_query,1).is_empty()
+	return _peer_clear(_query.transform) and get_world_2d().direct_space_state.intersect_shape(_query,1).is_empty()
 
 func _turn_clear(at: Vector2,current: float,facing: float) -> bool:
 	var angle: float=angle_difference(current,facing)
@@ -94,6 +129,7 @@ func step(delta: float) -> bool:
 	var travel: Dictionary=SandboxVehicleExecution.trip(world,vehicle_id)
 	var state: Dictionary=world.vehicle_execution.get(vehicle_id,{})
 	if travel.is_empty() or state.is_empty() or not bool(state["native"]): return false
+	_refresh_peers()
 	var at: float=float(state["progress"])
 	var speed: float=float(state["speed"])
 	var direction: Vector2=SandboxVehicleExecution.tangent(travel,at)
@@ -109,7 +145,14 @@ func step(delta: float) -> bool:
 		if available<36.0: reason="arrival"
 	var junction_stop: float=SandboxVehicleJunctions.stop_progress(world,vehicle_id)
 	if is_finite(junction_stop):
-		var junction_clearance: float=maxf(0.0,position.distance_to(SandboxVehicleExecution.point(travel,junction_stop))-BODY_SIZE.x*.5-CLEARANCE)
+		var hold_clearance: float=BODY_SIZE.x*.5+CLEARANCE
+		var clinic: Dictionary=world.vehicle_junctions.get("clinic",{})
+		if not clinic.is_empty() and clinic["vehicle"]!=vehicle_id and SandboxVehicleJunctions.next_window(travel,at).get("junction","")=="clinic":
+			# The authored frontage bay lies outside the ordinary lane connector.
+			# Queue outside its full curb/standback envelope while another genuine
+			# journey owns this conflict, so its merge can clear the incoming lane.
+			hold_clearance+=SandboxVehicleBays.CAR_OFFSET+SandboxVehicleBays.SHUTTLE_STANDOFF
+		var junction_clearance: float=maxf(0.0,position.distance_to(SandboxVehicleExecution.point(travel,junction_stop))-hold_clearance)
 		if junction_clearance<available: reason="junction"
 		available=minf(available,junction_clearance)
 	if travel["held"]:
@@ -123,7 +166,7 @@ func step(delta: float) -> bool:
 			var cursor: float=_at_distance(travel,at,distance)
 			var point: Vector2=_sample_point(cursor)
 			var predicted: float=SandboxVehicleKinematics.turn_heading(float(state["heading"]),(_sample_point(cursor+.01)-_sample_point(cursor-.01)).angle(),distance/maxf(speed,1.0))
-			if test_move(global_transform,point-position) or not _pose_clear(point,predicted):
+			if _motion_blocked(point) or not _pose_clear(point,predicted):
 				available=maxf(0.0,distance-2.0-CLEARANCE)
 				reason="vehicle";break
 		target=minf(target,SandboxVehicleKinematics.braking_speed(available,delta))
@@ -138,7 +181,7 @@ func step(delta: float) -> bool:
 	var desired: float=SandboxVehicleExecution.tangent(travel,cursor).angle()
 	var facing: float=float(state["heading"]) if travel["held"] or (reason=="junction" and distance<.000001) else SandboxVehicleKinematics.turn_heading(float(state["heading"]),desired,delta)
 	# The final sweep fails closed, including obstacles inserted this frame.
-	if test_move(global_transform,point-position) or not _turn_clear(point,float(state["heading"]),facing):
+	if _motion_blocked(point) or not _turn_clear(point,float(state["heading"]),facing):
 		cursor=at;point=position;next=0.0;reason="vehicle";facing=float(state["heading"])
 	if not SandboxVehicleExecution.report(world,vehicle_id,cursor,next,facing,reason,point): return false
 	position=point

@@ -219,3 +219,42 @@ arrival checks all pass on the working follow-up. e74159c itself has Domain
 46/46 and current Chromium 6/6 PASS; its full Native timeout is not a PASS.
 The new follow-up still needs its own complete gates. Evidence directories are
 excluded from Godot imports/exports; the raw GitHub artifacts remain available.
+
+## Manual-time peer clearance and clinic frontage admission
+
+The exact `14c1609` Native run failed the heading scene on the next genuine
+clinic-to-docks journey. A read-only repro found two actual taxi/shuttle bodies
+within 0.52 pixels, while their kinematic server transforms still reflected the
+previous engine physics frame. Manual World advancement executes multiple body
+steps before that frame; forcing a node transform did not change this server
+behavior. The new regression failed on intersecting genuine footprints before
+the repair and now completes three real seed8 reposition journeys, with the
+independent municipal trip, nine residents and no fare settlements.
+
+Managed peer queries now use the current World-accepted oriented body footprints.
+Native motion sweeps retain ordinary obstacle/pedestrian/crossing collision and
+exclude only those peers whose current footprints are checked explicitly. The
+existing angular sweep and World reservation/report validation remain in force.
+No saved state schema, source journey, planned road duration or clock is added.
+
+The third journey also reproduced an incoming taxi and a real empty service
+blocking one another outside the clinic's ordinary lane connector. While another
+journey owns the clinic reservation, native braking now queues outside the full
+authored curb offset plus shuttle standback envelope. World records the resulting
+waits through the same source-validated ledger. This provides space for the
+reserved curb merge to clear without changing the saved reservation contract.
+
+The heading regression now supplies physical motion before inspecting the
+instantaneous canonical edge commitment; it retains the original heading and
+steering limits and additionally asserts that the actual internal segment changes.
+Focused heading, conflict, variable-delta, rotation, saved turn, horizon and
+three-journey manual clearance checks pass individually. A batch turn attempt
+ended without a completion marker; its direct rerun passed, and it is not counted
+as a complete-suite pass. Full final gates remain required.
+
+The `7faa5cc` exported all attempt passed five current cases and stopped at the
+passenger-alight 240-second deadline before debug/fixture ran. A fresh read-only
+repro retained an advancing genuine taxi at minute 512, segment 3, with no
+settlement yet. The Web test now allows 600 seconds of software-WebGL observation;
+its actual clinic arrival, identity, exactly-once economy, walking and reload
+assertions are unchanged. This deadline change is not a Web pass claim.
