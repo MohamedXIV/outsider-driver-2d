@@ -1,0 +1,13 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+OpenGL API 4.5 (Core Profile) Mesa 25.0.7-2+deb13u1 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 19.1.7, 256 bits)
+
+INTEGRATED_MAIN_FRAME 01-driven-departure minute=483
+INTEGRATED_MAIN_FRAME 02-clinic-stop minute=525
+INTEGRATED_MAIN_FRAME 03-clinic-departure minute=528
+INTEGRATED_MAIN_FRAME 04-docks-stop minute=537
+INTEGRATED_MAIN_FRAME 05-frontage-queue minute=543
+INTEGRATED_MAIN_FRAME 06-restored-queue minute=543
+INTEGRATED_MAIN_FRAME 07-cleared-market minute=574
+INTEGRATED_MAIN_PROOF_PASS genuine three journeys, native peer clearance, frontage queue, exact body reload, nine residents

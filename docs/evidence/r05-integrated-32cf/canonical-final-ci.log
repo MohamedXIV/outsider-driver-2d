@@ -1,0 +1,575 @@
+godot	Set up job	﻿2026-10-20T15:29:20.8952731Z Current runner version: '2.337.0'
+godot	Set up job	2026-10-20T15:29:20.8976448Z ##[group]Runner Image Provisioner
+godot	Set up job	2026-10-20T15:29:20.8977348Z Hosted Compute Agent
+godot	Set up job	2026-10-20T15:29:20.8977803Z Version: 20261015.610
+godot	Set up job	2026-10-20T15:29:20.8978352Z Commit: 267fdb4e8bbec4ab5ea31367f3a00d5c480c7656
+godot	Set up job	2026-10-20T15:29:20.8978922Z Build Date: 2026-10-14T17:06:54Z
+godot	Set up job	2026-10-20T15:29:20.8979444Z Worker ID: {c65807b0-e29e-4f2c-a147-1dd96a572dff}
+godot	Set up job	2026-10-20T15:29:20.8980107Z Region: centralus
+godot	Set up job	2026-10-20T15:29:20.8980554Z Cloud: Azure
+godot	Set up job	2026-10-20T15:29:20.8980972Z ##[endgroup]
+godot	Set up job	2026-10-20T15:29:20.8982107Z ##[group]Operating System
+godot	Set up job	2026-10-20T15:29:20.8982582Z Ubuntu
+godot	Set up job	2026-10-20T15:29:20.8983028Z 24.04.5
+godot	Set up job	2026-10-20T15:29:20.8983428Z LTS
+godot	Set up job	2026-10-20T15:29:20.8983866Z ##[endgroup]
+godot	Set up job	2026-10-20T15:29:20.8984298Z ##[group]Runner Image
+godot	Set up job	2026-10-20T15:29:20.8984759Z Image: ubuntu-24.04
+godot	Set up job	2026-10-20T15:29:20.8985528Z Version: 20261018.339.1
+godot	Set up job	2026-10-20T15:29:20.8986410Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261018.339/images/ubuntu/Ubuntu2404-Readme.md
+godot	Set up job	2026-10-20T15:29:20.8987835Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261018.339
+godot	Set up job	2026-10-20T15:29:20.8988572Z ##[endgroup]
+godot	Set up job	2026-10-20T15:29:20.8989455Z ##[group]GITHUB_TOKEN Permissions
+godot	Set up job	2026-10-20T15:29:20.8991962Z Contents: read
+godot	Set up job	2026-10-20T15:29:20.8992453Z Metadata: read
+godot	Set up job	2026-10-20T15:29:20.8992880Z ##[endgroup]
+godot	Set up job	2026-10-20T15:29:20.8995072Z Secret source: Actions
+godot	Set up job	2026-10-20T15:29:20.8996091Z Cache mode: write
+godot	Set up job	2026-10-20T15:29:20.8997143Z Prepare workflow directory
+godot	Set up job	2026-10-20T15:29:20.9294669Z Prepare all required actions
+godot	Set up job	2026-10-20T15:29:20.9345548Z Getting action download info
+godot	Set up job	2026-10-20T15:29:21.2478911Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+godot	Set up job	2026-10-20T15:29:21.6709178Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+godot	Set up job	2026-10-20T15:29:22.6457700Z Complete job name: godot
+godot	Run actions/checkout@v4	﻿2026-10-20T15:29:22.8443499Z ##[group]Run actions/checkout@v4
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8445457Z with:
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8446365Z   repository: MohamedXIV/outsider-driver-2d
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8456354Z   token: ***
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8457195Z   ssh-strict: true
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8458066Z   ssh-user: git
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8458985Z   persist-credentials: true
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8459927Z   clean: true
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8460870Z   sparse-checkout-cone-mode: true
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8461909Z   fetch-depth: 1
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8462722Z   fetch-tags: false
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8463574Z   show-progress: true
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8464436Z   lfs: false
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8465373Z   submodules: false
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8466272Z   set-safe-directory: true
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8467225Z   allow-unsafe-pr-checkout: false
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.8468476Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9481672Z Syncing repository: MohamedXIV/outsider-driver-2d
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9485692Z ##[group]Getting Git version info
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9487884Z Working directory is '/home/runner/work/outsider-driver-2d/outsider-driver-2d'
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9491237Z [command]/usr/bin/git version
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9534469Z git version 2.55.0
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9558579Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9572895Z Temporarily overriding HOME='/home/runner/work/_temp/c10f388a-01dd-4f43-baa2-f39dc5ef07cd' before making global git config changes
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9577046Z Adding repository directory to the temporary git global config as a safe directory
+godot	Run actions/checkout@v4	2026-10-20T15:29:22.9581220Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/outsider-driver-2d/outsider-driver-2d
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.0086613Z Deleting the contents of '/home/runner/work/outsider-driver-2d/outsider-driver-2d'
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.0096446Z ##[group]Initializing the repository
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.0109968Z [command]/usr/bin/git init /home/runner/work/outsider-driver-2d/outsider-driver-2d
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1357505Z hint: Using 'master' as the name for the initial branch. This default branch name
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1361094Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1363238Z hint: to use in all of your new repositories, which will suppress this warning,
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1365237Z hint: call:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1366263Z hint:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1367518Z hint: 	git config --global init.defaultBranch <name>
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1369109Z hint:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1370226Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1372462Z hint: 'development'. The just-created branch can be renamed via this command:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1373807Z hint:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1374611Z hint: 	git branch -m <name>
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1375899Z hint:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1377485Z hint: Disable this message with "git config set advice.defaultBranchName false"
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1379899Z Initialized empty Git repository in /home/runner/work/outsider-driver-2d/outsider-driver-2d/.git/
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.1384262Z [command]/usr/bin/git remote add origin https://github.com/MohamedXIV/outsider-driver-2d
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.3687349Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.3688141Z ##[group]Disabling automatic garbage collection
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.3692625Z [command]/usr/bin/git config --local gc.auto 0
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.4907071Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.4907924Z ##[group]Setting up auth
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.4914587Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.4948445Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.5331726Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.5366238Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.5569832Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.5606876Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.5797986Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.6689636Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.6698146Z ##[group]Fetching the repository
+godot	Run actions/checkout@v4	2026-10-20T15:29:23.6704342Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +32cf940629eddb4916d5695829ab8efc87c4de6f:refs/remotes/origin/feat/r05-directed-lanes
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0016576Z From https://github.com/MohamedXIV/outsider-driver-2d
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0017548Z  * [new ref]         32cf940629eddb4916d5695829ab8efc87c4de6f -> origin/feat/r05-directed-lanes
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0027986Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0028991Z ##[group]Determining the checkout info
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0030038Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0030503Z [command]/usr/bin/git sparse-checkout disable
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0080091Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0120072Z ##[group]Checking out the ref
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.0122976Z [command]/usr/bin/git checkout --progress --force -B feat/r05-directed-lanes refs/remotes/origin/feat/r05-directed-lanes
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.1083112Z Switched to a new branch 'feat/r05-directed-lanes'
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.1085931Z branch 'feat/r05-directed-lanes' set up to track 'origin/feat/r05-directed-lanes'.
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.1092450Z ##[endgroup]
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.1134067Z [command]/usr/bin/git log -1 --format=%H
+godot	Run actions/checkout@v4	2026-10-20T15:29:25.1169859Z 32cf940629eddb4916d5695829ab8efc87c4de6f
+godot	Install pinned Godot 4.7.2	﻿2026-10-20T15:29:25.1369175Z ##[group]Run set -euo pipefail
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1369688Z [36;1mset -euo pipefail[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1370393Z [36;1mcurl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1371159Z [36;1munzip -q /tmp/godot.zip -d /tmp[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1371555Z [36;1mmv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1371885Z [36;1mchmod +x /tmp/godot[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1372168Z [36;1msudo apt-get update -qq[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1372705Z [36;1msudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2[0m
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1489816Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1490263Z ##[endgroup]
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1940077Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1940802Z                                  Dload  Upload   Total   Spent    Left  Speed
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.1941319Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.2695369Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.2696237Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.2987204Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.5360860Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:25.5361519Z 100 74.2M  100 74.2M    0     0   217M      0 --:--:-- --:--:-- --:--:--  313M
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9552232Z (Reading database ... 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9553194Z (Reading database ... 5%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9553630Z (Reading database ... 10%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9554073Z (Reading database ... 15%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9554417Z (Reading database ... 20%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9554971Z (Reading database ... 25%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9555327Z (Reading database ... 30%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9555651Z (Reading database ... 35%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9556076Z (Reading database ... 40%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9556475Z (Reading database ... 45%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9556850Z (Reading database ... 50%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:31.9595799Z (Reading database ... 55%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:32.1055438Z (Reading database ... 60%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:32.3047457Z (Reading database ... 65%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:32.4084704Z (Reading database ... 70%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:32.5381642Z (Reading database ... 75%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:32.7434179Z (Reading database ... 80%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:32.9472721Z (Reading database ... 85%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.1410713Z (Reading database ... 90%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.3384035Z (Reading database ... 95%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.3384488Z (Reading database ... 100%
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.3385032Z (Reading database ... 214410 files and directories currently installed.)
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.3443547Z Preparing to unpack .../xserver-common_2%3a21.1.12-1ubuntu1.9_all.deb ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.3575445Z Unpacking xserver-common (2:21.1.12-1ubuntu1.9) over (2:21.1.12-1ubuntu1.8) ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.3987486Z Preparing to unpack .../xvfb_2%3a21.1.12-1ubuntu1.9_amd64.deb ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.4016543Z Unpacking xvfb (2:21.1.12-1ubuntu1.9) over (2:21.1.12-1ubuntu1.8) ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.4664507Z Setting up xserver-common (2:21.1.12-1ubuntu1.9) ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.4697122Z Setting up xvfb (2:21.1.12-1ubuntu1.9) ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.4731840Z Processing triggers for man-db (2.12.0-4build2) ...
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.4761979Z Not building database; man-db/auto-update is not 'true'.
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9939651Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9940666Z Running kernel seems to be up-to-date.
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9941083Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9941235Z No services need to be restarted.
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9941399Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9941535Z No containers need to be restarted.
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9941697Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9941903Z No user sessions are running outdated binaries.
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9942139Z 
+godot	Install pinned Godot 4.7.2	2026-10-20T15:29:33.9942318Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+godot	Focused directed lane geometry	﻿2026-10-20T15:29:34.9812211Z ##[group]Run set -euo pipefail
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9812619Z [36;1mset -euo pipefail[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9812913Z [36;1mmkdir -p work/r05-directed[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9813554Z [36;1m/tmp/godot --headless --path . --editor --import --quit > work/r05-directed/import.log 2>&1[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9814208Z [36;1mtimeout 45s /tmp/godot --headless --path . --script res://tests/test_directed_lanes.gd 2>&1 | tee work/r05-directed/focused.log[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9815094Z [36;1mgrep -q DIRECTED_LANES_PASS work/r05-directed/focused.log[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9815852Z [36;1mtimeout 75s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_passenger_alight_scene.gd 2>&1 | tee work/r05-directed/alight-focused.log[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9816652Z [36;1mgrep -q PASSENGER_ALIGHT_SCENE_PASS work/r05-directed/alight-focused.log[0m
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9848768Z shell: /usr/bin/bash -e {0}
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9849090Z env:
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9849442Z   LIBGL_ALWAYS_SOFTWARE: 1
+godot	Focused directed lane geometry	2026-10-20T15:29:34.9849857Z ##[endgroup]
+godot	Focused directed lane geometry	2026-10-20T15:29:50.2291666Z Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+godot	Focused directed lane geometry	2026-10-20T15:29:50.2514652Z 
+godot	Focused directed lane geometry	2026-10-20T15:29:50.5560531Z DIRECTED_LANES_PASS world-metric opposite lanes, four-lane arterial, real taxi arrival, unchanged fares
+godot	Focused directed lane geometry	2026-10-20T15:29:50.9286024Z Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+godot	Focused directed lane geometry	2026-10-20T15:30:04.7346863Z WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+godot	Focused directed lane geometry	2026-10-20T15:30:04.7347639Z      at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+godot	Focused directed lane geometry	2026-10-20T15:30:06.0617188Z OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.4 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
+godot	Focused directed lane geometry	2026-10-20T15:30:06.0617925Z 
+godot	Focused directed lane geometry	2026-10-20T15:30:18.1242848Z PASSENGER_ALIGHT_SCENE_PASS physical clinic intake, save/restore native body, exactly once, legitimate offscreen handoff
+godot	Complete Godot domain and native regressions	﻿2026-10-20T15:30:19.1640207Z ##[group]Run set -euo pipefail
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1640592Z [36;1mset -euo pipefail[0m
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1641063Z [36;1mOD2D_LOGS=work/r05-directed/domain python3 tests/run_city_gate.py | tee work/r05-directed/domain-summary.log[0m
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1641907Z [36;1mOD2D_LOGS=work/r05-directed/native xvfb-run -a -s '-screen 0 1280x1400x24' python3 tests/run_city_gate.py --native | tee work/r05-directed/native-summary.log[0m
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1674726Z shell: /usr/bin/bash -e {0}
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1675322Z env:
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1675607Z   GODOT_BIN: /tmp/godot
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1675880Z   LIBGL_ALWAYS_SOFTWARE: 1
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.1676158Z ##[endgroup]
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:19.2571249Z HEAD 32cf940629eddb4916d5695829ab8efc87c4de6f GODOT 4.7.2.stable.official.ed1daf0bf
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:22.6004021Z PASS import
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:23.0425668Z PASS test_actor_lifecycle_pose
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:23.4831213Z PASS test_bridge_structure
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:26.0656819Z PASS test_camera_zoom
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:26.2274671Z PASS test_city
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:26.6676480Z PASS test_city_journeys
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:29.2475933Z PASS test_city_render_cache
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:29.6906655Z PASS test_city_save_validation
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:30.1298095Z PASS test_city_waypoints
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:30.2908012Z PASS test_core
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:30.7290156Z PASS test_directed_lane_continuity
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:31.1687180Z PASS test_directed_lanes
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:31.3308403Z PASS test_garage
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:31.7704715Z PASS test_handoff_clock
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:32.2086882Z PASS test_ink
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:32.3677610Z PASS test_junction_priority
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:32.8087146Z PASS test_local_trip_provenance
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:32.9709656Z PASS test_loop
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:33.4131434Z PASS test_passenger_alight
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:33.8556841Z PASS test_pedestrian_reservations
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:36.5274216Z PASS test_player_arabic
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:42.7340559Z PASS test_player_contacts
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:50.1588633Z PASS test_player_layout
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:52.7487886Z PASS test_player_mode
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:53.1911096Z PASS test_sandbox
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:53.6303363Z PASS test_sandbox_ar
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:54.9084412Z PASS test_sandbox_autonomy
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:55.7196771Z PASS test_sandbox_dialogue
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:56.6252534Z PASS test_sandbox_driver_memory
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:57.5306904Z PASS test_sandbox_knowledge
+godot	Complete Godot domain and native regressions	2026-10-20T15:30:59.5498111Z PASS test_sandbox_meeting
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:00.8269237Z PASS test_sandbox_peer
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:01.2673689Z PASS test_sandbox_reroute
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:01.7077385Z PASS test_sandbox_routes
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:02.1480053Z PASS test_save_float_precision
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:02.3082763Z PASS test_session
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:02.7518110Z PASS test_shuttle_crossing_world
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:06.5419696Z PASS test_street_handoff
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:06.7023888Z PASS test_street_module
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:06.8632218Z PASS test_street_priority
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:07.3043050Z PASS test_taxi_crossing_world
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:08.0242510Z PASS test_travel_dialogue
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:08.4705511Z PASS test_two_resident_handoff
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:09.0041413Z PASS test_vehicle_execution
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:09.4442022Z PASS test_vehicle_junctions
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:09.6044112Z PASS test_vehicle_kinematics
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:10.0495258Z PASS test_vehicle_lane_clearance
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:10.0539017Z CITY_GATE_PASS domain and adapters 32cf940629eddb4916d5695829ab8efc87c4de6f
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:10.1399640Z HEAD 32cf940629eddb4916d5695829ab8efc87c4de6f GODOT 4.7.2.stable.official.ed1daf0bf
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:13.4819078Z PASS import
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:16.5665708Z PASS test_actor_boundary_visual_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:20.3948086Z PASS test_actor_lifecycle_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:32.5418977Z PASS test_city_journeys_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:40.5909102Z PASS test_city_presentation
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:55.2003658Z PASS test_integration_actor_lifecycle_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:31:58.2807838Z PASS test_isometric_street_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:32:17.6027868Z PASS test_junction_braking_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:32:18.0649602Z PASS test_junction_preentry_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:32:50.8478911Z PASS test_junction_traffic_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:32:53.9201029Z PASS test_lane_visual_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:32:59.3555927Z PASS test_manual_time_crossing_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:00.5664750Z PASS test_native_ride
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:03.3842629Z PASS test_npc_interpolation_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:13.4824272Z PASS test_passenger_alight_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:21.8180713Z PASS test_player_wait_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:25.4479387Z PASS test_sandbox_ar_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:41.1329395Z PASS test_sandbox_autonomy_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:48.0503361Z PASS test_sandbox_driver_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:51.7806265Z PASS test_sandbox_language_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:33:58.7933311Z PASS test_sandbox_meeting_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:05.0428299Z PASS test_sandbox_peer_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:08.9788946Z PASS test_sandbox_reroute_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:13.2686204Z PASS test_sandbox_routes_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:18.3146365Z PASS test_sandbox_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:21.9023044Z PASS test_shared_crossing_priority_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:25.1787729Z PASS test_shuttle_crossing_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:25.9294599Z PASS test_street_extension_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:26.5847896Z PASS test_street_junction_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:35.0378545Z PASS test_street_main_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:42.3633099Z PASS test_street_multi_vehicle_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:48.7390082Z PASS test_street_pilot_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:52.3661848Z PASS test_taxi_crossing_return_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:55.4348139Z PASS test_taxi_crossing_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:34:58.5053722Z PASS test_taxi_crossing_unload_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:06.0594232Z PASS test_taxi_heading_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:09.1346593Z PASS test_two_resident_cancel_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:15.0233504Z PASS test_two_resident_crossing_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:23.7102883Z PASS test_two_resident_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:29.7376079Z PASS test_vehicle_motion_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:36.4158523Z PASS test_world_shuttle_arrival_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:39.3413700Z PASS test_world_shuttle_visual
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:44.1490487Z PASS test_world_vehicle_arrival_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:47.6960279Z PASS test_world_vehicle_body_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:54.3280099Z PASS test_world_vehicle_conflict_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:35:55.9912836Z PASS test_world_vehicle_corridor_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:19.0244491Z PASS test_world_vehicle_delta_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:31.6993387Z PASS test_world_vehicle_horizon_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:40.2990545Z PASS test_world_vehicle_manual_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:45.1015867Z PASS test_world_vehicle_reroute_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:45.7520640Z PASS test_world_vehicle_rotation_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:50.3542548Z PASS test_world_vehicle_turn_scene
+godot	Complete Godot domain and native regressions	2026-10-20T15:36:50.3585858Z CITY_GATE_PASS native 32cf940629eddb4916d5695829ab8efc87c4de6f
+godot	Install pinned Web export templates and Chromium	﻿2026-10-20T15:36:50.3706686Z ##[group]Run set -euo pipefail
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3707104Z [36;1mset -euo pipefail[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3707731Z [36;1mcurl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3708401Z [36;1munzip -q /tmp/templates.zip -d /tmp/godot-templates[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3708828Z [36;1mmkdir -p ~/.local/share/godot/export_templates/4.7.2.stable[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3709327Z [36;1mcp /tmp/godot-templates/templates/web* ~/.local/share/godot/export_templates/4.7.2.stable/[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3709805Z [36;1mnpm install --prefix /tmp/od2d-node playwright@1.56.0[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3710333Z [36;1m/tmp/od2d-node/node_modules/.bin/playwright install --with-deps chromium[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3710790Z [36;1mecho 'NODE_PATH=/tmp/od2d-node/node_modules' >> "$GITHUB_ENV"[0m
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3742927Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3743511Z ##[endgroup]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3836301Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3836917Z                                  Dload  Upload   Total   Spent    Left  Speed
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.3837215Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.4989952Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:50.4990837Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:51.2832952Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:52.2826841Z  27 1221M   27  332M    0     0   370M      0  0:00:03 --:--:--  0:00:03  370M
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:53.2828749Z  58 1221M   58  720M    0     0   379M      0  0:00:03  0:00:01  0:00:02  387M
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:53.5885800Z  87 1221M   87 1069M    0     0   369M      0  0:00:03  0:00:02  0:00:01  368M
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:36:53.5886371Z 100 1221M  100 1221M    0     0   381M      0  0:00:03  0:00:03 --:--:--  385M
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:10.9484708Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:10.9485453Z added 2 packages in 3s
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.4064159Z Installing dependencies...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.4118412Z Switching to root user to install dependencies...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.4611042Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.5343317Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.5351819Z Hit:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.5360357Z Hit:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.5365978Z Hit:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:11.5471495Z Hit:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:12.7479328Z Reading package lists...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:12.7714081Z Reading package lists...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:12.9842586Z Building dependency tree...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:12.9849101Z Reading state information...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1533954Z libasound2t64 is already the newest version (1.2.11-1ubuntu0.3).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1535204Z libasound2t64 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1535674Z libatk-bridge2.0-0t64 is already the newest version (2.52.0-1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1536192Z libatk-bridge2.0-0t64 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1536679Z libatk1.0-0t64 is already the newest version (2.52.0-1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1537162Z libatk1.0-0t64 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1538012Z libatspi2.0-0t64 is already the newest version (2.52.0-1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1538438Z libatspi2.0-0t64 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1538919Z libcairo2 is already the newest version (1.18.0-3build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1539358Z libcairo2 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1539694Z libcups2t64 is already the newest version (2.4.7-1.2ubuntu7.14).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1540077Z libcups2t64 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1540467Z libdbus-1-3 is already the newest version (1.14.10-4ubuntu4.1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1540900Z libdbus-1-3 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1541585Z libdrm2 is already the newest version (2.4.125-1ubuntu0.1~24.04.2).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1541998Z libdrm2 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1542383Z libgbm1 is already the newest version (25.2.8-0ubuntu0.24.04.4).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1542733Z libgbm1 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1543065Z libglib2.0-0t64 is already the newest version (2.80.0-6ubuntu3.9).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1543460Z libglib2.0-0t64 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1543801Z libnspr4 is already the newest version (2:4.35-1.1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1544148Z libnspr4 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1544465Z libnss3 is already the newest version (2:3.98-1ubuntu0.2).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1544788Z libnss3 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1545476Z libpango-1.0-0 is already the newest version (1.52.1+ds-1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1545845Z libpango-1.0-0 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1546218Z libx11-6 is already the newest version (2:1.8.7-1ubuntu0.1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1546563Z libx11-6 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1546908Z libxcb1 is already the newest version (1.15-1ubuntu2).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1547432Z libxcb1 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1547776Z libxcomposite1 is already the newest version (1:0.4.5-1build3).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1548300Z libxcomposite1 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1548695Z libxdamage1 is already the newest version (1:1.1.6-1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1549032Z libxdamage1 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1549422Z libxext6 is already the newest version (2:1.3.4-1build2).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1549756Z libxext6 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1550083Z libxfixes3 is already the newest version (1:6.0.0-2build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1550429Z libxfixes3 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1550766Z libxkbcommon0 is already the newest version (1.6.0-1build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1551150Z libxkbcommon0 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1551522Z libxrandr2 is already the newest version (2:1.5.2-2build1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1551892Z xvfb is already the newest version (2:21.1.12-1ubuntu1.9).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1552320Z fonts-noto-color-emoji is already the newest version (2.047-0ubuntu0.24.04.1).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1552771Z libfontconfig1 is already the newest version (2.15.0-1.1ubuntu2).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1553168Z libfontconfig1 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1553524Z libfreetype6 is already the newest version (2.13.2+dfsg-1ubuntu0.2).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1553900Z libfreetype6 set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1554273Z fonts-liberation is already the newest version (1:2.1.5-3).
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1554656Z fonts-liberation set to manually installed.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1555265Z The following additional packages will be installed:
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1555619Z   xfonts-encodings xfonts-utils
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1555903Z Recommended packages:
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1556216Z   fonts-ipafont-mincho fonts-tlwg-loma
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1692198Z The following NEW packages will be installed:
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1692886Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1699129Z   fonts-wqy-zenhei xfonts-cyrillic xfonts-encodings xfonts-scalable
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1699648Z   xfonts-utils
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1868448Z 0 upgraded, 9 newly installed, 0 to remove and 37 not upgraded.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1869421Z Need to get 21.1 MB of archives.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1869770Z After this operation, 79.5 MB of additional disk space will be used.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.1870342Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.2461255Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-ipafont-gothic all 00303-21ubuntu1 [3513 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.4404802Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-freefont-ttf all 20211204+svn4273-2 [5641 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.5622646Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-tlwg-loma-otf all 1:0.7.3-1 [107 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.6807451Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-unifont all 1:15.1.01-1build1 [2993 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.7986257Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-wqy-zenhei all 0.9.45-8 [7472 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:13.9175250Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-encodings all 1:1.0.5-0ubuntu2 [578 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.0374561Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-utils amd64 1:7.7+6build3 [94.4 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.1623066Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 xfonts-cyrillic all 1:1.0.5+nmu1 [384 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.2057890Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-scalable all 1:1.0.3-1.3 [304 kB]
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4442791Z Fetched 21.1 MB in 1s (20.5 MB/s)
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4634026Z Selecting previously unselected package fonts-ipafont-gothic.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4662989Z (Reading database ... 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4663662Z (Reading database ... 5%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4664425Z (Reading database ... 10%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4665605Z (Reading database ... 15%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4666341Z (Reading database ... 20%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4666832Z (Reading database ... 25%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4667342Z (Reading database ... 30%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4667976Z (Reading database ... 35%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4668473Z (Reading database ... 40%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4668994Z (Reading database ... 45%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4669441Z (Reading database ... 50%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4677950Z (Reading database ... 55%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4703187Z (Reading database ... 60%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4717742Z (Reading database ... 65%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4752178Z (Reading database ... 70%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4875698Z (Reading database ... 75%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.4902849Z (Reading database ... 80%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5034216Z (Reading database ... 85%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5081318Z (Reading database ... 90%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5389269Z (Reading database ... 95%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5389633Z (Reading database ... 100%
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5389989Z (Reading database ... 214410 files and directories currently installed.)
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5435629Z Preparing to unpack .../0-fonts-ipafont-gothic_00303-21ubuntu1_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.5503346Z Unpacking fonts-ipafont-gothic (00303-21ubuntu1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.8150660Z Selecting previously unselected package fonts-freefont-ttf.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.8269142Z Preparing to unpack .../1-fonts-freefont-ttf_20211204+svn4273-2_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.8277790Z Unpacking fonts-freefont-ttf (20211204+svn4273-2) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.9322437Z Selecting previously unselected package fonts-tlwg-loma-otf.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.9448097Z Preparing to unpack .../2-fonts-tlwg-loma-otf_1%3a0.7.3-1_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.9460181Z Unpacking fonts-tlwg-loma-otf (1:0.7.3-1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.9680934Z Selecting previously unselected package fonts-unifont.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.9805490Z Preparing to unpack .../3-fonts-unifont_1%3a15.1.01-1build1_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:14.9817457Z Unpacking fonts-unifont (1:15.1.01-1build1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.1878966Z Selecting previously unselected package fonts-wqy-zenhei.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.2004446Z Preparing to unpack .../4-fonts-wqy-zenhei_0.9.45-8_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.2098885Z Unpacking fonts-wqy-zenhei (0.9.45-8) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.7234392Z Selecting previously unselected package xfonts-encodings.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.7359215Z Preparing to unpack .../5-xfonts-encodings_1%3a1.0.5-0ubuntu2_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.7370797Z Unpacking xfonts-encodings (1:1.0.5-0ubuntu2) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.7682526Z Selecting previously unselected package xfonts-utils.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.7809878Z Preparing to unpack .../6-xfonts-utils_1%3a7.7+6build3_amd64.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.7821366Z Unpacking xfonts-utils (1:7.7+6build3) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.8263441Z Selecting previously unselected package xfonts-cyrillic.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.8388722Z Preparing to unpack .../7-xfonts-cyrillic_1%3a1.0.5+nmu1_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.8400724Z Unpacking xfonts-cyrillic (1:1.0.5+nmu1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.8752684Z Selecting previously unselected package xfonts-scalable.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.8885661Z Preparing to unpack .../8-xfonts-scalable_1%3a1.0.3-1.3_all.deb ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.8895947Z Unpacking xfonts-scalable (1:1.0.3-1.3) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9438567Z Setting up fonts-wqy-zenhei (0.9.45-8) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9648114Z Setting up fonts-freefont-ttf (20211204+svn4273-2) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9684579Z Setting up fonts-tlwg-loma-otf (1:0.7.3-1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9712239Z Setting up xfonts-encodings (1:1.0.5-0ubuntu2) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9737416Z Setting up fonts-ipafont-gothic (00303-21ubuntu1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9803062Z update-alternatives: using /usr/share/fonts/opentype/ipafont-gothic/ipag.ttf to provide /usr/share/fonts/truetype/fonts-japanese-gothic.ttf (fonts-japanese-gothic.ttf) in auto mode
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9826893Z Setting up fonts-unifont (1:15.1.01-1build1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9858509Z Setting up xfonts-utils (1:7.7+6build3) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:15.9910258Z Setting up xfonts-cyrillic (1:1.0.5+nmu1) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.0164818Z Setting up xfonts-scalable (1:1.0.3-1.3) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.0391466Z Processing triggers for man-db (2.12.0-4build2) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.0407346Z Not building database; man-db/auto-update is not 'true'.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.0424239Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5401421Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5402091Z Running kernel seems to be up-to-date.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5402401Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5402510Z No services need to be restarted.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5402887Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5403004Z No containers need to be restarted.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5403201Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5403355Z No user sessions are running outdated binaries.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5403576Z 
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:16.5403785Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:17.4850159Z Downloading Chromium 141.0.7390.37 (playwright build v1194) from https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1194/chromium-linux.zip
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:17.7835251Z |                                                                                |   0% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.0273353Z |■■■■■■■■                                                                        |  10% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.1403134Z |■■■■■■■■■■■■■■■■                                                                |  20% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.2659691Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.3735339Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.4970598Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.6049865Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.7300267Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.8378898Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:18.9647586Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:19.0888914Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 173.9 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.6832498Z Chromium 141.0.7390.37 (playwright build v1194) downloaded to /home/runner/.cache/ms-playwright/chromium-1194
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.6834832Z Downloading FFMPEG playwright build v1011 from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.8715763Z |                                                                                |   0% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9028096Z |■■■■■■■■                                                                        |  10% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9155212Z |■■■■■■■■■■■■■■■■                                                                |  20% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9246661Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9298708Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9348081Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9389657Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9421236Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9449923Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9474640Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:22.9494190Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 2.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.0007762Z FFMPEG playwright build v1011 downloaded to /home/runner/.cache/ms-playwright/ffmpeg-1011
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.0010812Z Downloading Chromium Headless Shell 141.0.7390.37 (playwright build v1194) from https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1194/chromium-headless-shell-linux.zip
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.1741276Z |                                                                                |   0% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.3026756Z |■■■■■■■■                                                                        |  10% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.3430181Z |■■■■■■■■■■■■■■■■                                                                |  20% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.3898756Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.4366232Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.4782368Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.5253486Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.5750343Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.6222800Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.6638023Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:23.7120979Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 104.3 MiB
+godot	Install pinned Web export templates and Chromium	2026-10-20T15:37:25.5505888Z Chromium Headless Shell 141.0.7390.37 (playwright build v1194) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1194
+godot	Exact-head integrated Chromium current-world suites	﻿2026-10-20T15:37:25.6382972Z ##[group]Run python3 tests/run_exported_gate.py --scope current
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6383517Z [36;1mpython3 tests/run_exported_gate.py --scope current[0m
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6417842Z shell: /usr/bin/bash -e {0}
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6418173Z env:
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6418511Z   NODE_PATH: /tmp/od2d-node/node_modules
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6418818Z   GODOT_BIN: /tmp/godot
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6419083Z   OD2D_LOGS: work/r05-directed/chromium
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6419433Z   LIBGL_ALWAYS_SOFTWARE: 1
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:25.6419696Z ##[endgroup]
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:29.1128173Z PASS import-city 3.37
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:37:32.6880655Z PASS export-city 3.57
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:38:33.2944622Z PASS web_camera_zoom 60.6
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:40:45.1403647Z PASS web_city_playability 131.84
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:44:59.8089712Z PASS web_city_routes 254.67
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:45:54.1432821Z PASS web_junction_traffic 54.33
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:47:24.2581596Z PASS web_two_residents 90.11
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:49:15.4309011Z PASS web_passenger_alight 111.17
+godot	Exact-head integrated Chromium current-world suites	2026-10-20T15:49:15.4343314Z EXPORTED_GATE_PASS 32cf940629eddb4916d5695829ab8efc87c4de6f current
+godot	Run actions/upload-artifact@v4	﻿2026-10-20T15:49:15.9259767Z ##[group]Run actions/upload-artifact@v4
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9260138Z with:
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9260402Z   name: r05-directed-evidence
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9260671Z   path: work/r05-directed/
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9260919Z   retention-days: 7
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9261218Z   if-no-files-found: warn
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9261485Z   compression-level: 6
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9261737Z   overwrite: false
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9262063Z   include-hidden-files: false
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9262332Z env:
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9262616Z   NODE_PATH: /tmp/od2d-node/node_modules
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:15.9262919Z ##[endgroup]
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:16.0716373Z (node:7257) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:16.0717387Z (Use `node --trace-deprecation ...` to show where the warning was created)
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:16.1004481Z With the provided path, there will be 148 files uploaded
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:16.1005499Z Artifact name is valid!
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:16.1006936Z Root directory input is valid!
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:16.3555129Z Beginning upload of artifact content to blob storage
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:17.0602846Z (node:7257) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:17.6469957Z Uploaded bytes 8388608
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:17.8506708Z Uploaded bytes 13844654
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:17.8957834Z Finished uploading artifact content to blob storage!
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:17.8958687Z SHA256 digest of uploaded artifact zip is 2a81654d56ee8181cc7dc1b79125a1710e687e563a5891226ca941bed5602999
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:17.8959226Z Finalizing artifact upload
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:18.1626686Z Artifact r05-directed-evidence.zip successfully finalized. Artifact ID 12279601365
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:18.1627582Z Artifact r05-directed-evidence has been successfully uploaded! Final size is 13844654 bytes. Artifact ID is 12279601365
+godot	Run actions/upload-artifact@v4	2026-10-20T15:49:18.1634407Z Artifact download URL: https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39448853009/artifacts/12279601365
+godot	Post Run actions/checkout@v4	﻿2026-10-20T15:49:18.1862919Z Post job cleanup.
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2658646Z [command]/usr/bin/git version
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2696252Z git version 2.55.0
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2725884Z Temporarily overriding HOME='/home/runner/work/_temp/86b1fd8e-d45f-443a-847f-2a8001180df6' before making global git config changes
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2726999Z Adding repository directory to the temporary git global config as a safe directory
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2730488Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/outsider-driver-2d/outsider-driver-2d
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2766623Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.2798073Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.3000382Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.3025033Z http.https://github.com/.extraheader
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.3033498Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.3063347Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.3257908Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+godot	Post Run actions/checkout@v4	2026-10-20T15:49:18.3287165Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+godot	Complete job	﻿2026-10-20T15:49:18.3630937Z Cleaning up orphan processes
+godot	Complete job	2026-10-20T15:49:18.3880342Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

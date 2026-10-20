@@ -353,3 +353,74 @@ pinned engine, per-case limits and assertions are unchanged. This avoids turning
 a verified but slow rendering sequence into a job-level false failure. The final
 CI head differs from runtime/test head `0b44ee2` only in this workflow budget and
 its documentation.
+
+## Final integrated verification — October 20, 2026
+
+Canonical `feat/r05-directed-lanes` / Draft PR73 is
+`32cf940629eddb4916d5695829ab8efc87c4de6f`; synchronized rider-initiative
+`feat/r05-rider-initiative` / Draft PR75 is
+`81a37919a6153fe2e6294e4e6c7103389465a876`.
+
+| Exact integration | Domain | Native | Current Chromium | Final CI |
+| --- | --- | --- | --- | --- |
+| Canonical 32cf940 | PASS 46/46 | PASS 51/51 | PASS 6/6 | [39448853009](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39448853009) SUCCESS |
+| Rider 81a3791 | PASS 47/47 | PASS 52/52 | PASS 7/7 | [39449332002](https://github.com/MohamedXIV/outsider-driver-2d/actions/runs/39449332002) SUCCESS |
+
+Each integration used one final exact-head CI gate. These replace the earlier
+failed/superseded attempts as the final integrated automated results. They do
+not erase those historical failures. Original two-route assertions and arrival
+observation deadlines passed in both final CI runs.
+
+[Final-source Native/Web sequential evidence](evidence/r05-integrated-32cf/README.md)
+contains seven real viewport frames and thirteen read-only World/body records
+per runtime. It is an explicitly controlled manual-World Main reproduction;
+the earlier real-time Main captures retain their original source labels.
+Every observed body pose/heading agrees with its World registry within 1e-6.
+Vehicle Save/Load dictionaries are identical at all three boundaries; normal
+pedestrian handoff events at two boundaries remain visible in the full records.
+
+The local unchanged ALL export attempt at 0b44ee2 failed the long-route
+240-second observation deadline after camera/playability passed. A separate
+ignored diagnostic copy subsequently passed both genuine 72/34-minute journeys,
+exactly two settlements and every original assertion with 600-second arrival
+windows; its exact patch and progress trace are preserved. This is not relabelled
+as an unchanged local gate passing. The 0b44ee2 runtime/tests are byte-identical
+to 32cf940; only CI budget and documentation differ.
+
+## Supplemental local Web coverage at the final runtime/test source
+
+The deferred suites ran at `0b44ee2e07c343e90bc40d8092e918f29817a6cd`.
+Its runtime and test trees are byte-identical to canonical `32cf940`; the
+differences are the CI budget and documentation. The pinned local export used
+Godot 4.7.2 and Chromium 141.
+
+- The eight `debug` browser contracts all passed individually: smoke, routes,
+  reroute, autonomy, peer, driver, meeting and AR. The first six passed in the
+  sequential aggregate attempt. That attempt then stopped during the meeting
+  reload with `ERR_CONNECTION_REFUSED` after its local static server stopped;
+  the meeting case passed on a fresh stable server, and the AR case passed
+  separately. The case set is complete, but the interrupted aggregate is not
+  recorded as a single `--scope debug` pass. Per-case logs, the partial manifest
+  and read-only live traces are under `docs/evidence/r05-integrated-32cf/`.
+- The `fixture` exported gate passed end to end: import, export, `web_smoke`,
+  `web_ink_smoke` and `web_ride_smoke` (3/3 browser cases). The actual ride case
+  completed two shifts, once-only fares and upkeep, and browser save/reload
+  restoration. Its test logs, exact-head manifest and five representative
+  screenshots are under `docs/evidence/r05-integrated-32cf/local-fixture/`.
+- The unchanged local `--scope all` result remains a **FAIL** at the original
+  240-second route observation deadline; the longer-window diagnostic is kept
+  separate and does not change that result. Exact-head canonical and rider CI
+  both passed their unchanged current-world Chromium suites.
+
+World remains the sole canonical time, resident, plan, reservation and economic
+authority. Physical bodies execute genuine near-field identities and submit
+bounded progress/poses and validated physical wait transitions. Collision delay
+does not rewrite original planned fare durations. Far vehicles stay aggregate.
+
+Human acceptance and Windows-runtime play remain unverified. Coverage is bounded
+to four authored ground-road profiles, existing marked crossings and the clinic
+curb/empty-return policy. Legacy aggregate vehicles held on crossing paint defer
+native admission while preserving their visible pose. Independent HUD PR77 was
+not modified or included in these integrated test heads. Main remains unchanged;
+issues 67/68 remain open. These results are ready for human review, not automatic
+milestone acceptance.

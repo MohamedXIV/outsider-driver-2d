@@ -1,0 +1,6 @@
+PASS import-fixture 7.88
+PASS export-fixture 7.22
+PASS web_smoke 14.27
+PASS web_ink_smoke 18.02
+PASS web_ride_smoke 125.97
+EXPORTED_GATE_PASS 0b44ee2e07c343e90bc40d8092e918f29817a6cd fixture

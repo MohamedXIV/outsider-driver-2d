@@ -1,0 +1,11 @@
+HEAD 0b44ee2e07c343e90bc40d8092e918f29817a6cd
+COMMAND ['node', '/workspace/outsider-driver-2d/work/corridor-lifecycle/tests/web_sandbox_meeting.cjs']
+page.reload: net::ERR_CONNECTION_REFUSED
+Call log:
+[2m  - waiting for navigation until "load"[22m
+
+    at reloadSave (/workspace/outsider-driver-2d/work/corridor-lifecycle/tests/debug_browser.cjs:119:16)
+    at async /workspace/outsider-driver-2d/work/corridor-lifecycle/tests/web_sandbox_meeting.cjs:37:5
+    at async checkDebug (/workspace/outsider-driver-2d/work/corridor-lifecycle/tests/debug_browser.cjs:164:5) {
+  name: 'Error'
+}

@@ -1,0 +1,8 @@
+{
+  "head": "32cf940629eddb4916d5695829ab8efc87c4de6f",
+  "changed_original_files": [
+    "project.godot"
+  ],
+  "observer_sha256": "c1df3dbe1a5921b45ad08998fffc20dfdac97cadd035d14fa032005d37c340fb",
+  "clock": "ordinary World.advance manual commands; observer disables Main automatic processing; production World/native executor unmodified"
+}

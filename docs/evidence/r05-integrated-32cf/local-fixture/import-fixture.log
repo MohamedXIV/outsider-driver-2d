@@ -1,0 +1,258 @@
+HEAD 0b44ee2e07c343e90bc40d8092e918f29817a6cd
+COMMAND ['/workspace/outsider-driver-2d/work/toolchain/Godot_v4.7.2-stable_linux.x86_64', '--headless', '--path', '/workspace/outsider-driver-2d/work/corridor-lifecycle/work/final-web-fixture/fixture-source', '--editor', '--import', '--quit']
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Started Project initialization (5 steps)[39m[0m
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Scanning file structure...[39m[0m
+[  16% ] [90m[1mfirst_scan_filesystem[22m | Loading global class names...[39m[0m
+[  33% ] [90m[1mfirst_scan_filesystem[22m | Verifying GDExtensions...[39m[0m
+[  50% ] [90m[1mfirst_scan_filesystem[22m | Creating autoload scripts...[39m[0m
+[  66% ] [90m[1mfirst_scan_filesystem[22m | Initializing plugins...[39m[0m
+[  83% ] [90m[1mfirst_scan_filesystem[22m | Starting file scan...[39m[0m
+[92m[ DONE ][39m [1mfirst_scan_filesystem[22m
+[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | Started Registering global classes... (207 steps)[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | Ink[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | InkBase[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | InkObject[39m[0m
+[   1% ] [90m[1mupdate_scripts_classes[22m | InkChoice[39m[0m
+[   1% ] [90m[1mupdate_scripts_classes[22m | InkChoicePoint[39m[0m
+[   2% ] [90m[1mupdate_scripts_classes[22m | InkContainer[39m[0m
+[   2% ] [90m[1mupdate_scripts_classes[22m | InkControlCommand[39m[0m
+[   3% ] [90m[1mupdate_scripts_classes[22m | InkDivert[39m[0m
+[   3% ] [90m[1mupdate_scripts_classes[22m | InkGlue[39m[0m
+[   4% ] [90m[1mupdate_scripts_classes[22m | InkNativeFunctionCall[39m[0m
+[   4% ] [90m[1mupdate_scripts_classes[22m | InkTag[39m[0m
+[   5% ] [90m[1mupdate_scripts_classes[22m | InkVariableAssignment[39m[0m
+[   5% ] [90m[1mupdate_scripts_classes[22m | InkVariableReference[39m[0m
+[   6% ] [90m[1mupdate_scripts_classes[22m | InkVoid[39m[0m
+[   6% ] [90m[1mupdate_scripts_classes[22m | InkFunctionResult[39m[0m
+[   7% ] [90m[1mupdate_scripts_classes[22m | InkKeyValuePair[39m[0m
+[   7% ] [90m[1mupdate_scripts_classes[22m | InkStateElement[39m[0m
+[   8% ] [90m[1mupdate_scripts_classes[22m | InkStopWatch[39m[0m
+[   8% ] [90m[1mupdate_scripts_classes[22m | StoryError[39m[0m
+[   9% ] [90m[1mupdate_scripts_classes[22m | InkStoryErrorMetadata[39m[0m
+[   9% ] [90m[1mupdate_scripts_classes[22m | InkStringSet[39m[0m
+[  10% ] [90m[1mupdate_scripts_classes[22m | InkStringWriter[39m[0m
+[  10% ] [90m[1mupdate_scripts_classes[22m | InkTryGetResult[39m[0m
+[  11% ] [90m[1mupdate_scripts_classes[22m | InkUtils[39m[0m
+[  11% ] [90m[1mupdate_scripts_classes[22m | InkListItem[39m[0m
+[  12% ] [90m[1mupdate_scripts_classes[22m | InkList[39m[0m
+[  12% ] [90m[1mupdate_scripts_classes[22m | InkListDefinition[39m[0m
+[  12% ] [90m[1mupdate_scripts_classes[22m | InkListDefinitionsOrigin[39m[0m
+[  13% ] [90m[1mupdate_scripts_classes[22m | InkPointer[39m[0m
+[  13% ] [90m[1mupdate_scripts_classes[22m | InkBoolValue[39m[0m
+[  14% ] [90m[1mupdate_scripts_classes[22m | InkDivertTargetValue[39m[0m
+[  14% ] [90m[1mupdate_scripts_classes[22m | InkFloatValue[39m[0m
+[  15% ] [90m[1mupdate_scripts_classes[22m | InkListValue[39m[0m
+[  15% ] [90m[1mupdate_scripts_classes[22m | InkStringValue[39m[0m
+[  16% ] [90m[1mupdate_scripts_classes[22m | InkValue[39m[0m
+[  16% ] [90m[1mupdate_scripts_classes[22m | InkVariablePointerValue[39m[0m
+[  17% ] [90m[1mupdate_scripts_classes[22m | InkIntValue[39m[0m
+[  17% ] [90m[1mupdate_scripts_classes[22m | InkCallStack[39m[0m
+[  18% ] [90m[1mupdate_scripts_classes[22m | InkDebugMetadata[39m[0m
+[  18% ] [90m[1mupdate_scripts_classes[22m | InkFlow[39m[0m
+[  19% ] [90m[1mupdate_scripts_classes[22m | InkJSON[39m[0m
+[  19% ] [90m[1mupdate_scripts_classes[22m | InkPath[39m[0m
+[  20% ] [90m[1mupdate_scripts_classes[22m | InkProfiler[39m[0m
+[  20% ] [90m[1mupdate_scripts_classes[22m | InkSearchResult[39m[0m
+[  21% ] [90m[1mupdate_scripts_classes[22m | InkSimpleJSON[39m[0m
+[  21% ] [90m[1mupdate_scripts_classes[22m | InkStatePatch[39m[0m
+[  22% ] [90m[1mupdate_scripts_classes[22m | InkStory[39m[0m
+[  22% ] [90m[1mupdate_scripts_classes[22m | InkStoryState[39m[0m
+[  23% ] [90m[1mupdate_scripts_classes[22m | InkVariablesState[39m[0m
+[  23% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  24% ] [90m[1mupdate_scripts_classes[22m | InkBridge[39m[0m
+[  24% ] [90m[1mupdate_scripts_classes[22m | PassengerPresenter[39m[0m
+[  25% ] [90m[1mupdate_scripts_classes[22m | SandboxActorLifecycle[39m[0m
+[  25% ] [90m[1mupdate_scripts_classes[22m | SandboxAlightGeometry[39m[0m
+[  25% ] [90m[1mupdate_scripts_classes[22m | SandboxAlightView[39m[0m
+[  26% ] [90m[1mupdate_scripts_classes[22m | SandboxAlightWalker[39m[0m
+[  26% ] [90m[1mupdate_scripts_classes[22m | SandboxARHints[39m[0m
+[  27% ] [90m[1mupdate_scripts_classes[22m | SandboxAutonomy[39m[0m
+[  27% ] [90m[1mupdate_scripts_classes[22m | SandboxBridgePresentation[39m[0m
+[  28% ] [90m[1mupdate_scripts_classes[22m | SandboxCityData[39m[0m
+[  28% ] [90m[1mupdate_scripts_classes[22m | SandboxCityView[39m[0m
+[  29% ] [90m[1mupdate_scripts_classes[22m | SandboxConversation[39m[0m
+[  29% ] [90m[1mupdate_scripts_classes[22m | SandboxDirectedLanes[39m[0m
+[  30% ] [90m[1mupdate_scripts_classes[22m | SandboxDispatch[39m[0m
+[  30% ] [90m[1mupdate_scripts_classes[22m | SandboxDriverMemory[39m[0m
+[  31% ] [90m[1mupdate_scripts_classes[22m | SandboxIsoPresentation[39m[0m
+[  31% ] [90m[1mupdate_scripts_classes[22m | SandboxJunctionPriority[39m[0m
+[  32% ] [90m[1mupdate_scripts_classes[22m | SandboxJunctionTraffic[39m[0m
+[  32% ] [90m[1mupdate_scripts_classes[22m | SandboxKnowledge[39m[0m
+[  33% ] [90m[1mupdate_scripts_classes[22m | SandboxLanguagePresentation[39m[0m
+[  33% ] [90m[1mupdate_scripts_classes[22m | SandboxLocalPedestrianTrip[39m[0m
+[  34% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  34% ] [90m[1mupdate_scripts_classes[22m | SandboxMapView[39m[0m
+[  35% ] [90m[1mupdate_scripts_classes[22m | SandboxMeetings[39m[0m
+[  35% ] [90m[1mupdate_scripts_classes[22m | SandboxMeetingDialogue[39m[0m
+[  36% ] [90m[1mupdate_scripts_classes[22m | SandboxMeetingStage[39m[0m
+[  36% ] [90m[1mupdate_scripts_classes[22m | SandboxPassengerAlight[39m[0m
+[  37% ] [90m[1mupdate_scripts_classes[22m | SandboxPassengerView[39m[0m
+[  37% ] [90m[1mupdate_scripts_classes[22m | SandboxPedestrianActor[39m[0m
+[  37% ] [90m[1mupdate_scripts_classes[22m | SandboxPlayerUI[39m[0m
+[  38% ] [90m[1mupdate_scripts_classes[22m | SandboxPopulation[39m[0m
+[  38% ] [90m[1mupdate_scripts_classes[22m | SandboxRiderRoutes[39m[0m
+[  39% ] [90m[1mupdate_scripts_classes[22m | SandboxRoads[39m[0m
+[  39% ] [90m[1mupdate_scripts_classes[22m | SandboxSave[39m[0m
+[  40% ] [90m[1mupdate_scripts_classes[22m | SandboxSocial[39m[0m
+[  40% ] [90m[1mupdate_scripts_classes[22m | SandboxStreetModule[39m[0m
+[  41% ] [90m[1mupdate_scripts_classes[22m | SandboxStreetPilot[39m[0m
+[  41% ] [90m[1mupdate_scripts_classes[22m | SandboxStreetPriority[39m[0m
+[  42% ] [90m[1mupdate_scripts_classes[22m | SandboxStreetRouteBinding[39m[0m
+[  42% ] [90m[1mupdate_scripts_classes[22m | SandboxTrafficVehicle[39m[0m
+[  43% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleBays[39m[0m
+[  43% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleCrossings[39m[0m
+[  44% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleDepartures[39m[0m
+[  44% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleExecution[39m[0m
+[  45% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleJunctions[39m[0m
+[  45% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleKinematics[39m[0m
+[  46% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleParking[39m[0m
+[  46% ] [90m[1mupdate_scripts_classes[22m | SandboxVehicleReroute[39m[0m
+[  47% ] [90m[1mupdate_scripts_classes[22m | SandboxWorld[39m[0m
+[  47% ] [90m[1mupdate_scripts_classes[22m | SandboxWorldTraffic[39m[0m
+[  48% ] [90m[1mupdate_scripts_classes[22m | SandboxWorldVehicleBody[39m[0m
+[  48% ] [90m[1mupdate_scripts_classes[22m | SandboxWorldVehicleCorridor[39m[0m
+[  49% ] [90m[1mupdate_scripts_classes[22m | GameSession[39m[0m
+[  49% ] [90m[1mupdate_scripts_classes[22m | GarageView[39m[0m
+[  50% ] [90m[1mupdate_scripts_classes[22m | IsoProjection[39m[0m
+[  50% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  50% ] [90m[1mupdate_scripts_classes[22m | RideSave[39m[0m
+[  51% ] [90m[1mupdate_scripts_classes[22m | TaxiRide[39m[0m
+[  51% ] [90m[1mupdate_scripts_classes[22m | WorldView[39m[0m
+[  52% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  52% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  53% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  53% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  54% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  54% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  55% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  55% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  56% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  56% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  57% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  57% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  58% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  58% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  59% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  59% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  60% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  60% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  61% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  61% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  62% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  62% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  62% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  63% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  63% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  64% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  64% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  65% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  65% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  66% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  66% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  67% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  67% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  68% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  68% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  69% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  69% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  70% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  70% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  71% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  71% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  72% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  72% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  73% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  73% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  74% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  74% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  75% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  75% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  75% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  76% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  76% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  77% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  77% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  78% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  78% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  79% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  79% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  80% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  80% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  81% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  81% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  82% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  82% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  83% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  83% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  84% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  84% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  85% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  85% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  86% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  86% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  87% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  87% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  87% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  88% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  88% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  89% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  89% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  90% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  90% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  91% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  91% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  92% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  92% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  93% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  93% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  94% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  94% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  95% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  95% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  96% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  96% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  97% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  97% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  98% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  98% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  99% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[92m[ DONE ][39m [1mupdate_scripts_classes[22m
+[0m
+[   0% ] [90m[1m_update_scan_actions[22m | Started Scanning actions... (6 steps)[39m[0m
+[   0% ] [90m[1m_update_scan_actions[22m | NotoNaskhArabicUI[wght].ttf[39m[0m
+[  14% ] [90m[1m_update_scan_actions[22m | NotoSansOgham-Regular.ttf[39m[0m
+[  28% ] [90m[1m_update_scan_actions[22m | NotoSansRunic-Regular.ttf[39m[0m
+[  42% ] [90m[1m_update_scan_actions[22m | docks_visitor.svg[39m[0m
+[  57% ] [90m[1m_update_scan_actions[22m | taxi_seat_frame.svg[39m[0m
+[  71% ] [90m[1m_update_scan_actions[22m | CITY_PLAN_V0.svg[39m[0m
+[92m[ DONE ][39m [1m_update_scan_actions[22m
+[0m
+[   0% ] [90m[1mreimport[22m | Started (Re)Importing Assets (6 steps)[39m[0m
+[   0% ] [90m[1mreimport[22m | Preparing files to reimport...[39m[0m
+[  14% ] [90m[1mreimport[22m | Preparing files to reimport...[39m[0m
+[  28% ] [90m[1mreimport[22m | Preparing files to reimport...[39m[0m
+[  42% ] [90m[1mreimport[22m | Preparing files to reimport...[39m[0m
+[  57% ] [90m[1mreimport[22m | Preparing files to reimport...[39m[0m
+[  71% ] [90m[1mreimport[22m | Preparing files to reimport...[39m[0m
+[   0% ] [90m[1mreimport[22m | Executing pre-reimport operations...[39m[0m
+[   0% ] [90m[1mreimport[22m | NotoNaskhArabicUI[wght].ttf[39m[0m
+[  14% ] [90m[1mreimport[22m | NotoSansOgham-Regular.ttf[39m[0m
+[  28% ] [90m[1mreimport[22m | NotoSansRunic-Regular.ttf[39m[0m
+[  42% ] [90m[1mreimport[22m | NotoNaskhArabicUI[wght].ttf[39m[0m
+[  57% ] [90m[1mreimport[22m | NotoSansOgham-Regular.ttf[39m[0m
+[  71% ] [90m[1mreimport[22m | NotoSansRunic-Regular.ttf[39m[0m
+[  85% ] [90m[1mreimport[22m | Finalizing Asset Import...[39m[0m
+[92m[ DONE ][39m [1mreimport[22m
+[0m
+[   0% ] [90m[1mreimport[22m | Started (Re)Importing Assets (6 steps)[39m[0m
+[   0% ] [90m[1mreimport[22m | Executing post-reimport operations...[39m[0m
+[92m[ DONE ][39m [1mreimport[22m
+[0m
+[   0% ] [90m[1mloading_editor_layout[22m | Started Loading editor (5 steps)[39m[0m
+[   0% ] [90m[1mloading_editor_layout[22m | Loading editor layout...[39m[0m
+[  16% ] [90m[1mloading_editor_layout[22m | Loading docks...[39m[0m
+[92m[ DONE ][39m [1mloading_editor_layout[22m
+[0m

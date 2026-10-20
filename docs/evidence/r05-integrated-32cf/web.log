@@ -1,0 +1,9 @@
+INTEGRATED_WEB_PROOF_PASS integrated [
+  '01-driven-departure',
+  '02-clinic-stop',
+  '03-clinic-departure',
+  '04-docks-stop',
+  '05-frontage-queue',
+  '06-restored-queue',
+  '07-cleared-market'
+]
