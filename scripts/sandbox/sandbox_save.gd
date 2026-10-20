@@ -23,7 +23,13 @@ static func save_world(world: SandboxWorld, file_path: String = PATH, dialogue: 
 	var file: FileAccess = FileAccess.open(file_path, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"version": VERSION, "world": world.snapshot(), "dialogue": dialogue, "presentation": stored_presentation}))
+	var snapshot: Dictionary=world.snapshot()
+	# Godot's JSON reader does not retain Variant float/int distinctions or
+	# every binary mantissa bit. Keep its built-in typed value encoding as
+	# the exact copy, and verify it against the readable JSON before use.
+	file.store_string(JSON.stringify({"version": VERSION, "world": snapshot,
+		"world_exact":Marshalls.variant_to_base64(snapshot,false),
+		"dialogue": dialogue, "presentation": stored_presentation},"",true,true))
 	file.close()
 	return true
 
@@ -40,6 +46,14 @@ static func load_bundle(file_path: String = PATH) -> Dictionary:
 		return {}
 	if not (value.get("world") is Dictionary) or not (value.get("dialogue") is Dictionary):
 		return {}
+	if value.has("world_exact"):
+		if not value["world_exact"] is String: return {}
+		# Objects are never permitted in a world snapshot.
+		var exact: Variant=Marshalls.base64_to_variant(value["world_exact"],false)
+		if not exact is Dictionary: return {}
+		var readable: Variant=_canonical_json_numbers(JSON.parse_string(JSON.stringify(exact,"",true,true)))
+		if readable!=value["world"]: return {} # never ignore edits to either copy
+		value["world"]=exact
 	var world: SandboxWorld = SandboxWorld.new()
 	if not world.restore_snapshot(value["world"]):
 		return {}

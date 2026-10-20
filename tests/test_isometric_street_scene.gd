@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 const EVIDENCE: String="/tmp/od2d-iso-evidence"
 func _initialize() -> void: call_deferred("_run")
@@ -58,7 +59,7 @@ func _run() -> void:
 			offer=candidate
 			break
 	assert(not offer.is_empty() and world.accept(str(offer["id"])))
-	world.advance(world.remaining_minutes)
+	NativeRouteChecks.finish(world)
 	assert(world.player_district=="clinic")
 	var before: Dictionary=world.snapshot()
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate()

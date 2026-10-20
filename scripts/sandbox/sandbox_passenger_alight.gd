@@ -25,8 +25,13 @@ static func begin(world: SandboxWorld, npc: Dictionary, offer: Dictionary, arriv
 	if not settled: return false
 	npc["passenger_alight"] = {"status": "walking", "site": SITE,
 			"offer_id": source, "from": arrived_from, "started": world.minute}
-	world._record("rider_alight_started", str(npc["id"]), {"site": SITE,
-			"offer_id": source, "from": arrived_from})
+	var detail: Dictionary={"site":SITE,"offer_id":source,"from":arrived_from}
+	var terminal: Dictionary=SandboxVehicleParking.terminal(world,"clinic")
+	if terminal.get("arrival_policy","")==SandboxVehicleBays.CLINIC and terminal.get("source","")=="fare:"+source:
+		var curb: Dictionary={"source":terminal["source"],"x":terminal["x"],"y":terminal["y"]}
+		npc["passenger_alight"]["curb"]=curb.duplicate(true)
+		detail["curb"]=curb
+	world._record("rider_alight_started",str(npc["id"]),detail)
 	return true
 
 static func offscreen_progress(world: SandboxWorld, npc_id: String, clock_fraction: float=0.0) -> float:
@@ -108,7 +113,11 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 	var anchor: Vector2=Vector2.INF
 	var arrived: int = -1
 	var settled: Dictionary = {}
+	var curb: Dictionary={}
+	var native_entries: Dictionary={}
 	for evt in events:
+		if evt.get("kind","")=="vehicle_execution_entered" and evt.get("subject","")=="player":
+			native_entries[str(evt.get("detail",{}).get("source",""))]=evt.get("detail",{}).get("arrival_policy","")
 		if evt.get("kind", "") == "fare_settled":
 			settled[str(evt.get("subject", ""))] = true
 		if evt.get("subject", "") != npc.get("id", ""): continue
@@ -128,6 +137,13 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 					if offer.get("id", "") == offer_id and offer.get("npc_id", "") == npc.get("id", "") \
 							and applicable(offer) and offer.get("status", "") == "completed": matching = true
 				if not matching: return false
+				if not detail.get("curb",{}) is Dictionary: return false
+				curb=detail.get("curb",{})
+				if not curb.is_empty():
+					if curb.get("source","")!="fare:"+offer_id or native_entries.get(curb.get("source",""),"")!=SandboxVehicleBays.CLINIC: return false
+					for key in ["x","y"]:
+						if not (curb.get(key) is int or curb.get(key) is float) or not is_finite(float(curb[key])): return false
+					if Vector2(float(curb["x"]),float(curb["y"])).distance_to(SandboxVehicleBays.point(from))>.001: return false
 				state = "walking"
 				started = when
 				handoff_minute = -1
@@ -143,9 +159,9 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 				handoff_minute = when
 				handoff_clock=float(stamp)
 				handoff_fraction = float(progress)
-				var origin: Vector2=SandboxAlightGeometry.at({"from":from},handoff_fraction)
+				var origin: Vector2=SandboxAlightGeometry.at(_geometry_trip(from,curb),handoff_fraction)
 				anchor=Vector2(float(detail.get("x",origin.x)),float(detail.get("y",origin.y)))
-				if not SandboxAlightGeometry.valid_position({"from":from},anchor) or anchor.distance_to(origin)>9.0: return false
+				if not SandboxAlightGeometry.valid_position(_geometry_trip(from,curb),anchor) or anchor.distance_to(origin)>9.0: return false
 			"rider_alight_resumed":
 				var resumed: Variant = detail.get("progress", null)
 				var stamp: Variant=detail.get("fraction",0.0)
@@ -168,6 +184,7 @@ static func valid_history(npc: Dictionary, offers: Array, events: Array, minute:
 	if state != str(trip.get("status", "")) or trip.get("site", "") != SITE \
 			or trip.get("offer_id", "") != offer_id or trip.get("from", "") != from \
 			or int(trip.get("started", -1)) != started: return false
+	if trip.get("curb",{})!=curb: return false
 	# Once the real entrance is reached, that resident is allowed to take
 	# another job or trip later without invalidating a historical arrival.
 	if state in ["walking", "offscreen"] and (npc.get("location", "") != "clinic" \
@@ -200,3 +217,8 @@ static func valid_presentation(world: SandboxWorld, state: Variant) -> bool:
 	var where: Vector2 = Vector2(float(x), float(y))
 	if not where.is_finite(): return false
 	return SandboxAlightGeometry.valid_position(trip, where)
+
+static func _geometry_trip(from: String,curb: Dictionary) -> Dictionary:
+	var trip: Dictionary={"from":from}
+	if not curb.is_empty(): trip["curb"]=curb
+	return trip

@@ -1,0 +1,12 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+OpenGL API 4.5 (Core Profile) Mesa 25.0.7-2+deb13u1 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 19.1.7, 256 bits)
+
+PUBLIC_FRAME 01-player-departure minute=480
+PUBLIC_FRAME 02-public-approach minute=566
+PUBLIC_FRAME 03-rider-exit minute=568
+PUBLIC_FRAME 04-restored minute=568
+PUBLIC_FRAME 05-public-return minute=569
+PUBLIC_FRAME 06-rider-intake minute=570
+PUBLIC_MAIN_EVIDENCE_PASS real-time World demand, same shuttle identity, rider exit, empty return, exact reload, no fare/population invention

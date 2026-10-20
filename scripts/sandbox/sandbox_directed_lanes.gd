@@ -5,11 +5,32 @@ extends RefCounted
 # It does not decide NPC trips, lane admission, junction priority or duration.
 # Lane physics/occupancy of the full city is a separate future contract.
 const ROAD_PROFILES: Dictionary={
-	"basin_turn|clinic":{"per_direction":1,"lane_width":62.0},
-	"clinic|docks":{"per_direction":1,"lane_width":62.0},
-	"freight_cross|quay_gate":{"per_direction":2,"lane_width":55.0},
-	"garage|margin_gate":{"per_direction":1,"lane_width":46.0}
+	"basin_turn|clinic":{"per_direction":1,"lane_width":240.0},
+	"clinic|docks":{"per_direction":1,"lane_width":240.0},
+	"freight_cross|quay_gate":{"per_direction":2,"lane_width":240.0},
+	"garage|margin_gate":{"per_direction":1,"lane_width":240.0}
 }
+
+# The 25×13 projected vehicle footprint needs at least 17 screen units
+# between neighbouring flows, including four units of clearance. Widths
+# remain metric; the painted envelope follows their projected extrema.
+static var _screen_widths: Dictionary={}
+
+static func screen_road_width(a: String,b: String) -> float:
+	if not has_profile(a,b): return 23.0
+	var key: String=SandboxRoads.edge_key(a,b)
+	if _screen_widths.has(key): return float(_screen_widths[key])
+	var extent: float=0.0
+	for sample in range(1,100):
+		var t: float=float(sample)/100.0
+		var centre: Vector2=SandboxIsoPresentation.project(SandboxRoads.sample_edge(a,b,t))
+		var tangent: Vector2=SandboxIsoPresentation.project(SandboxRoads.sample_edge(a,b,t+.001))-SandboxIsoPresentation.project(SandboxRoads.sample_edge(a,b,t-.001))
+		for side in [false,true]:
+			var lane: Vector3=lane_point(b,a,1.0-t,lane_count(a,b)-1) if side else lane_point(a,b,t,lane_count(a,b)-1)
+			extent=maxf(extent,absf((SandboxIsoPresentation.project(lane)-centre).dot(tangent.normalized().orthogonal())))
+	var width: float=ceilf(2.0*(extent+10.5))
+	_screen_widths[key]=width
+	return width
 
 static func profile(from_node: String, to_node: String) -> Dictionary:
 	if not SandboxRoads.connected(from_node,to_node): return {}
@@ -151,6 +172,7 @@ static func route_screen_tangent_at_minutes(nodes: Array[String], elapsed: float
 # original complete route, without introducing any parallel simulation clock.
 static func taxi_elapsed_minutes(world: SandboxWorld, fraction: float = 0.0) -> float:
 	if not world.is_travelling() or not is_finite(fraction): return -1.0
+	if world.vehicle_execution.has("player"): return SandboxVehicleExecution.progress(world,"player",fraction)
 	if not world.route_hold_id.is_empty(): fraction=0.0
 	var elapsed: float = float(world.route_edge_elapsed)+clampf(fraction,0.0,1.0)
 	for segment in range(world.route_segment):
@@ -171,8 +193,13 @@ static func route_screen_heading(nodes: Array[String], segment: int,
 # A parked pose is reconstructed from the most recent real arrival at this
 # stop, never a renderer-owned remembered position or an older lane visit.
 static func _parked_screen(world: SandboxWorld, stop: String) -> Vector2:
-	for i in range(world.events.size()-1,-1,-1):
-		var evt: Dictionary=world.events[i]
+	var actual: Vector2=SandboxVehicleParking.screen(world,stop)
+	if actual.is_finite(): return actual
+	return parked_screen_from_events(world.events,stop)
+
+static func parked_screen_from_events(events: Array, stop: String) -> Vector2:
+	for i in range(events.size()-1,-1,-1):
+		var evt: Dictionary=events[i]
 		if evt.get("kind","")!="route_segment_completed": continue
 		var detail: Dictionary=evt.get("detail",{})
 		var a: String=str(detail.get("from",""))
@@ -184,6 +211,8 @@ static func _parked_screen(world: SandboxWorld, stop: String) -> Vector2:
 
 static func taxi_screen(world: SandboxWorld,fraction: float) -> Vector2:
 	if not world.is_travelling(): return _parked_screen(world,world.player_district)
+	if world.vehicle_execution.has("player"):
+		return SandboxVehicleExecution.screen(world,"player",fraction)
 	if not world.route_hold_id.is_empty(): fraction=0.0
 	var a: String=world.route_nodes[world.route_segment]
 	var b: String=world.route_nodes[world.route_segment+1]

@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
 # A genuine driven return trip from Market approaches the garage zebra from
 # the opposite road direction. Unlike the pure-world test, this loads the
@@ -14,7 +15,7 @@ func _run() -> void:
 	for seed in range(8,16):
 		var candidate_world: SandboxWorld=SandboxWorld.new(seed)
 		assert(candidate_world.reposition("market","margin_gate"))
-		assert(candidate_world.advance(candidate_world.remaining_minutes))
+		assert(NativeRouteChecks.finish(candidate_world))
 		assert(candidate_world.player_district=="market" and not candidate_world.is_travelling())
 		assert(candidate_world.reposition("garage","margin_gate"))
 		for i in range(candidate_world.remaining_minutes):
@@ -78,7 +79,7 @@ func _run() -> void:
 	assert(scene._world.route_hold_id.is_empty())
 	assert(scene._world.remaining_minutes<remaining)
 	assert(not scene._world.player_position().is_equal_approx(saved_position))
-	assert(scene._world.advance(scene._world.remaining_minutes))
+	assert(NativeRouteChecks.finish(scene._world))
 	assert(scene._world.player_district=="garage" and not scene._world.is_travelling())
 	var starts: int=0
 	var ends: int=0

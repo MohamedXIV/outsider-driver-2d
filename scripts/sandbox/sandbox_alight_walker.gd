@@ -9,7 +9,7 @@ var _arrived: bool = false
 
 func _ready() -> void:
 	collision_layer = 2
-	collision_mask = 2 | 4
+	collision_mask = 2 | 4 | 16
 	var shape: CollisionShape2D = CollisionShape2D.new()
 	var body: CircleShape2D = CircleShape2D.new()
 	body.radius = SandboxAlightGeometry.BODY_RADIUS

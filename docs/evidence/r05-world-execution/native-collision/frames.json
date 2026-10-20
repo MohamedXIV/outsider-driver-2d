@@ -1,0 +1,117 @@
+[
+  {
+    "heading": -1.98260080814362,
+    "label": "enter",
+    "population": 9,
+    "progress": 0.0,
+    "reason": "",
+    "remaining_minutes": 23,
+    "render_position": {
+      "x": 210.0,
+      "y": 871.5
+    },
+    "source": "event:1",
+    "speed": 0.0,
+    "vehicle_id": "player",
+    "world_minute": 480,
+    "world_position": {
+      "x": 9300.0,
+      "y": 0.0,
+      "z": 7300.0
+    },
+    "x": 210.0,
+    "y": 871.5
+  },
+  {
+    "heading": -1.96338891983032,
+    "label": "approach",
+    "population": 9,
+    "progress": 0.18861665124684,
+    "reason": "vehicle",
+    "remaining_minutes": 23,
+    "render_position": {
+      "x": 205.017364501953,
+      "y": 868.01806640625
+    },
+    "source": "event:1",
+    "speed": 24.0,
+    "vehicle_id": "player",
+    "world_minute": 480,
+    "world_position": {
+      "x": 9243.1123046875,
+      "y": 0.0,
+      "z": 7290.5654296875
+    },
+    "x": 205.017364501953,
+    "y": 868.01806640625
+  },
+  {
+    "heading": -1.95014047622681,
+    "label": "held",
+    "population": 9,
+    "progress": 0.264695428716475,
+    "reason": "vehicle",
+    "remaining_minutes": 23,
+    "render_position": {
+      "x": 201.770050048828,
+      "y": 866.743591308594
+    },
+    "source": "event:1",
+    "speed": 0.0,
+    "vehicle_id": "player",
+    "world_minute": 482,
+    "world_position": {
+      "x": 9215.5107421875,
+      "y": 0.0,
+      "z": 7293.89111328125
+    },
+    "x": 201.770050048828,
+    "y": 866.743591308594
+  },
+  {
+    "heading": -1.95014047622681,
+    "label": "restored",
+    "population": 9,
+    "progress": 0.264695428716475,
+    "reason": "vehicle",
+    "remaining_minutes": 23,
+    "render_position": {
+      "x": 201.770050048828,
+      "y": 866.743591308594
+    },
+    "source": "event:1",
+    "speed": 0.0,
+    "vehicle_id": "player",
+    "world_minute": 482,
+    "world_position": {
+      "x": 9215.5107421875,
+      "y": 0.0,
+      "z": 7293.89111328125
+    },
+    "x": 201.770050048828,
+    "y": 866.743591308594
+  },
+  {
+    "heading": -1.81905043125153,
+    "label": "depart",
+    "population": 9,
+    "progress": 0.936064932879891,
+    "reason": "motion",
+    "remaining_minutes": 23,
+    "render_position": {
+      "x": 185.730590820312,
+      "y": 854.053833007812
+    },
+    "source": "event:1",
+    "speed": 36.0,
+    "vehicle_id": "player",
+    "world_minute": 483,
+    "world_position": {
+      "x": 9018.27734375,
+      "y": 0.0,
+      "z": 7249.41455078125
+    },
+    "x": 185.730590820312,
+    "y": 854.053833007812
+  }
+]

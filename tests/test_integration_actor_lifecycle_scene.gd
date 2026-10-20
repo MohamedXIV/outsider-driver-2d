@@ -1,4 +1,5 @@
 extends SceneTree
+const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 func _initialize() -> void: call_deferred("_run")
 func _scene() -> Node:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate();root.add_child(scene);scene.set_process(false)
@@ -80,7 +81,7 @@ func _run() -> void:
 	assert(scene._world.reposition("market"))
 	# Loading a valid physical snapshot outside the active neighborhood must
 	# hand off its saved poses, even when no actor was instantiated on load.
-	scene._world.advance(scene._world.remaining_minutes)
+	NativeRouteChecks.finish(scene._world)
 	scene._on_save();assert(scene._notice_text=="Sandbox saved.")
 	scene._on_load();assert(scene._street_pilot==null)
 	for id in ["npc:04","npc:08"]:
@@ -89,10 +90,10 @@ func _run() -> void:
 	scene._on_save();assert(scene._notice_text=="Sandbox saved.")
 	scene._on_load()
 	_assert_queue_state(scene._street_restore_state.get("junction",{}),traffic_before)
-	assert(scene._world.reposition("garage"));scene._world.advance(scene._world.remaining_minutes);scene._process(0.0)
+	assert(scene._world.reposition("garage"));NativeRouteChecks.finish(scene._world);scene._process(0.0)
 	assert(scene._street_pilot!=null)
 	assert(scene._street_pilot.junction.snapshot()==traffic_before)
-	assert(scene._world.reposition("market"));scene._world.advance(scene._world.remaining_minutes);scene._process(0.0)
+	assert(scene._world.reposition("market"));NativeRouteChecks.finish(scene._world);scene._process(0.0)
 	assert(scene._street_pilot==null)
 	_assert_queue_state(scene._street_restore_state.get("junction",{}),traffic_before)
 	assert(scene._world.residents.size()==9 and SandboxWorld.new().restore_snapshot(scene._world.snapshot()))
