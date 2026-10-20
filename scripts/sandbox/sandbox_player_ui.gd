@@ -146,6 +146,8 @@ func sync() -> void:
 	if root.theme.default_font!=font: root.theme.default_font=font
 	for child in _tabs.get_children():
 		child.text={"requests":trp("Street","الشارع"),"map":trp("Map","الخريطة"),"gear":trp("Gear","الأجهزة"),"contacts":trp("Contacts","المعارف"),"settings":trp("Options","الخيارات")}[child.name]
+		if child.name=="requests" and world.rider_initiative.get("status","")=="pending":
+			child.text+=" •"
 	_header.text=trp("OUTSIDER / ","غريب / ")+SandboxCityData.REGIONS[SandboxRoads.district_for(world.player_district)]["ar" if locale=="ar" else "name"]+"   ·   %d cr"%world.credits
 	_hint.text="%02d:%02d  ·  %s  ·  %s"%[(world.minute%1440)/60,world.minute%60,place(world.player_district),trp("On the road · %dm remaining","على الطريق · المتبقي %d د")%world.remaining_minutes if world.is_travelling() else trp("Parked · look for a fare","متوقف · ابحث عن راكب")]
 	if world.risk>0: _hint.text+=trp(" · Attention %d"," · الانتباه %d")%world.risk
@@ -163,7 +165,8 @@ func sync() -> void:
 			var local: Array=[]
 			for offer in world.open_offers():
 				if offer["origin"]==world.player_district: local.append(offer)
-			context=[local,world.player_district,world.active_offer_id,world.is_travelling(),controller._selected_id,controller._dialogue_text.text,controller._notice_text]
+			context=[local,world.player_district,world.active_offer_id,world.is_travelling(),
+					world.rider_initiative,controller._selected_id,controller._dialogue_text.text,controller._notice_text]
 		"map": context=[world.route_nodes,world.pending_route_nodes,world.rider_route_request,world.player_district,world.credits,_map_selected,_planned_via,_planned_stops]
 		"gear": context=[world.starter_device,world.modules_owned,world.modules_installed,world.market_stock,world.player_district,world.is_travelling(),SandboxKnowledge.market_open(world.minute),world.credits,world.ar_owned,world.ar_equipped,controller._ar_note]
 		"contacts": context=[world.meetings,controller._selected_meeting_id,controller._meeting_text.text,controller._meeting_info.text,controller._meeting_accept.disabled,controller._meeting_decline.disabled,controller._meeting_attend.disabled]
@@ -200,6 +203,24 @@ func sync() -> void:
 			if not world.active_offer_id.is_empty():
 				var fare: Dictionary=world.offer_by_id(world.active_offer_id)
 				_label("%s  ·  %d cr"%[place(str(fare["destination"])),fare["fare"]])
+				var prompt: Dictionary=world.rider_initiative
+				if prompt.get("status","")=="pending":
+					_label(trp("Your passenger speaks first","الراكب يبدأ الحديث"),true)
+					var question_label: Label=_label(SandboxRiderInitiative.question(world,locale))
+					if not SandboxRiderInitiative.understood(world):
+						var rider_speaker: Dictionary=world.resident(str(prompt.get("npc_id","")))
+						var font_path: String=SandboxLanguagePresentation.native_font_path(
+								str(rider_speaker.get("language","")))
+						if not font_path.is_empty():
+							question_label.add_theme_font_override("font",load(font_path))
+						question_label.text_direction=Control.TEXT_DIRECTION_LTR
+					if SandboxRiderInitiative.understood(world):
+						_button("reply_brief",trp("Answer briefly","أجب باختصار"),
+								controller._on_rider_initiative_answer.bind("brief"))
+						_button("reply_deflect",trp("Deflect the question","تهرّب من السؤال"),
+								controller._on_rider_initiative_answer.bind("deflect"))
+					_button("reply_silent",trp("Stay quiet","التزم الصمت"),
+							controller._on_rider_initiative_answer.bind("silent"))
 				_button("talk",trp("Talk to your passenger","تحدث مع الراكب"),_call.bind("_on_talk"))
 		else:
 			_label(trp("Street requests","طلبات الشارع"),true)
@@ -328,7 +349,9 @@ func _publish() -> void:
 			"clipTop":_scroll.get_global_rect().position.y,"clipBottom":_scroll.get_global_rect().end.y}
 	for button in _tabs.get_children():
 		bounds[button.name]={"x":button.get_global_rect().get_center().x,"y":button.get_global_rect().get_center().y,"disabled":false}
-	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower()}),true)
+	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)"%JSON.stringify({"playerModeBounds":JSON.stringify([mode_rect.position.x,mode_rect.position.y,mode_rect.size.x,mode_rect.size.y]),"playerZoom":str(controller._city.zoom_preference),"playerActionSerial":str(_action_serial),"playerLocale":controller._ui_locale,"playerViewport":JSON.stringify([get_viewport().get_visible_rect().size.x,get_viewport().get_visible_rect().size.y]),"playerMode":str(not debug_mode).to_lower(),"playerActions":JSON.stringify(bounds),"playerTab":tab,"playerPlace":controller._world.player_district,"playerNotice":controller._notice_text,"playerPlannedVia":_planned_via,"playerRouteMinutes":str(controller._world.remaining_minutes),"playerRouteMetres":str(SandboxRoads.path_metres(controller._world.route_nodes)),"playerTravelling":str(controller._world.is_travelling()).to_lower(),
+			"playerRiderStatus":str(controller._world.rider_initiative.get("status","")),
+			"playerRiderQuestion":SandboxRiderInitiative.question(controller._world,controller._ui_locale)}),true)
 
 func _fit_panel() -> void:
 	var area: Vector2=get_viewport().get_visible_rect().size

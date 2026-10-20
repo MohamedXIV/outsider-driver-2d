@@ -32,6 +32,7 @@ var route_segment: int = 0
 var route_edge_elapsed: int = 0
 var pending_route_nodes: Array[String] = []
 var rider_route_request: Dictionary = {}
+var rider_initiative: Dictionary = {}
 # One world-owned yield latch. World time continues while driving position
 # and fare settlement wait for the physical local crossing to clear.
 var route_hold_id: String = ""
@@ -268,6 +269,7 @@ func _advance_minutes(minutes: int, physical_elapsed: bool) -> bool:
 		_record_changes(SandboxAutonomy.begin_expired_trips(residents, offers, expired, minute, seed))
 		if is_travelling() and route_hold_id.is_empty() and execution_ready:
 			_step_player_route()
+		SandboxRiderInitiative.tick(self)
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 		SandboxVehicleExecution.prune(self)
 		SandboxVehicleJunctions.release_cleared(self)
@@ -421,6 +423,7 @@ func accept(offer_id: String, waypoint: String = "") -> bool:
 		"nodes": route.duplicate(), "minutes": remaining_minutes,"clock_fraction":_vehicle_clock_stamp(),
 		"anticipated_expense": SandboxRoads.path_expense(route)
 	})
+	SandboxRiderInitiative.schedule(self)
 	if vehicle_executor.is_valid(): vehicle_executor.call(0.0)
 	return true
 
@@ -473,6 +476,10 @@ func respond_rider_route(agree: bool) -> bool:
 		"answer": rider_route_request["status"], "trust_delta": trust_delta
 	})
 	return true
+
+
+func answer_rider_initiative(response: String) -> bool:
+	return SandboxRiderInitiative.answer(self,response)
 
 
 func _route_time_left() -> int:
@@ -594,6 +601,7 @@ func _complete_active_trip() -> void:
 	npc["taxi_offer"] = ""
 	npc["activity"] = "available"
 	SandboxPopulation.conclude_trip(npc, player_district, fare, minute)
+	SandboxRiderInitiative.close(self)
 	# Unlicensed work is consequential even when the passenger is satisfied.
 	if offer["channel"] == "underground":
 		risk += 1
@@ -645,6 +653,7 @@ func snapshot() -> Dictionary:
 		"vehicle_junctions":vehicle_junctions.duplicate(true),
 		"pending_route_nodes": pending_route_nodes.duplicate(),
 		"rider_route_request": rider_route_request.duplicate(true),
+		"rider_initiative": rider_initiative.duplicate(true),
 		"meetings": meetings.duplicate(true)
 	}
 
@@ -653,7 +662,8 @@ func restore_snapshot(value: Dictionary) -> bool:
 	if int(value.get("version", -1)) != SCHEMA_VERSION:
 		return false
 	if not (value.get("residents") is Array) or not (value.get("offers") is Array) or not (value.get("events") is Array) \
-			or not (value.get("meetings") is Array):
+			or not (value.get("meetings") is Array) \
+			or not SandboxRiderInitiative.valid_history(value):
 		return false
 	for collection in ["residents","offers","events","meetings"]:
 		for entry in value[collection]:
@@ -1004,6 +1014,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	route_edge_elapsed = elapsed
 	pending_route_nodes = pending.duplicate()
 	rider_route_request = request.duplicate(true)
+	rider_initiative = value.get("rider_initiative",{}).duplicate(true)
 	route_hold_id=held
 	vehicle_fraction=float(saved_fraction)
 	vehicle_execution=value.get("vehicle_execution",{}).duplicate(true)
