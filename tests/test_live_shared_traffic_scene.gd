@@ -21,14 +21,14 @@ func _run() -> void:
 	assert(scene._street_pilot!=null and scene._street_pilot.pedestrians.size()==2)
 	assert(world.resident("npc:04")["local_pedestrian_trip"]["status"]=="walking")
 	assert(world.resident("npc:08")["local_pedestrian_trip"]["status"]=="walking")
-	var candidate: Array[String]=SandboxRoads.path(world.player_district,"margin_gate")
+	var candidate: Array[String]=SandboxRoads.path(world.player_district,"clinic","margin_gate")
 	var needed: int=maxi(1,ceili(SandboxRoads.path_metres(candidate)/5000.0)) + SandboxRoads.path_expense(candidate)
 	print("PLAYTEST_SHARED_PRECONDITION ",JSON.stringify({
 		"district":world.player_district,"minute":world.minute,
 		"travelling":world.is_travelling(),"meeting":world.meeting_in_progress(),
 		"credits":world.credits,"cost":needed,"route":candidate,
 		"pedestrians":scene._street_pilot.pedestrians.size()}))
-	if not world.reposition("margin_gate"):
+	if not world.reposition("clinic","margin_gate"):
 		printerr("PLAYTEST_SHARED_CANNOT_REPOSITION real World refused departure")
 		quit(1)
 		return
@@ -40,8 +40,8 @@ func _run() -> void:
 	var held_from: int=-1
 	var last_minute: int=world.minute
 	var final_minute: int=-1
-	for frame in range(2400):
-		scene._process(1.0/60.0)
+	for frame in range(1700):
+		scene._process(1.0/60.0 if frame<780 else .25)
 		await physics_frame
 		if scene._street_pilot!=null:
 			var pilot: SandboxStreetPilot=scene._street_pilot
@@ -73,13 +73,13 @@ func _run() -> void:
 			final_minute=world.minute
 			break
 	assert(saw_both,"Both persistent residents must share a real physics scene with the player taxi")
-	assert(not world.is_travelling() and world.player_district=="margin_gate",
+	assert(not world.is_travelling() and world.player_district=="clinic",
 		"Real taxi must complete its physical approach rather than stay stopped forever")
 	assert(world.route_hold_id.is_empty())
 	assert(world.residents.size()==9)
 	assert(max_hold_minutes<18)
 	print("PLAYTEST_SHARED_STREET_PASS ",JSON.stringify({
-		"seed":29,"from":"garage","to":"margin_gate",
+		"seed":29,"from":"garage","to":"clinic",
 		"route_minutes":starting_minutes,"arrival_world_minute":final_minute,
 		"native_pair":saw_both,"legal_crossing_observed":saw_crossing,
 		"vehicle_yield_observed":saw_real_hold,"max_hold_minutes":max_hold_minutes}))
