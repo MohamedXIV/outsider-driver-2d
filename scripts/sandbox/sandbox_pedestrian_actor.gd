@@ -35,7 +35,10 @@ func _ready() -> void:
 	_agent.radius = 8.0
 	_agent.max_speed = SPEED
 	_agent.avoidance_enabled = true
-	_agent.avoidance_priority = 0.5
+	# Keep the leading resident on course into the counter bay; the follower
+	# supplies full local avoidance instead of pushing the leader past its
+	# destination and outside the World handoff corridor.
+	_agent.avoidance_priority = 0.75 if slot==0 else 0.5
 	_agent.velocity_computed.connect(_on_safe_velocity)
 	add_child(_agent)
 	queue_redraw()

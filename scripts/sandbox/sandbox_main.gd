@@ -605,6 +605,7 @@ func _sync_local_pedestrian() -> void:
 		_city.local_active_npc_id="";_city.local_active_npc_ids.clear()
 		return
 	if _street_pilot!=null:
+		_street_pilot.reentry_fraction=_street_clock_fraction()
 		_street_pilot.sync_residents()
 		_city.local_active_npc_ids=_street_pilot.loaded_ids()
 		_city.local_active_npc_id=_street_pilot.walking_npc_id

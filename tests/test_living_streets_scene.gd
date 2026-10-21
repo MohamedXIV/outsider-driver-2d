@@ -8,6 +8,19 @@ func _run() -> void:
 	root.add_child(scene)
 	# Select a reproducible population, without editing residents or motives.
 	scene._world=SandboxWorld.new(29);scene._city.world=scene._world
+	# Save before the first departure, then cross the next World tick. The
+	# module's old .6 reentry fraction must not advance a newly born body.
+	scene.set_process(false)
+	scene._process(scene.REAL_SECONDS_PER_STEP*.6)
+	scene._on_save();assert(scene._notice_text=="Sandbox saved.")
+	var predeparture: SandboxWorld=scene._world
+	scene._on_load();assert(scene._world!=predeparture)
+	scene._process(scene.REAL_SECONDS_PER_STEP*.4)
+	assert(scene._world.minute==481)
+	for actor in scene._street_pilot.pedestrians.values():
+		assert(actor.position.distance_to(SandboxStreetModule.waypoints(actor.slot)[0])<.001,
+				"A newly born native body must use the current World fraction")
+	scene.set_process(true)
 	var saw_crossing: bool=false
 	var saw_adjacent: bool=false
 	var did_save: bool=false
@@ -28,6 +41,9 @@ func _run() -> void:
 			checked_missing=true
 		assert(first.position.distance_to(second.position)>=13.0)
 		for actor in [first,second]:
+			var progress: float=SandboxStreetModule.progress_of(actor.position,actor.slot)
+			assert(actor.position.distance_to(SandboxStreetModule.position_at(progress,actor.slot))<=24.0,
+					"Every native walk pose must remain valid for exact save and handoff")
 			if actor.position.y>330 and actor.position.y<374:
 				assert(absf(actor.position.x-SandboxStreetModule.CROSS_X)<17.0)
 				assert(actor.global_position.distance_to(pilot.car.global_position)>13.0)
@@ -36,7 +52,9 @@ func _run() -> void:
 					pilot.reconcile_reservations()
 					var poses: Dictionary=pilot.visual_snapshot()
 					var ledger: Array=scene._world.events.duplicate(true)
-					scene._on_save();scene._on_load()
+					var before_load: SandboxWorld=scene._world
+					scene._on_save();assert(scene._notice_text=="Sandbox saved.")
+					scene._on_load();assert(scene._world!=before_load, "Exercise a real load, not a no-op")
 					assert(scene._world.events==ledger, "Load must preserve the event ledger exactly")
 					for id in poses["actors"]:
 						var saved: Dictionary=poses["actors"][id]
