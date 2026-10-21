@@ -90,6 +90,13 @@ const ARABIC_FONT: String = "res://assets/fonts/NotoNaskhArabicUI[wght].ttf"
 
 
 var _debug_action_serial: int=0
+# Presentation-only running indices. The complete World.events append-only
+# ledger remains authoritative for saves, replay and provenance.
+var _event_metrics_world: SandboxWorld
+var _event_metrics_seen: int=0
+var _event_metrics_kinds: Dictionary={}
+var _event_metrics_latest_contact: String="No witnessed peer contact yet"
+var _event_metrics_latest_alternative: String="No independent trips yet"
 
 func _ready() -> void:
 	_city.world = _world
@@ -785,6 +792,10 @@ func _render_debug() -> void:
 		var line: String = "%s  %s > %s  %d cr  (%s)" % [
 			locked, offer["origin"], offer["destination"], offer["fare"], offer["npc_id"]
 		]
+		# The Debug list includes World-wide offers, but only local pickup
+		# is legal. Never show a remotely originated fare as locally actionable.
+		if str(offer["origin"])!=_world.player_district:
+			line+="  [PICKUP ELSEWHERE: %s]"%str(offer["origin"])
 		_offers.add_item(line)
 		_offers.set_item_metadata(_offers.item_count - 1, str(offer["id"]))
 	if available.size() > 0:
@@ -821,6 +832,11 @@ func _render_debug() -> void:
 			chosen["purpose"], npc["need"], npc["cash"], npc["language"],
 			maxi(0, int(chosen["expires_at"]) - _world.minute)
 		]
+		if chosen["origin"]!=_world.player_district:
+			_details.text+="\nUNAVAILABLE HERE: pickup at %s; you are at %s." % [
+				chosen["origin"],_world.player_district]
+		elif chosen["channel"]=="official":
+			_details.text+="\nUNAVAILABLE: licensed dispatch excludes an illegal resident."
 	if not npc.is_empty() and SandboxDriverMemory.recognizes(npc):
 		_details.text += " | RETURNING CAB"
 	_notice.text = _notice_text
@@ -919,22 +935,16 @@ func _render_debug() -> void:
 		_reveal_pending = false
 		_request_common.visible = false
 		_skip_translation.visible = false
-	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
+	# A taxi may be repositioning without a passenger. Do not misreport it
+	# as SEEKING: that's exactly the frozen car screenshot's ambiguity.
+	var phase: String = "enroute-fare" if not _world.active_offer_id.is_empty() else "enroute-empty" if _world.is_travelling() else "seeking"
 	var departed: int = _count_events("npc_alternative_departed")
 	var arrived: int = _count_events("npc_alternative_arrived")
 	var peer_count: int = _count_events("npc_peer_contact")
 	var peer_facts: int = 0
-	var recent_contact: String = "No witnessed peer contact yet"
+	var recent_contact: String = _event_metrics_latest_contact
 	for resident in _world.residents:
 		peer_facts += resident["peer_knowledge"].size()
-	for j in range(_world.events.size() - 1, -1, -1):
-		var peer_event: Dictionary = _world.events[j]
-		if peer_event["kind"] == "npc_peer_contact":
-			recent_contact = "%s met %s at %s" % [
-				peer_event["subject"], peer_event["detail"]["recipient"],
-				peer_event["detail"]["district"]
-			]
-			break
 	var known_drivers: int = 0
 	for resident in _world.residents:
 		if SandboxDriverMemory.recognizes(resident):
@@ -949,12 +959,7 @@ func _render_debug() -> void:
 	var working: int = _count_activity("working")
 	var resting: int = _count_activity("resting")
 	var moving: int = _count_activity("travelling")
-	var recent: String = "No independent trips yet"
-	for j in range(_world.events.size() - 1, -1, -1):
-		var event: Dictionary = _world.events[j]
-		if str(event["kind"]).begins_with("npc_alternative_"):
-			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
-			break
+	var recent: String = _event_metrics_latest_alternative
 	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d | KNOWN CABS %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d | PEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
 		available.size(), _world.offers.size(), _world.residents.size(), known_drivers,
 		working, resting, moving, departed, arrived, peer_count, peer_facts,
@@ -975,6 +980,10 @@ func _render_debug() -> void:
 			_world.route_hold_id if not _world.route_hold_id.is_empty() else "none",
 			_vehicle_corridor.bodies.size() if _vehicle_corridor!=null else 0,
 			_street_pilot.loaded_ids().size() if _street_pilot!=null else 0]
+		if _world.is_travelling():
+			_world_info.text+="\nTRIP %s → %s · %dm remaining · edge %d/%d" % [
+				_world.player_district,_world.travel_destination,_world.remaining_minutes,
+				_world.route_segment+1,maxi(0,_world.route_nodes.size()-1)]
 	if not _world.active_offer_id.is_empty():
 		var route: Dictionary = _world.offer_by_id(_world.active_offer_id)
 		_notice.text = "ON ROUTE  %s -> %s  |  %dm remaining  |  edge %d/%d" % [
@@ -1224,11 +1233,8 @@ func _expose_meeting_web() -> void:
 
 
 func _settled_count() -> int:
-	var total: int = 0
-	for event in _world.events:
-		if event["kind"] == "fare_settled":
-			total += 1
-	return total
+	_ensure_event_metrics()
+	return int(_event_metrics_kinds.get("fare_settled",0))
 
 func _count_activity(activity: String) -> int:
 	var total: int = 0
@@ -1238,12 +1244,30 @@ func _count_activity(activity: String) -> int:
 	return total
 
 
+func _ensure_event_metrics() -> void:
+	# One forward pass over only NEW World events per render. A restored or
+	# fresh World rebuilds from its own full historical ledger exactly once.
+	if _event_metrics_world!=_world or _world.events.size()<_event_metrics_seen:
+		_event_metrics_world=_world
+		_event_metrics_seen=0
+		_event_metrics_kinds.clear()
+		_event_metrics_latest_contact="No witnessed peer contact yet"
+		_event_metrics_latest_alternative="No independent trips yet"
+	while _event_metrics_seen<_world.events.size():
+		var event: Dictionary=_world.events[_event_metrics_seen]
+		var kind: String=str(event["kind"])
+		_event_metrics_kinds[kind]=int(_event_metrics_kinds.get(kind,0))+1
+		if kind=="npc_peer_contact":
+			_event_metrics_latest_contact="%s met %s at %s" % [
+				event["subject"],event["detail"]["recipient"],event["detail"]["district"]]
+		elif kind.begins_with("npc_alternative_"):
+			_event_metrics_latest_alternative="%s %s" % [
+				event["subject"],kind.trim_prefix("npc_alternative_")]
+		_event_metrics_seen+=1
+
 func _count_events(kind: String) -> int:
-	var total: int = 0
-	for event in _world.events:
-		if event["kind"] == kind:
-			total += 1
-	return total
+	_ensure_event_metrics()
+	return int(_event_metrics_kinds.get(kind,0))
 
 
 func _render_route_picker(offer: Dictionary) -> void:
