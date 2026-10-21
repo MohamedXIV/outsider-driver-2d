@@ -70,6 +70,7 @@ func _ready() -> void:
 func _spawn_resident(id: String) -> void:
 	var trip: Dictionary=world.resident(id).get("local_pedestrian_trip",{})
 	if trip.is_empty():
+		if embedded: return
 		if not SandboxLocalPedestrianTrip.begin(world,id,SITE): return
 		trip=world.resident(id)["local_pedestrian_trip"]
 	var slot: int=int(trip.get("slot",0))
@@ -171,8 +172,18 @@ func _make_lane_car(label: String,start: Vector2) -> SandboxTrafficVehicle:
 	hitbox.shape=shape;vehicle.add_child(hitbox);add_child(vehicle)
 	return vehicle
 
+func sync_residents() -> void:
+	# Observe newly committed World intent, including a second resident whose
+	# eligibility changed after this module was loaded.
+	for id in SandboxLocalPedestrianTrip.candidates(world):
+		# A walking trip with no body has no trusted restart pose. Keep
+		# its reservation fail-closed; only World offscreen intent may spawn.
+		if not pedestrians.has(id) and world.resident(id).get("local_pedestrian_trip",{}).get("status","")=="offscreen":
+			_spawn_resident(id)
+
 func _physics_process(delta: float) -> void:
 	if car==null or follower==null: return
+	sync_residents()
 	var occupied: bool=crossing_occupied()
 	for actor in pedestrians.values():
 		actor.block_for_player=embedded and (SandboxStreetRouteBinding.taxi_occupies_crosswalk(world) or SandboxWorldTraffic.occupies_zebra(world))

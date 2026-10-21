@@ -13,7 +13,7 @@ func _run() -> void:
 	assert(not original_world.is_travelling())
 	var initial_actor: String = SandboxLocalPedestrianTrip.candidate(original_world)
 	assert(not initial_actor.is_empty(), "A real idle Patchworks resident should qualify")
-	scene._process(.20)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	assert(scene._street_pilot != null, "No embedded street instance")
 	assert(scene._street_pilot.embedded)
 	assert(scene._street_pilot.world == original_world)

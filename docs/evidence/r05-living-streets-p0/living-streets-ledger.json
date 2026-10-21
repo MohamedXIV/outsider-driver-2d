@@ -1,0 +1,277 @@
+{
+  "seed": 29,
+  "saved": [
+    {
+      "blocked": false,
+      "id": "npc:04",
+      "native": true,
+      "trip": {
+        "crossing_state": "approach",
+        "handoff_fraction": 0,
+        "handoff_minute": 481,
+        "handoff_progress": 0,
+        "handoff_x": 155,
+        "handoff_y": 313,
+        "site": "patchworks:parts_counter",
+        "slot": 0,
+        "started": 481,
+        "status": "walking"
+      },
+      "x": 273.735229492188,
+      "y": 312.998962402344
+    },
+    {
+      "blocked": false,
+      "id": "npc:08",
+      "native": true,
+      "trip": {
+        "crossing_state": "approach",
+        "handoff_fraction": 0,
+        "handoff_minute": 481,
+        "handoff_progress": 0,
+        "handoff_x": 125,
+        "handoff_y": 313,
+        "site": "patchworks:parts_counter",
+        "slot": 1,
+        "started": 481,
+        "status": "walking"
+      },
+      "x": 245.026000976562,
+      "y": 312.9990234375
+    }
+  ],
+  "restored": [
+    {
+      "blocked": false,
+      "id": "npc:04",
+      "native": true,
+      "trip": {
+        "crossing_state": "approach",
+        "handoff_fraction": 0,
+        "handoff_minute": 481,
+        "handoff_progress": 0,
+        "handoff_x": 155,
+        "handoff_y": 313,
+        "site": "patchworks:parts_counter",
+        "slot": 0,
+        "started": 481,
+        "status": "walking"
+      },
+      "x": 273.735229492188,
+      "y": 312.998962402344
+    },
+    {
+      "blocked": false,
+      "id": "npc:08",
+      "native": true,
+      "trip": {
+        "crossing_state": "approach",
+        "handoff_fraction": 0,
+        "handoff_minute": 481,
+        "handoff_progress": 0,
+        "handoff_x": 125,
+        "handoff_y": 313,
+        "site": "patchworks:parts_counter",
+        "slot": 1,
+        "started": 481,
+        "status": "walking"
+      },
+      "x": 245.026000976562,
+      "y": 312.9990234375
+    }
+  ],
+  "end": [
+    {
+      "blocked": false,
+      "id": "npc:04",
+      "native": true,
+      "trip": {
+        "arrived": 486,
+        "arrived_fraction": 0,
+        "crossing_state": "cleared",
+        "handoff_fraction": 0,
+        "handoff_minute": 481,
+        "handoff_progress": 0,
+        "handoff_x": 155,
+        "handoff_y": 313,
+        "site": "patchworks:parts_counter",
+        "slot": 0,
+        "started": 481,
+        "status": "arrived"
+      },
+      "x": 497.110046386719,
+      "y": 408.632507324219
+    },
+    {
+      "blocked": false,
+      "id": "npc:08",
+      "native": true,
+      "trip": {
+        "arrived": 489,
+        "arrived_fraction": 0,
+        "crossing_state": "cleared",
+        "handoff_fraction": 0,
+        "handoff_minute": 481,
+        "handoff_progress": 0,
+        "handoff_x": 125,
+        "handoff_y": 313,
+        "site": "patchworks:parts_counter",
+        "slot": 1,
+        "started": 481,
+        "status": "arrived"
+      },
+      "x": 698.043518066406,
+      "y": 390.998657226562
+    }
+  ],
+  "events": [
+    {
+      "detail": {
+        "from": "garage",
+        "site": "patchworks:parts_counter",
+        "slot": 0
+      },
+      "id": "event:1",
+      "kind": "local_pedestrian_departed",
+      "minute": 481,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "fraction": 0,
+        "progress": 0,
+        "site": "patchworks:parts_counter",
+        "x": 155,
+        "y": 313
+      },
+      "id": "event:2",
+      "kind": "local_pedestrian_handoff",
+      "minute": 481,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "from": "garage",
+        "site": "patchworks:parts_counter",
+        "slot": 1
+      },
+      "id": "event:3",
+      "kind": "local_pedestrian_departed",
+      "minute": 481,
+      "subject": "npc:08"
+    },
+    {
+      "detail": {
+        "fraction": 0,
+        "progress": 0,
+        "site": "patchworks:parts_counter",
+        "x": 125,
+        "y": 313
+      },
+      "id": "event:4",
+      "kind": "local_pedestrian_handoff",
+      "minute": 481,
+      "subject": "npc:08"
+    },
+    {
+      "detail": {
+        "fraction": 0.0666666666666667,
+        "progress": 0.008333,
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:5",
+      "kind": "local_pedestrian_resumed",
+      "minute": 481,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "fraction": 0.0666666666666667,
+        "progress": 0.008333,
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:6",
+      "kind": "local_pedestrian_resumed",
+      "minute": 481,
+      "subject": "npc:08"
+    },
+    {
+      "detail": {
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:7",
+      "kind": "local_pedestrian_crossing_reserved",
+      "minute": 482,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:8",
+      "kind": "local_pedestrian_crossing_entered",
+      "minute": 483,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:9",
+      "kind": "local_pedestrian_crossing_reserved",
+      "minute": 483,
+      "subject": "npc:08"
+    },
+    {
+      "detail": {
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:10",
+      "kind": "local_pedestrian_crossing_entered",
+      "minute": 483,
+      "subject": "npc:08"
+    },
+    {
+      "detail": {
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:11",
+      "kind": "local_pedestrian_crossing_cleared",
+      "minute": 484,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:12",
+      "kind": "local_pedestrian_crossing_cleared",
+      "minute": 484,
+      "subject": "npc:08"
+    },
+    {
+      "detail": {
+        "fraction": 0,
+        "need_after": 10,
+        "need_before": 32,
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:13",
+      "kind": "local_pedestrian_arrived",
+      "minute": 486,
+      "subject": "npc:04"
+    },
+    {
+      "detail": {
+        "fraction": 0,
+        "need_after": 19,
+        "need_before": 49,
+        "site": "patchworks:parts_counter"
+      },
+      "id": "event:14",
+      "kind": "local_pedestrian_arrived",
+      "minute": 489,
+      "subject": "npc:08"
+    }
+  ]
+}

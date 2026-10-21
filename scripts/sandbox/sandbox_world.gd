@@ -270,6 +270,7 @@ func _advance_minutes(minutes: int, physical_elapsed: bool) -> bool:
 		if is_travelling() and route_hold_id.is_empty() and execution_ready:
 			_step_player_route()
 		SandboxRiderInitiative.tick(self)
+		SandboxLocalPedestrianTrip.tick(self)
 		SandboxDispatch.refresh(residents, offers, minute, seed)
 		SandboxVehicleExecution.prune(self)
 		SandboxVehicleJunctions.release_cleared(self)

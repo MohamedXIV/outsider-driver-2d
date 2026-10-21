@@ -3,7 +3,7 @@ func _initialize() -> void: call_deferred("_run")
 func _run() -> void:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene);scene.set_process(false)
-	scene._world=SandboxWorld.new(29);scene._city.world=scene._world;scene._process(.1)
+	scene._world=SandboxWorld.new(29);scene._city.world=scene._world;scene._process(scene.REAL_SECONDS_PER_STEP)
 	var pilot: SandboxStreetPilot=scene._street_pilot
 	assert(pilot.pedestrians.size()==2)
 	for actor in pilot.pedestrians.values():
@@ -53,6 +53,7 @@ func _run() -> void:
 	var missing: Node=pilot.pedestrians["npc:08"]
 	pilot.pedestrians.erase("npc:08");pilot.remove_child(missing)
 	scene._process(.25)
+	assert(not pilot.pedestrians.has("npc:08"),"Missing native bodies must not respawn at a fabricated start pose")
 	assert(not scene._world.route_hold_id.is_empty())
 	pilot.add_child(missing);pilot.pedestrians["npc:08"]=missing
 	missing.position=Vector2(328,SandboxStreetModule.crossing_clear_y())

@@ -3,7 +3,7 @@ func _initialize() -> void: call_deferred("_run")
 func _run() -> void:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene);scene.set_process(false)
-	scene._world=SandboxWorld.new(29);scene._city.world=scene._world;scene._process(.1)
+	scene._world=SandboxWorld.new(29);scene._city.world=scene._world;scene._process(scene.REAL_SECONDS_PER_STEP)
 	var pilot: SandboxStreetPilot=scene._street_pilot
 	for actor in pilot.pedestrians.values():
 		actor.set_physics_process(false);actor._agent.avoidance_enabled=false;actor.crossing_reserved=true

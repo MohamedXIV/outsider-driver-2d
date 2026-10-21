@@ -4,7 +4,7 @@ func _run() -> void:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene);scene.set_process(false)
 	scene._world=SandboxWorld.new(29);scene._city.world=scene._world
-	scene._process(.1)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	var pilot: Node=scene._street_pilot
 	assert(pilot.get("pedestrians") is Dictionary,"The native presenter must host two real resident bodies")
 	assert(pilot.pedestrians.size()==2 and scene._world.residents.size()==9)

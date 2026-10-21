@@ -10,7 +10,7 @@ func _run() -> void:
 	root.add_child(scene)
 	scene.set_process(false)
 	var world: SandboxWorld=scene._world
-	scene._process(.25)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	assert(scene._street_pilot!=null)
 	var npc_id: String=scene._street_pilot.walking_npc_id
 	for i in range(85):

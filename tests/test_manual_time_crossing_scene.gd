@@ -2,7 +2,7 @@ extends SceneTree
 func _initialize() -> void: call_deferred("_run")
 func _run() -> void:
 	var scene: Node=load("res://scenes/sandbox.tscn").instantiate();root.add_child(scene);scene.set_process(false)
-	scene._world=SandboxWorld.new(29);scene._city.world=scene._world;scene._process(.1)
+	scene._world=SandboxWorld.new(29);scene._city.world=scene._world;scene._process(scene.REAL_SECONDS_PER_STEP)
 	for actor in scene._street_pilot.pedestrians.values():
 		actor.set_physics_process(false);actor._agent.avoidance_enabled=false
 		actor.position=Vector2(312 if actor.slot==0 else 328,350);actor.crossing_reserved=true

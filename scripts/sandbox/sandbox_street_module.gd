@@ -10,7 +10,9 @@ const NORTH_Y: float = 313.0
 const SOUTH_Y: float = 391.0
 const LANE_Y: float = 350.0
 const START: Vector2 = Vector2(155.0, NORTH_Y)
-const SITE: Vector2 = Vector2(500.0, SOUTH_Y)
+# Counter bay sits off the through sidewalk so an arrived body does not
+# become an impassable obstacle for a resident continuing to the next block.
+const SITE: Vector2 = Vector2(500.0, 409.0)
 const VEHICLE_START: Vector2 = Vector2(110.0, LANE_Y)
 const OFFSCREEN_MINUTES: float = 8.0
 const NORTH_SIDEWALK: Rect2 = Rect2(100, 300, 460, 26)
@@ -25,7 +27,7 @@ const FRONTAGES: Array[Rect2] = [
 ]
 
 static func destination(slot: int=0) -> Vector2:
-	return SITE+Vector2(-20*slot,18*slot)
+	return SITE if slot==0 else Vector2(700.0,SOUTH_Y)
 
 static func waypoints(slot: int=0) -> PackedVector2Array:
 	return PackedVector2Array([START-Vector2(30*slot,0),Vector2(CROSS_X,NORTH_Y),
