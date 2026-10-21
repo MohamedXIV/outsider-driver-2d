@@ -172,13 +172,16 @@ func _make_lane_car(label: String,start: Vector2) -> SandboxTrafficVehicle:
 	hitbox.shape=shape;vehicle.add_child(hitbox);add_child(vehicle)
 	return vehicle
 
-func _physics_process(delta: float) -> void:
-	if car==null or follower==null: return
+func sync_residents() -> void:
 	# Observe newly committed World intent, including a second resident whose
 	# eligibility changed after this module was loaded.
 	for id in SandboxLocalPedestrianTrip.candidates(world):
 		if not pedestrians.has(id) and not world.resident(id).get("local_pedestrian_trip",{}).is_empty():
 			_spawn_resident(id)
+
+func _physics_process(delta: float) -> void:
+	if car==null or follower==null: return
+	sync_residents()
 	var occupied: bool=crossing_occupied()
 	for actor in pedestrians.values():
 		actor.block_for_player=embedded and (SandboxStreetRouteBinding.taxi_occupies_crosswalk(world) or SandboxWorldTraffic.occupies_zebra(world))

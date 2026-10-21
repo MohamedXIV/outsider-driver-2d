@@ -7,7 +7,7 @@ func _run() -> void:
 	var scene: Node2D=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene)
 	scene.set_process(false)
-	scene._process(0.1)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	assert(scene._street_pilot!=null)
 	var zebra: Vector2=scene._street_pilot.to_global(Vector2(
 			SandboxStreetModule.CROSS_X,SandboxStreetModule.LANE_Y))

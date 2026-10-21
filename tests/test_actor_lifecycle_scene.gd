@@ -7,7 +7,7 @@ func _run() -> void:
 	var scene: Node2D=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene)
 	scene.set_process(false)
-	scene._process(.25)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	var world: SandboxWorld=scene._world
 	var ids: Array[String]=scene._street_pilot.loaded_ids()
 	assert(not ids.is_empty())

@@ -8,7 +8,7 @@ func _run() -> void:
 	var scene: Node2D=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene)
 	scene.set_process(false)
-	scene._process(0.1)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	assert(scene._street_pilot!=null,"Player Mode needs a genuine local resident")
 	var walker: SandboxPedestrianActor=scene._street_pilot.pedestrian
 	walker.position=Vector2(SandboxStreetModule.CROSS_X,

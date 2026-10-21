@@ -4,8 +4,11 @@ func _initialize() -> void:
 	var world: SandboxWorld=SandboxWorld.new(29)
 	var ids: Array[String]=SandboxLocalPedestrianTrip.candidates(world)
 	assert(ids.size()==2)
+	# Establish both trips before ticking either; ticks now autonomously start
+	# eligible residents, so sequential manual setup would duplicate departure.
 	for id in ids:
 		assert(SandboxLocalPedestrianTrip.begin(world,id,SandboxLocalPedestrianTrip.PATCHWORKS_PARTS))
+	for id in ids:
 		var trip: Dictionary=world.resident(id)["local_pedestrian_trip"]
 		var slot: int=int(trip["slot"])
 		var phase: float=.23
