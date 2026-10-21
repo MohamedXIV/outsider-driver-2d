@@ -1,0 +1,89 @@
+name: R05 Windows Native Diagnostic Preview (#86)
+on:
+  push:
+    branches: [feat/r05-playtest-reliability-86]
+    paths: ['.github/workflows/r05-windows-diagnostic-preview.yml']
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pin exact playtest triage runtime
+        run: |
+          set -euo pipefail
+          git checkout --detach --force 0a7aba4400144f3b52717a29a585e36b672a4c22
+          test "$(git rev-parse HEAD)" = 0a7aba4400144f3b52717a29a585e36b672a4c22
+      - name: Install official Godot 4.7.2 and Windows export templates
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip -d /tmp/godot-templates
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          cp /tmp/godot-templates/templates/windows_* ~/.local/share/godot/export_templates/4.7.2.stable/
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+      - name: Full Godot domain and Native regression gates
+        env:
+          GODOT_BIN: /tmp/godot
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p work/playtest-diagnostic
+          /tmp/godot --headless --path . --editor --import --quit > work/playtest-diagnostic/import.log 2>&1
+          OD2D_LOGS=work/playtest-diagnostic/domain python3 tests/run_city_gate.py | tee work/playtest-diagnostic/domain-summary.log
+          OD2D_LOGS=work/playtest-diagnostic/native xvfb-run -a -s '-screen 0 1280x1400x24' python3 tests/run_city_gate.py --native | tee work/playtest-diagnostic/native-summary.log
+      - name: Export Windows x64 playtest with genuine FPS/hold telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/playtest-diagnostic/Windows
+          /tmp/godot --headless --path . --export-release 'Windows Desktop' work/playtest-diagnostic/Windows/OutsiderDriver.exe > work/playtest-diagnostic/windows-export.log 2>&1
+          test -s work/playtest-diagnostic/Windows/OutsiderDriver.exe
+          if grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Failed to load script' work/playtest-diagnostic/windows-export.log; then exit 1; fi
+          cat > work/playtest-diagnostic/Windows/README.txt <<'TXT'
+          Outsider Driver 2D — #86 Windows x64 DIAGNOSTIC PREVIEW
+          Not a production release. No main merge.
+          Extract the entire ZIP; run OutsiderDriver.exe.
+          This build contains one tested failed-handoff safety fix,
+          read-only Map status when travelling, and F3 Debug telemetry.
+          To investigate a freeze: press F3 (Debug). Note the WorldInfo:
+          PERF FPS / process ms / physics ms / nodes
+          TAXI reason / speed / hold / cars / walkers
+          Save a screenshot when driving stops and after playing several minutes.
+          World projection NPCs and native walkers are not unified yet.
+          Do not interpret this as a fix of ALL playtest issues.
+          TXT
+          python3 - <<'PY'
+          import hashlib,json,pathlib,subprocess
+          p=pathlib.Path('work/playtest-diagnostic/Windows')
+          files=[{'name':x.name,'sha256':hashlib.sha256(x.read_bytes()).hexdigest(),'bytes':x.stat().st_size} for x in sorted(p.iterdir()) if x.is_file()]
+          info={'source':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+             'godot':subprocess.check_output(['/tmp/godot','--version'],text=True).strip(),
+             'status':'Windows Diagnostic Preview; Windows runtime unverified','files':files}
+          (p/'BUILD_MANIFEST.json').write_text(json.dumps(info,indent=2)+'\n')
+          print('WINDOWS_DIAGNOSTIC_EXPORT_PASS',json.dumps(info))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: OutsiderDriver-Windows-Diagnostic-86
+          path: work/playtest-diagnostic/Windows/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: R05-Diagnostic-86-Verification-Logs
+          path: |
+            work/playtest-diagnostic/*-summary.log
+            work/playtest-diagnostic/*-export.log
+            work/playtest-diagnostic/import.log
+          retention-days: 7
