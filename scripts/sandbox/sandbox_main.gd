@@ -664,21 +664,19 @@ func _render() -> void:
 		_request_common.visible = false
 		_skip_translation.visible = false
 	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
-	var departed: int = _count_events("npc_alternative_departed")
-	var arrived: int = _count_events("npc_alternative_arrived")
-	var peer_count: int = _count_events("npc_peer_contact")
+	var departed: int = _world.event_count("npc_alternative_departed")
+	var arrived: int = _world.event_count("npc_alternative_arrived")
+	var peer_count: int = _world.event_count("npc_peer_contact")
 	var peer_facts: int = 0
 	var recent_contact: String = "No witnessed peer contact yet"
 	for resident in _world.residents:
 		peer_facts += resident["peer_knowledge"].size()
-	for j in range(_world.events.size() - 1, -1, -1):
-		var peer_event: Dictionary = _world.events[j]
-		if peer_event["kind"] == "npc_peer_contact":
-			recent_contact = "%s met %s at %s" % [
-				peer_event["subject"], peer_event["detail"]["recipient"],
-				peer_event["detail"]["district"]
-			]
-			break
+	var peer_event: Dictionary = _world.last_event("npc_peer_contact")
+	if not peer_event.is_empty():
+		recent_contact = "%s met %s at %s" % [
+			peer_event["subject"], peer_event["detail"]["recipient"],
+			peer_event["detail"]["district"]
+		]
 	var known_drivers: int = 0
 	for resident in _world.residents:
 		if SandboxDriverMemory.recognizes(resident):
@@ -694,11 +692,15 @@ func _render() -> void:
 	var resting: int = _count_activity("resting")
 	var moving: int = _count_activity("travelling")
 	var recent: String = "No independent trips yet"
-	for j in range(_world.events.size() - 1, -1, -1):
-		var event: Dictionary = _world.events[j]
-		if str(event["kind"]).begins_with("npc_alternative_"):
-			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
-			break
+	# Latest of the two independent-trip kinds; event IDs are strictly increasing.
+	var last_departed: Dictionary = _world.last_event("npc_alternative_departed")
+	var last_arrived: Dictionary = _world.last_event("npc_alternative_arrived")
+	var last_trip: Dictionary = last_departed
+	if last_departed.is_empty() or (not last_arrived.is_empty() \
+			and _event_number(last_arrived) > _event_number(last_departed)):
+		last_trip = last_arrived
+	if not last_trip.is_empty():
+		recent = "%s %s" % [str(last_trip["subject"]), str(last_trip["kind"]).trim_prefix("npc_alternative_")]
 	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d | KNOWN CABS %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d | PEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
 		available.size(), _world.offers.size(), _world.residents.size(), known_drivers,
 		working, resting, moving, departed, arrived, peer_count, peer_facts,
@@ -953,11 +955,11 @@ func _expose_meeting_web() -> void:
 
 
 func _settled_count() -> int:
-	var total: int = 0
-	for event in _world.events:
-		if event["kind"] == "fare_settled":
-			total += 1
-	return total
+	return _world.event_count("fare_settled")
+
+
+func _event_number(event: Dictionary) -> int:
+	return int(str(event.get("id", "")).trim_prefix("event:"))
 
 func _count_activity(activity: String) -> int:
 	var total: int = 0
@@ -968,11 +970,7 @@ func _count_activity(activity: String) -> int:
 
 
 func _count_events(kind: String) -> int:
-	var total: int = 0
-	for event in _world.events:
-		if event["kind"] == kind:
-			total += 1
-	return total
+	return _world.event_count(kind)
 
 
 func _render_route_picker(offer: Dictionary) -> void:
