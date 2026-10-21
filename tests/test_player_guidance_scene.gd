@@ -65,6 +65,16 @@ func _run() -> void:
 		assert(scene._world.snapshot()==before)
 	ui._tab("map")
 	for frame in range(3): await process_frame
+	# Route choices expose the exact World-owned attention delta rather than
+	# pretending a slower service road is equivalent to the faster main road.
+	var route_preview: Array[String]=SandboxRoads.path(
+		scene._world.player_district,ui._map_selected,ui._planned_via)
+	assert(SandboxRoads.valid_path(route_preview))
+	var exposure_visible: bool=false
+	for item in ui._body.find_children("*","Label",true,false):
+		if str(item.text).contains("Attention +%d"%SandboxRoads.path_exposure(route_preview)):
+			exposure_visible=true
+	assert(exposure_visible,"Functional Map must show sourced route attention before driving")
 	var waypoint_picker: OptionButton=ui._actions["via"]
 	waypoint_picker.get_popup().popup()
 	await process_frame
