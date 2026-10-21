@@ -1,7 +1,7 @@
 extends SceneTree
 const NativeRouteChecks=preload("res://tests/native_route_checks.gd")
 
-# A genuine driven return trip from Market approaches the garage zebra from
+# A genuine driven return approach from Margin Gate reaches the garage zebra from
 # the opposite road direction. Unlike the pure-world test, this loads the
 # actual Player Mode scene and its native pedestrian actor.
 func _initialize() -> void:
@@ -10,13 +10,13 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var returning_world: SandboxWorld = null
-	# Pick an actual seeded world with an available garage resident after
-	# completing an ordinary outward journey; never forge a NPC or route.
+	# Start the player at the authored reverse approach. Completing a long
+	# outbound trip first now legitimately finishes these autonomous errands;
+	# it cannot serve as setup for a still-active native crossing hazard.
+	# Resident population, needs, motives and World departure remain genuine.
 	for seed in range(8,16):
 		var candidate_world: SandboxWorld=SandboxWorld.new(seed)
-		assert(candidate_world.reposition("market","margin_gate"))
-		assert(NativeRouteChecks.finish(candidate_world))
-		assert(candidate_world.player_district=="market" and not candidate_world.is_travelling())
+		candidate_world.player_district="margin_gate"
 		assert(candidate_world.reposition("garage","margin_gate"))
 		for i in range(candidate_world.remaining_minutes):
 			if SandboxStreetRouteBinding.on_edge(candidate_world):
@@ -34,10 +34,10 @@ func _run() -> void:
 	var scene: Node2D=load("res://scenes/sandbox.tscn").instantiate()
 	root.add_child(scene)
 	scene.set_process(false)
-	# Scene uses the complete world that actually drove Market -> Patchworks.
+	# Scene drives the real reverse edge from the authored approach node.
 	scene._world=returning_world
 	scene._city.world=returning_world
-	scene._process(0.1)
+	scene._process(scene.REAL_SECONDS_PER_STEP)
 	assert(scene._street_pilot!=null,
 			"Reverse approach must instantiate a native walker before the crosswalk")
 	assert(scene._street_pilot.world==returning_world)
@@ -87,5 +87,5 @@ func _run() -> void:
 		if evt["kind"]=="taxi_yield_started": starts+=1
 		if evt["kind"]=="taxi_yield_ended": ends+=1
 	assert(starts==1 and ends==1)
-	print("TAXI_CROSSING_RETURN_SCENE_PASS real market-to-garage trip, native walker, reverse yield, held save and physical release")
+	print("TAXI_CROSSING_RETURN_SCENE_PASS real margin-gate-to-garage trip, native walker, reverse yield, held save and physical release")
 	quit()
