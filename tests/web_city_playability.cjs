@@ -30,13 +30,16 @@ const { openCity } = require('./city_browser.cjs');
       'Compact passenger dialogue must expose its entire first Ink reply');
     await shot('web-player-dialogue-compact-ar');
 
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.waitForFunction(() =>
-      JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 1280);
+    // Restore the interface language while compact, then change the
+    // viewport in a separate layout pass. This is a real Player action
+    // sequence, rather than overlapping the RTL flip with tab reflow.
     await click('settings');
     await click('english');
     await click('requests');
     assert.equal((await data()).sandboxDialogueUnderstood, 'false');
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForFunction(() =>
+      JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 1280);
     await click('common');
     await page.waitForTimeout(1000);
     assert.equal((await data()).sandboxDialogueUnderstood, 'true');
