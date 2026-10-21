@@ -39,10 +39,11 @@ const { openCity } = require('./city_browser.cjs');
     await click('map');
     await click('via');
     await page.keyboard.press('Home');
-    // The authored service gate is the 23rd OptionButton entry, after
-    // the default fastest-route entry. Verify semantic selection explicitly
-    // rather than treating an arbitrary menu index as a route contract.
-    for (let i = 0; i < 23; i++) await page.keyboard.press('ArrowDown');
+    // Godot's popup starts one row *before* the selected Home item here:
+    // the exact-head browser run showed 23 Down presses selecting east_service.
+    // One more Down reaches the actual east_ramp_foot service gate. Assert
+    // the semantic selected ID below so menu-order drift fails visibly.
+    for (let i = 0; i < 24; i++) await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     // OptionButton selection is published on a deferred Godot frame.
     await page.waitForFunction(() => Boolean(document.documentElement.dataset.playerPlannedVia));
