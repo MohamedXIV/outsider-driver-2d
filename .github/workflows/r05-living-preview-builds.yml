@@ -1,0 +1,148 @@
+name: R05 Living Streets Playtest Builds
+on:
+  push:
+    branches: [feat/r05-living-preview-builds]
+    paths:
+      - '.github/workflows/r05-living-preview-builds.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  package-playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pin exact Living Streets tested runtime (all eight Web suites green)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach --force 3c59a0809749b50cea92db40bb9d76fb87039363
+          test "$(git rev-parse HEAD)" = 3c59a0809749b50cea92db40bb9d76fb87039363
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Install Godot 4.7.2 and desktop/Web export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip -d /tmp/godot-templates
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          cp /tmp/godot-templates/templates/linux_* ~/.local/share/godot/export_templates/4.7.2.stable/
+          cp /tmp/godot-templates/templates/windows_* ~/.local/share/godot/export_templates/4.7.2.stable/
+          cp /tmp/godot-templates/templates/web* ~/.local/share/godot/export_templates/4.7.2.stable/
+          /tmp/godot --version
+      - name: Export Linux, Windows x64 and Web — one immutable runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/playtest/{Linux,Windows,Web}
+          /tmp/godot --headless --path . --editor --import --quit > work/playtest/import.log 2>&1
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' work/playtest/import.log; then exit 1; fi
+          /tmp/godot --headless --path . --export-release Linux work/playtest/Linux/OutsiderDriver.x86_64 > work/playtest/linux-export.log 2>&1
+          /tmp/godot --headless --path . --export-release 'Windows Desktop' work/playtest/Windows/OutsiderDriver.exe > work/playtest/windows-export.log 2>&1
+          /tmp/godot --headless --path . --export-release Web work/playtest/Web/index.html > work/playtest/web-export.log 2>&1
+          for log in work/playtest/*-export.log; do
+            if grep -E 'ERROR:|SCRIPT ERROR|Parse Error|Failed to load script' "$log"; then
+              cat "$log"; exit 1
+            fi
+          done
+          test -s work/playtest/Linux/OutsiderDriver.x86_64
+          test -s work/playtest/Windows/OutsiderDriver.exe
+          test -s work/playtest/Web/index.html
+          test -s work/playtest/Web/index.pck
+          chmod +x work/playtest/Linux/OutsiderDriver.x86_64
+          file work/playtest/Linux/OutsiderDriver.x86_64 work/playtest/Windows/OutsiderDriver.exe
+          cat > work/playtest/Linux/README.txt <<'TXT'
+          Outsider Driver 2D — Living Streets P0 Playtest (Linux x86_64)
+          Experimental unmerged build, not a release.
+          Launch: ./OutsiderDriver.x86_64
+          Keep all downloaded files together (including any .pck).
+          Test seed 29 at Patchworks: park and watch real residents cross the street.
+          F3 enters diagnostic mode; change seed there only to reproduce the scene.
+          Human gameplay, pacing and driver-feel validation is not complete.
+          TXT
+          cat > work/playtest/Windows/README.txt <<'TXT'
+          Outsider Driver 2D — Living Streets P0 Playtest (Windows x64)
+          Experimental unmerged build, not a release.
+          Launch: OutsiderDriver.exe
+          Keep all downloaded files together (including any .pck).
+          Test seed 29 at Patchworks: park and watch real residents cross the street.
+          F3 enters diagnostic mode; change seed there only to reproduce the scene.
+          Windows runtime and driving experience have not yet been human-tested.
+          TXT
+          cat > work/playtest/Web/README.txt <<'TXT'
+          Outsider Driver 2D — Living Streets P0 Playtest (Web)
+          Experimental unmerged build, not a public release.
+          Extract the entire folder. Serve it over HTTP (do not open index.html with file://).
+          From inside Web: python3 -m http.server 8765
+          Browse: http://localhost:8765/index.html
+          Test seed 29 at Patchworks; F3 opens diagnostic controls.
+          TXT
+          python3 - <<'PY'
+          import hashlib, json, pathlib, subprocess
+          base=pathlib.Path('work/playtest')
+          manifest={'project':'Outsider Driver 2D — Living Streets P0 playtest',
+            'source_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            'godot':subprocess.check_output(['/tmp/godot','--version'],text=True).strip(),
+            'status':'PREVIEW — unmerged, not a release, Windows not runtime validated',
+            'platforms':{}}
+          for platform in ['Linux','Windows','Web']:
+            files=[]
+            for f in sorted((base/platform).rglob('*')):
+              if f.is_file():
+                files.append({'path':f.relative_to(base/platform).as_posix(),
+                  'bytes':f.stat().st_size,
+                  'sha256':hashlib.sha256(f.read_bytes()).hexdigest()})
+            manifest['platforms'][platform]=files
+          (base/'BUILD_MANIFEST.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print('PLAYTEST_BUILDS_EXPORT_PASS',json.dumps({x:[v['path'] for v in y] for x,y in manifest['platforms'].items()}))
+          PY
+      - name: Linux headless launch smoke (does not count as human playtest)
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 15s work/playtest/Linux/OutsiderDriver.x86_64 --headless --quit-after 90 > work/playtest/linux-smoke.log 2>&1 || {
+            cat work/playtest/linux-smoke.log; exit 1;
+          }
+          if grep -E 'SCRIPT ERROR|Parse Error|Failed to load script' work/playtest/linux-smoke.log; then
+            cat work/playtest/linux-smoke.log; exit 1
+          fi
+          echo PLAYTEST_LINUX_SMOKE_PASS
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: OutsiderDriver-PREVIEW-Windows-x64
+          path: work/playtest/Windows/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: OutsiderDriver-PREVIEW-Linux-x64
+          path: work/playtest/Linux/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: OutsiderDriver-PREVIEW-Web
+          path: work/playtest/Web/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: OutsiderDriver-PREVIEW-Build-Provenance
+          path: |
+            work/playtest/BUILD_MANIFEST.json
+            work/playtest/*-export.log
+            work/playtest/import.log
+            work/playtest/linux-smoke.log
+          retention-days: 7
