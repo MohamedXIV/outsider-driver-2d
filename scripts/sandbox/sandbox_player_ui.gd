@@ -458,6 +458,25 @@ func sync() -> void:
 				maxi(1,ceili(SandboxRoads.path_metres(path)/5000.0)),
 				SandboxRoads.path_exposure(path)])
 		_label("%s · %.1f km · %d min"%[place(_map_selected),SandboxRoads.path_metres(path)/1000,SandboxRoads.path_minutes(path)])
+		if world.is_travelling():
+			# Read-only state from the real vehicle executor: a disabled Drive
+			# command means an active trip, never that the vehicle is parked.
+			# Explain physical holds without overriding right-of-way or World.
+			var execution: Dictionary=world.vehicle_execution.get("player",{})
+			var motion_reason: String=str(execution.get("reason",""))
+			var stopped: bool=bool(execution.get("native",false)) and float(execution.get("speed",1.0))<=0.05
+			if not world.route_hold_id.is_empty():
+				_label(trp("Taxi yielding at a marked crossing · current trip is active",
+					"السيارة تنتظر عند معبر المشاة · الرحلة الحالية مستمرة"))
+			elif stopped and motion_reason in ["vehicle","junction","pedestrian"]:
+				var waiting_reason: String=trp("another vehicle","سيارة أخرى")
+				if motion_reason=="junction": waiting_reason=trp("junction right-of-way","أولوية التقاطع")
+				elif motion_reason=="pedestrian": waiting_reason=trp("pedestrian crossing","معبر المشاة")
+				_label(trp("Taxi stopped for ","السيارة متوقفة بسبب ")+waiting_reason+
+					trp(" · current trip is active"," · الرحلة الحالية مستمرة"))
+			else:
+				_label(trp("Current trip in progress · another trip cannot start yet",
+					"الرحلة الحالية جارية · لا يمكن بدء رحلة جديدة الآن"))
 		_button("drive",trp("Drive to this stop","قد إلى الموقف"),_drive.bind(_map_selected),world.is_travelling() or world.player_district==_map_selected or not SandboxRoads.valid_path(path))
 		if not world.is_travelling():
 			_button("plan_fare",trp("Use waypoint for selected fare","استخدم النقطة للتوصيلة المختارة"),_plan_fare)
