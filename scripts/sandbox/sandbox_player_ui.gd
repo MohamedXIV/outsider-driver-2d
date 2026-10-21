@@ -669,10 +669,15 @@ func _fit_panel() -> void:
 		# Fixed-height compact bottom sheet leaves the living city readable.
 		# Do not resize/reposition Wait as autonomous offers change height.
 		var preferred_height: float=area.y*0.46
-		# A genuine Ink encounter is a focused conversation, unlike an
-		# ordinary Street/market browsing panel. Let its real replies fit
-		# together when the available viewport permits; otherwise scroll.
-		if tab=="contacts" and controller._meeting_dialogue!=null:
+		# Active sourced dialogue is a focused conversation, not ordinary
+		# Street browsing. Keep the real passenger (or off-duty scene)
+		# and first reply visible together when a compact screen permits;
+		# other tabs preserve the city-first 46% sheet.
+		var passenger_speaking: bool=tab=="requests" and (
+			controller._conversation!=null or (
+				controller._world.is_travelling() and
+				str(controller._world.rider_initiative.get("status",""))=="pending"))
+		if (tab=="contacts" and controller._meeting_dialogue!=null) or passenger_speaking:
 			preferred_height=maxf(preferred_height,
 				minf(area.y*0.69,_body.get_combined_minimum_size().y+32.0))
 		var height: float=minf(available,maxf(180.0,preferred_height))

@@ -9,6 +9,34 @@ const { openCity } = require('./city_browser.cjs');
     await click('talk');
     assert.equal((await data()).sandboxDialogueUnderstood, 'false');
     await shot('web-player-dialogue');
+
+    // A real uncomprehended Ink line must remain legible beside its
+    // portrait, with the actual first reply fully visible on a compact
+    // Arabic phone. This uses the live offer, not a fixture passenger.
+    await page.setViewportSize({ width: 480, height: 760 });
+    await page.waitForFunction(() =>
+      JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 480);
+    await click('settings');
+    await click('arabic');
+    await click('requests');
+    const compact = await data();
+    assert.equal(compact.playerLocale, 'ar');
+    assert.equal(compact.sandboxDialogueUnderstood, 'false',
+      'Arabic interface must not silently understand alien dialogue');
+    const firstReply = JSON.parse(compact.playerActions).choice_0;
+    assert.ok(firstReply && !firstReply.disabled);
+    assert.ok(firstReply.y - firstReply.height / 2 >= firstReply.clipTop &&
+              firstReply.y + firstReply.height / 2 <= firstReply.clipBottom,
+      'Compact passenger dialogue must expose its entire first Ink reply');
+    await shot('web-player-dialogue-compact-ar');
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForFunction(() =>
+      JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 1280);
+    await click('settings');
+    await click('english');
+    await click('requests');
+    assert.equal((await data()).sandboxDialogueUnderstood, 'false');
     await click('common');
     await page.waitForTimeout(1000);
     assert.equal((await data()).sandboxDialogueUnderstood, 'true');

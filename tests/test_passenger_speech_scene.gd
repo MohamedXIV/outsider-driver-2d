@@ -40,6 +40,12 @@ func _run() -> void:
 	assert(embedded.size()==1 and embedded[0].speech_label.text==scene._dialogue_text.text)
 	assert(embedded[0].portrait.npc==ui._speech.portrait.npc)
 	assert(ui._actions.has("choice_0") and ui._actions["choice_0"].custom_minimum_size.y>=44)
+	var reply: Button=ui._actions["choice_0"]
+	var viewport_clip: Rect2=ui._scroll.get_global_rect()
+	assert(viewport_clip.has_point(reply.get_global_rect().end-Vector2(4.0,4.0)),
+		"Compact passenger portrait and full first real reply must fit before scrolling")
+	assert(ui._panel.position.y>=194.0,
+		"Compact passenger conversation must not obscure the player tab rows")
 	scene._on_language_locale("ar")
 	ui.sync()
 	for frame in range(3): await process_frame
