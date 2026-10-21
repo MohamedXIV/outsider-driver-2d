@@ -35,6 +35,7 @@ func _ready() -> void:
 	_agent.radius = 8.0
 	_agent.max_speed = SPEED
 	_agent.avoidance_enabled = true
+	_agent.avoidance_priority = 0.5
 	_agent.velocity_computed.connect(_on_safe_velocity)
 	add_child(_agent)
 	queue_redraw()
@@ -42,6 +43,10 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	_motion_permitted=false
 	if did_arrive:
+		# An arrived body cannot reciprocate avoidance. Passing walkers must
+		# take full responsibility for going around the stationary resident.
+		_agent.avoidance_priority=1.0
+		_agent.set_velocity(Vector2.ZERO)
 		velocity = Vector2.ZERO
 		return
 	# Navigation maps require a server synchronization before the first query.
@@ -61,6 +66,11 @@ func _physics_process(_delta: float) -> void:
 		_agent.set_velocity(Vector2.ZERO)
 		reached_site.emit(npc_id)
 		return
+	# Avoidance can displace a body after the agent consumed its final path
+	# point. A finished path is not physical arrival: ask Godot for a new
+	# path from the actual body rather than drifting with a zero intention.
+	if _agent.is_navigation_finished():
+		_agent.target_position=get_parent().to_global(destination)
 	var next: Vector2=_agent.get_next_path_position()
 	path_blocked=not _agent.is_target_reachable()
 	if path_blocked:

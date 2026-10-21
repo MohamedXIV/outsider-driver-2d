@@ -5,10 +5,11 @@ extends RefCounted
 # visible movement; the world validates and records intent and arrival once.
 # This bounded experiment does not change city-wide taxi offer/route semantics.
 const PATCHWORKS_PARTS: String = "patchworks:parts_counter"
+const LOCAL_NEED: int = 30
 
 static func eligible(world: SandboxWorld, npc: Dictionary) -> bool:
 	if not npc.get("local_pedestrian_trip",{}).is_empty() or npc.get("location","")!="garage" \
-			or npc.get("activity","")!="available" or int(npc.get("need",0))<30 \
+			or npc.get("activity","")!="available" or int(npc.get("need",0))<LOCAL_NEED \
 			or not ["supplies","work"].has(npc.get("purpose","")) \
 			or int(npc.get("cooldown_until",0))>world.minute \
 			or not str(npc.get("taxi_offer","")).is_empty(): return false
@@ -55,10 +56,10 @@ static func tick(world: SandboxWorld) -> void:
 		if not eligible(world,world.resident(id)): continue
 		if begin(world,id,PATCHWORKS_PARTS):
 			world.resident(id)["activity"]="travelling"
-			# No native body exists away from the active neighborhood. Start
-			# at the same authored distance anchor as a genuine unload.
-			if not SandboxStreetRouteBinding.in_neighborhood(world):
-				handoff(world,id,0.0)
+			# Start in the coarse policy until a real presenter claims this
+			# trip, even when the player is nearby. World-only simulation and
+			# saves must never require a body that has not been instantiated.
+			handoff(world,id,0.0)
 
 static func reserve(world: SandboxWorld, npc_id: String) -> bool:
 	return _crossing_transition(world,npc_id,"reserved",["approach"])
@@ -215,7 +216,14 @@ static func arrive(world: SandboxWorld, npc_id: String, site: String, clock_frac
 	trip["arrived"] = world.minute
 	trip["arrived_fraction"]=clock_fraction
 	npc["local_pedestrian_trip"] = trip
-	world._record("local_pedestrian_arrived", npc_id, {"site": site,"fraction":clock_fraction})
+	# This small service addresses part of the existing purpose. It neither
+	# pays a fare nor completes/teleports the resident's distant city goal.
+	var prior_need: int=int(npc["need"])
+	npc["need"]=maxi(10,prior_need-LOCAL_NEED)
+	npc["cooldown_until"]=maxi(int(npc["cooldown_until"]),world.minute+30)
+	npc["activity"]="available"
+	world._record("local_pedestrian_arrived", npc_id, {"site": site,"fraction":clock_fraction,
+			"need_before":prior_need,"need_after":npc["need"]})
 	return true
 
 static func valid_history(npc: Dictionary, events: Array, minute: int) -> bool:

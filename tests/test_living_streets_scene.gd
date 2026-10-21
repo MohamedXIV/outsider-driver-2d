@@ -39,7 +39,7 @@ func _run() -> void:
 		if second.position.x>570: saw_adjacent=true
 		if frame%120==0:
 			print("LIVING_TRACE minute=",scene._world.minute," first=",first.position," second=",second.position,
-				" reserved=",pilot.crossing_occupied()," car=",pilot.car.position," goal=",first.destination," arrived=",first.did_arrive," blocked=",first.path_blocked," next=",first._agent.get_next_path_position()," velocity=",first.velocity)
+				" reserved=",pilot.crossing_occupied()," car=",pilot.car.position," goal=",first.destination," arrived=",first.did_arrive," blocked=",first.path_blocked," next=",first._agent.get_next_path_position()," velocity=",first.velocity," local_next=",pilot.to_local(first._agent.get_next_path_position())," agent_goal=",pilot.to_local(first._agent.target_position)," finished=",first._agent.is_navigation_finished())
 		if first.did_arrive and second.did_arrive:
 			assert(pilot.car_yielded)
 			break

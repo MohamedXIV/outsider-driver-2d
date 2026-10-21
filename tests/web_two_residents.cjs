@@ -56,6 +56,9 @@ const {openCity}=require('./city_browser.cjs');
       assert.equal(events.filter(e=>e.kind==='local_pedestrian_arrived'&&e.subject===id).length,1);
     }
     const end=await actors();
+    assert.ok(end.some(a=>a.x>560),'A genuine resident must physically reach the adjacent authored block');
+    assert.ok(events.filter(e=>e.kind==='local_pedestrian_departed').every(e=>e.minute>480),'Departure must originate in ordinary World ticks');
+    require('node:fs').writeFileSync('/tmp/od2d-city-evidence/living-streets-ledger.json',JSON.stringify({seed:29,saved,restored,end,events},null,2));
     assert.ok(Math.hypot(end[0].x-end[1].x,end[0].y-end[1].y)>=14);
     await shot('multi-two-residents-arrived');
     assert.deepEqual(errors,[]);
