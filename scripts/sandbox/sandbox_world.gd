@@ -23,6 +23,12 @@ var ar_equipped: bool = false
 var residents: Array[Dictionary] = []
 var offers: Array[Dictionary] = []
 var events: Array[Dictionary] = []
+# Read-only lookup indexes over `events` (same Dictionary references, not copies).
+# They are maintained ONLY by _record() and _rebuild_event_index(); never mutate
+# `events` elsewhere. Events are never pruned because knowledge, driver memory and
+# save validation cite event IDs as provenance.
+var _events_by_id: Dictionary = {}    # "event:12" -> event
+var _events_by_kind: Dictionary = {}  # kind -> Array of events, in order
 var active_offer_id: String = ""
 var remaining_minutes: int = 0
 var route_nodes: Array[String] = []
@@ -40,13 +46,50 @@ func _init(world_seed: int = 1) -> void:
 
 
 func _record(kind: String, subject: String, detail: Dictionary = {}) -> void:
-	events.append({
+	var event: Dictionary = {
 		"id": "event:%d" % (events.size() + 1),
 		"minute": minute,
 		"kind": kind,
 		"subject": subject,
 		"detail": detail.duplicate(true)
-	})
+	}
+	events.append(event)
+	_index_event(event)
+
+
+func _index_event(event: Dictionary) -> void:
+	_events_by_id[event["id"]] = event
+	var kind: String = str(event["kind"])
+	if not _events_by_kind.has(kind):
+		_events_by_kind[kind] = []
+	_events_by_kind[kind].append(event)
+
+
+func _rebuild_event_index() -> void:
+	_events_by_id.clear()
+	_events_by_kind.clear()
+	for event in events:
+		_index_event(event)
+
+
+# O(1) event queries for UI/projections. Prefer these over scanning `events`.
+func event_count(kind: String) -> int:
+	return (_events_by_kind[kind] as Array).size() if _events_by_kind.has(kind) else 0
+
+
+func last_event(kind: String) -> Dictionary:
+	if not _events_by_kind.has(kind):
+		return {}
+	var list: Array = _events_by_kind[kind]
+	return list.back() if not list.is_empty() else {}
+
+
+func events_of_kind(kind: String) -> Array:
+	return _events_by_kind.get(kind, [])
+
+
+func event_by_id(event_id: String) -> Dictionary:
+	return _events_by_id.get(event_id, {})
 
 
 func select_starter_device(device: String) -> bool:
@@ -137,20 +180,16 @@ func rumor_candidate(offer_id: String) -> Dictionary:
 		var claim: Dictionary = npc["peer_knowledge"][fact]
 		if not str(fact).begins_with("residence:") or not SandboxRoads.DISTRICTS.has(claim.get("value", "")):
 			continue
-		var verified_source: bool = false
-		for event in events:
-			if event.get("id") == claim.get("source") and event.get("kind") == "npc_peer_contact" \
-					and event.get("detail", {}).get("recipient") == npc["id"] \
-					and event.get("detail", {}).get("fact") == fact \
-					and event.get("detail", {}).get("value") == claim["value"]:
-				verified_source = true
-				break
+		var source_event: Dictionary = event_by_id(str(claim.get("source", "")))
+		var verified_source: bool = source_event.get("kind") == "npc_peer_contact" \
+				and source_event.get("detail", {}).get("recipient") == npc["id"] \
+				and source_event.get("detail", {}).get("fact") == fact \
+				and source_event.get("detail", {}).get("value") == claim["value"]
 		if not verified_source:
 			continue
 		var already_heard: bool = false
-		for event in events:
-			if event.get("kind") == "player_rumor_heard" \
-					and event.get("subject") == offer_id and event.get("detail", {}).get("fact") == fact:
+		for event in events_of_kind("player_rumor_heard"):
+			if event.get("subject") == offer_id and event.get("detail", {}).get("fact") == fact:
 				already_heard = true
 				break
 		if not already_heard:
@@ -727,6 +766,7 @@ func restore_snapshot(value: Dictionary) -> bool:
 	events.clear()
 	for event in value["events"]:
 		events.append((event as Dictionary).duplicate(true))
+	_rebuild_event_index()
 	active_offer_id = active
 	remaining_minutes = remaining
 	route_nodes = route.duplicate()

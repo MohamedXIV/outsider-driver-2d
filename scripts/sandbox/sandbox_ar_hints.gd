@@ -14,10 +14,10 @@ static func contextual(world: SandboxWorld, frame: Dictionary, offer: Dictionary
 	var speaker: String = str(offer.get("npc_id", ""))
 	# Hearsay must have a prior explicit PLAYER-heard event. The NPC's
 	# private peer knowledge is never inspected by this read-only projection.
-	for i in range(world.events.size() - 1, -1, -1):
-		var event: Dictionary = world.events[i]
-		if event.get("kind") != "player_rumor_heard" \
-				or event.get("detail", {}).get("speaker") != speaker:
+	var heard: Array = world.events_of_kind("player_rumor_heard")
+	for i in range(heard.size() - 1, -1, -1):
+		var event: Dictionary = heard[i]
+		if event.get("detail", {}).get("speaker") != speaker:
 			continue
 		var detail: Dictionary = event["detail"]
 		return {
@@ -41,9 +41,8 @@ static func known_district(world: SandboxWorld, district: String) -> Dictionary:
 		return {}
 	# A GPS-starter fact is already PlayerKnowledge, with event provenance.
 	if world.knows("map:district-graph"):
-		for event in world.events:
-			if event.get("kind") == "knowledge_learned" \
-					and event.get("detail", {}).get("fact") == "map:district-graph":
+		for event in world.events_of_kind("knowledge_learned"):
+			if event.get("detail", {}).get("fact") == "map:district-graph":
 				return {
 					"term": district, "kind": "verified", "certainty": "verified",
 					"text": "%s: known GPS links: %s." % [
@@ -52,17 +51,13 @@ static func known_district(world: SandboxWorld, district: String) -> Dictionary:
 				}
 	# A verified visit must have an actual journey event, not an internal
 	# NPC position or a destination in an unaccepted offer.
-	for i in range(world.events.size() - 1, -1, -1):
-		var event: Dictionary = world.events[i]
-		var reached: bool = (event.get("kind") == "reposition" \
-				or event.get("kind") == "fare_settled") \
-				and event.get("detail", {}).get("to") == district
-		if reached:
-			return {
-				"term": district, "kind": "verified", "certainty": "verified",
-				"text": "%s: you have personally reached this district." % district.capitalize(),
-				"source": str(event["id"]) + " / " + str(event["kind"])
-			}
+	var reached: Dictionary = _latest_arrival(world, district)
+	if not reached.is_empty():
+		return {
+			"term": district, "kind": "verified", "certainty": "verified",
+			"text": "%s: you have personally reached this district." % district.capitalize(),
+			"source": str(reached["id"]) + " / " + str(reached["kind"])
+		}
 	if district == "docks":
 		return {
 			"term": "docks", "kind": "verified", "certainty": "verified",
@@ -70,3 +65,22 @@ static func known_district(world: SandboxWorld, district: String) -> Dictionary:
 			"source": "start:player:docks"
 		}
 	return {}
+
+
+# Most recent real arrival at `district` (a reposition or a settled fare). Scans
+# only those two kinds, newest first, and stops at the first match per kind.
+static func _latest_arrival(world: SandboxWorld, district: String) -> Dictionary:
+	var best: Dictionary = {}
+	for kind in ["reposition", "fare_settled"]:
+		var list: Array = world.events_of_kind(kind)
+		for i in range(list.size() - 1, -1, -1):
+			var event: Dictionary = list[i]
+			if event.get("detail", {}).get("to") == district:
+				if best.is_empty() or _event_number(event) > _event_number(best):
+					best = event
+				break
+	return best
+
+
+static func _event_number(event: Dictionary) -> int:
+	return int(str(event.get("id", "")).trim_prefix("event:"))

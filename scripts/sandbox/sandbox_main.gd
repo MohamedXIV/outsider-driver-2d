@@ -299,12 +299,12 @@ func _finish_language_reveal() -> void:
 	# Hiding Skip collapses its VBox slot and moves every Ink choice.
 	# Republish *after* Godot lays out the frame so Web clicks cannot hit
 	# an obsolete pre-reveal position.
-	if OS.has_feature("web"):
+	if _web_telemetry():
 		call_deferred("_publish_language_web")
 
 
 func _publish_reveal_web() -> void:
-	if OS.has_feature("web"):
+	if _web_telemetry():
 		JavaScriptBridge.eval(
 				"Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 					"sandboxDialogueText": _dialogue_text.text,
@@ -344,7 +344,7 @@ func _show_ar_hint() -> void:
 	_publish_ar_web()
 	# This popup is normally hidden; its Close button has no final geometry
 	# until Godot lays out a visible frame. Publish post-layout Web hitboxes.
-	if OS.has_feature("web"):
+	if _web_telemetry():
 		call_deferred("_publish_language_web")
 
 
@@ -359,8 +359,25 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _publish_ar_web() -> void:
+# Dataset publishing for browser tests/debug is off for real players: it formats a
+# large string and calls JavaScriptBridge.eval several times per _render(). It stays on
+# under browser automation (navigator.webdriver, which Playwright sets) or with
+# `?telemetry` in the URL. The reduced-motion preference read in _ready() is unaffected.
+var _telemetry: int = -1 # -1 unknown, 0 off, 1 on
+
+
+func _web_telemetry() -> bool:
 	if not OS.has_feature("web"):
+		return false
+	if _telemetry < 0:
+		_telemetry = 1 if bool(JavaScriptBridge.eval(
+				"navigator.webdriver === true || new URLSearchParams(window.location.search).has('telemetry')",
+				true)) else 0
+	return _telemetry == 1
+
+
+func _publish_ar_web() -> void:
+	if not _web_telemetry():
 		return
 	JavaScriptBridge.eval("Object.assign(document.documentElement.dataset,%s)" % JSON.stringify({
 		"sandboxAROwned": str(_world.ar_owned).to_lower(),
@@ -664,21 +681,19 @@ func _render() -> void:
 		_request_common.visible = false
 		_skip_translation.visible = false
 	var phase: String = "enroute" if not _world.active_offer_id.is_empty() else "seeking"
-	var departed: int = _count_events("npc_alternative_departed")
-	var arrived: int = _count_events("npc_alternative_arrived")
-	var peer_count: int = _count_events("npc_peer_contact")
+	var departed: int = _world.event_count("npc_alternative_departed")
+	var arrived: int = _world.event_count("npc_alternative_arrived")
+	var peer_count: int = _world.event_count("npc_peer_contact")
 	var peer_facts: int = 0
 	var recent_contact: String = "No witnessed peer contact yet"
 	for resident in _world.residents:
 		peer_facts += resident["peer_knowledge"].size()
-	for j in range(_world.events.size() - 1, -1, -1):
-		var peer_event: Dictionary = _world.events[j]
-		if peer_event["kind"] == "npc_peer_contact":
-			recent_contact = "%s met %s at %s" % [
-				peer_event["subject"], peer_event["detail"]["recipient"],
-				peer_event["detail"]["district"]
-			]
-			break
+	var peer_event: Dictionary = _world.last_event("npc_peer_contact")
+	if not peer_event.is_empty():
+		recent_contact = "%s met %s at %s" % [
+			peer_event["subject"], peer_event["detail"]["recipient"],
+			peer_event["detail"]["district"]
+		]
 	var known_drivers: int = 0
 	for resident in _world.residents:
 		if SandboxDriverMemory.recognizes(resident):
@@ -694,11 +709,15 @@ func _render() -> void:
 	var resting: int = _count_activity("resting")
 	var moving: int = _count_activity("travelling")
 	var recent: String = "No independent trips yet"
-	for j in range(_world.events.size() - 1, -1, -1):
-		var event: Dictionary = _world.events[j]
-		if str(event["kind"]).begins_with("npc_alternative_"):
-			recent = "%s %s" % [str(event["subject"]), str(event["kind"]).trim_prefix("npc_alternative_")]
-			break
+	# Latest of the two independent-trip kinds; event IDs are strictly increasing.
+	var last_departed: Dictionary = _world.last_event("npc_alternative_departed")
+	var last_arrived: Dictionary = _world.last_event("npc_alternative_arrived")
+	var last_trip: Dictionary = last_departed
+	if last_departed.is_empty() or (not last_arrived.is_empty() \
+			and _event_number(last_arrived) > _event_number(last_departed)):
+		last_trip = last_arrived
+	if not last_trip.is_empty():
+		recent = "%s %s" % [str(last_trip["subject"]), str(last_trip["kind"]).trim_prefix("npc_alternative_")]
 	_world_info.text = "LIVING CITY\nOFFERS %d / %d\nNPCs %d | KNOWN CABS %d\nWORKING %d  RESTING %d\nTRAVELLING %d\nALT DEPARTURES %d\nALT ARRIVALS %d\nPEER CONTACTS %d | PEER FACTS %d\nEVENTS %d\n%s\n%s\nSTATUS %s" % [
 		available.size(), _world.offers.size(), _world.residents.size(), known_drivers,
 		working, resting, moving, departed, arrived, peer_count, peer_facts,
@@ -710,7 +729,7 @@ func _render() -> void:
 			route["origin"], route["destination"], _world.remaining_minutes,
 			_world.route_segment + 1, _world.route_nodes.size() - 1
 		]
-	if OS.has_feature("web"):
+	if _web_telemetry():
 		var web_state: String = "Object.assign(document.documentElement.dataset,{sandboxReady:'true',sandboxSeed:'%d',sandboxOffers:'%d',sandboxResidents:'%d',sandboxEvents:'%d',sandboxCredits:'%d',sandboxRisk:'%d',sandboxPhase:'%s',sandboxDistrict:'%s',sandboxSelected:'%s',sandboxAccepted:'%s',sandboxSettlements:'%d',sandboxDialogue:'%s',sandboxDialogueChoices:'%d',sandboxDialogueUnderstood:'%s',sandboxDialogueOffer:'%s',sandboxDialogueIntent:'%s',sandboxDialogueOutcome:'%s',sandboxDialogueText:%s,sandboxDevice:'%s',sandboxKnowledge:'%d',sandboxSelectedLanguage:%s,sandboxOwned:%s,sandboxInstalled:%s,sandboxMarketStock:%s,sandboxCommonRequested:'%s',sandboxMarketOpen:'%s',sandboxGearInfo:%s,sandboxAltDepartures:'%d',sandboxAltArrivals:'%d',sandboxWorkers:'%d',sandboxResting:'%d',sandboxNpcMoving:'%d',sandboxRouteNodes:%s,sandboxRouteSegment:'%d',sandboxRouteElapsed:'%d',sandboxRouteWaypoint:'%s',sandboxRoutePreview:%s,sandboxPendingRoute:%s,sandboxRiderStatus:'%s',sandboxRiderVia:'%s',sandboxRiderTrust:'%d',sandboxReplanEnabled:'%s',sandboxRiderInfo:%s,sandboxPeerContacts:'%d',sandboxPeerFacts:'%d',sandboxPeerLast:%s,sandboxKnownCabs:'%d',sandboxReturningIndex:'%d',sandboxSelectedRecognizes:'%s',sandboxSelectedMemories:'%d',sandboxDialogueRecognizes:'%s'})" % [
 			_world.seed, available.size(), _world.residents.size(), _world.events.size(),
 			_world.credits, _world.risk, phase, _world.player_district,
@@ -799,7 +818,7 @@ func _update_dialogue_presentation(frame: Dictionary, offer: Dictionary, speaker
 
 
 func _publish_language_web() -> void:
-	if not OS.has_feature("web"):
+	if not _web_telemetry():
 		return
 	await get_tree().process_frame
 	if not is_inside_tree():
@@ -915,7 +934,7 @@ func _render_meetings() -> void:
 func _refresh_web_hitboxes_after_layout() -> void:
 	# Godot Control geometry is finalized in a later frame. Prevent publishing
 	# zero-sized/stale interaction targets immediately after scene restoration.
-	if not OS.has_feature("web"):
+	if not _web_telemetry():
 		return
 	await get_tree().process_frame
 	if is_inside_tree() and _meeting_panel.visible:
@@ -923,7 +942,7 @@ func _refresh_web_hitboxes_after_layout() -> void:
 
 
 func _expose_meeting_web() -> void:
-	if OS.has_feature("web"):
+	if _web_telemetry():
 		var active_meeting: Dictionary = _world.meeting_by_id(_selected_meeting_id)
 		var accept_center: Vector2 = _meeting_accept.get_global_rect().get_center()
 		var attend_center: Vector2 = _meeting_attend.get_global_rect().get_center()
@@ -953,11 +972,11 @@ func _expose_meeting_web() -> void:
 
 
 func _settled_count() -> int:
-	var total: int = 0
-	for event in _world.events:
-		if event["kind"] == "fare_settled":
-			total += 1
-	return total
+	return _world.event_count("fare_settled")
+
+
+func _event_number(event: Dictionary) -> int:
+	return int(str(event.get("id", "")).trim_prefix("event:"))
 
 func _count_activity(activity: String) -> int:
 	var total: int = 0
@@ -968,11 +987,7 @@ func _count_activity(activity: String) -> int:
 
 
 func _count_events(kind: String) -> int:
-	var total: int = 0
-	for event in _world.events:
-		if event["kind"] == kind:
-			total += 1
-	return total
+	return _world.event_count(kind)
 
 
 func _render_route_picker(offer: Dictionary) -> void:
