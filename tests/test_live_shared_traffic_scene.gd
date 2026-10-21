@@ -21,7 +21,17 @@ func _run() -> void:
 	assert(scene._street_pilot!=null and scene._street_pilot.pedestrians.size()==2)
 	assert(world.resident("npc:04")["local_pedestrian_trip"]["status"]=="walking")
 	assert(world.resident("npc:08")["local_pedestrian_trip"]["status"]=="walking")
-	assert(world.reposition("margin_gate"))
+	var candidate: Array[String]=SandboxRoads.path(world.player_district,"margin_gate")
+	var needed: int=maxi(1,ceili(SandboxRoads.path_metres(candidate)/5000.0)) + SandboxRoads.path_expense(candidate)
+	print("PLAYTEST_SHARED_PRECONDITION ",JSON.stringify({
+		"district":world.player_district,"minute":world.minute,
+		"travelling":world.is_travelling(),"meeting":world.meeting_in_progress(),
+		"credits":world.credits,"cost":needed,"route":candidate,
+		"pedestrians":scene._street_pilot.pedestrians.size()}))
+	if not world.reposition("margin_gate"):
+		printerr("PLAYTEST_SHARED_CANNOT_REPOSITION real World refused departure")
+		quit(1)
+		return
 	var starting_minutes: int=world.remaining_minutes
 	var saw_both: bool=false
 	var saw_crossing: bool=false
