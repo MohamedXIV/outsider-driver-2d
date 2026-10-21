@@ -1,0 +1,52 @@
+name: R05 Living Streets exported current-world gate
+on:
+  push:
+    branches: [feat/r05-living-route-audit]
+    paths: ['.github/workflows/r05-living-current-gate.yml']
+permissions:
+  contents: read
+jobs:
+  full-current:
+    runs-on: ubuntu-latest
+    timeout-minutes: 38
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Pin exact tested runtime head (PR83 evidence-only tip excluded)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach --force 3c59a0809749b50cea92db40bb9d76fb87039363
+          test "$(git rev-parse HEAD)" = 3c59a0809749b50cea92db40bb9d76fb87039363
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Install exact Godot 4.7.2 and Chromium 1.56
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz -o /tmp/templates.zip
+          unzip -q /tmp/templates.zip -d /tmp/godot-templates
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable
+          cp /tmp/godot-templates/templates/web* ~/.local/share/godot/export_templates/4.7.2.stable/
+          npm install --prefix /tmp/od2d-node playwright@1.56.0
+          /tmp/od2d-node/node_modules/.bin/playwright install --with-deps chromium
+      - name: Exact-head full CURRENT exported Web gate (unchanged strict assertions)
+        env:
+          GODOT_BIN: /tmp/godot
+          NODE_PATH: /tmp/od2d-node/node_modules
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          OD2D_LOGS: work/r05-living-current
+        run: |
+          set -euo pipefail
+          mkdir -p work/r05-living-current
+          python3 tests/run_exported_gate.py --scope current
+          test "$(git rev-parse HEAD)" = 3c59a0809749b50cea92db40bb9d76fb87039363
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r05-living-current-world-evidence
+          path: work/r05-living-current
+          retention-days: 3
