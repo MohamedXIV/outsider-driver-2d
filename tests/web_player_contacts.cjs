@@ -1,0 +1,121 @@
+const assert = require('node:assert/strict');
+const { checkDebug } = require('./debug_browser.cjs');
+
+// Native diagnostics drive the actual two-fare invite setup, not a forged
+// browser World mutation. Assertions and the final choice use Player Mode.
+checkDebug(async ({ page, data, dc, returning, completeFirst, finish, click, shot, reloadSave }) => {
+  const enterPlayerContacts = async () => {
+    await page.keyboard.press('F3');
+    await page.waitForFunction(() => document.documentElement.dataset.playerMode === 'true');
+    await click('contacts');
+    await page.waitForFunction(() => document.documentElement.dataset.playerTab === 'contacts');
+  };
+  const leavePlayer = async () => {
+    await page.keyboard.press('F3');
+    await page.waitForFunction(() => document.documentElement.dataset.playerMode === 'false');
+  };
+  const sections = async () => JSON.parse((await data()).playerContactSections || '{}');
+  const actions = async () => JSON.parse((await data()).playerActions || '{}');
+
+  await completeFirst();
+  await returning();
+  await dc('accept');
+  await finish();
+  assert.equal((await data()).sandboxSettlements, '2');
+  assert.equal((await data()).sandboxMeetingStatus, 'invited');
+  await dc('meeting_accept');
+  assert.equal((await data()).sandboxMeetingStatus, 'accepted');
+
+  await enterPlayerContacts();
+  const confirmed = await sections();
+  assert.equal(confirmed.ContactsListSection, true);
+  assert.equal(confirmed.ContactDetailsSection, true);
+  assert.equal(confirmed.ContactActionsSection, true);
+  assert.equal(confirmed.ContactRepliesSection, false);
+  assert.equal((await data()).playerContactStage, 'false');
+  assert.equal((await actions()).meeting_accept, undefined);
+  assert.equal((await actions()).meeting_decline, undefined);
+  assert.ok((await actions()).meeting_attend.disabled,
+    'The actual time/place gate must remain disabled before arrival');
+  await shot('web-player-contact-confirmed');
+  await leavePlayer();
+
+  for (let i = 0; i < 80 && (await data()).sandboxMeetingAtVenue !== 'true'; i++)
+    await dc('wait');
+  assert.equal((await data()).sandboxMeetingAtVenue, 'true');
+  await dc('meeting_attend');
+  assert.equal((await data()).sandboxMeetingStatus, 'in_progress');
+  await reloadSave();
+  assert.equal((await data()).sandboxMeetingStatus, 'in_progress');
+  assert.equal((await data()).sandboxMeetingChoices, '3');
+
+  await enterPlayerContacts();
+  const during = await sections();
+  assert.equal(during.ContactsListSection, true);
+  assert.equal(during.ContactDetailsSection, true);
+  assert.equal(during.ContactSceneSection, true);
+  assert.equal(during.ContactRepliesSection, true);
+  assert.equal((await data()).playerContactStage, 'true',
+    'Player Mode should show the actual source-backed off-duty stage');
+  assert.equal(during.ContactActionsSection, false);
+  assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText,
+    'Rendered Ink must equal the current sourced meeting frame');
+  for (let i = 0; i < 3; i++)
+    assert.ok((await actions())['meeting_choice_' + i],
+      'Every actual Ink choice must remain a Player Mode action');
+  await shot('web-player-contact-meeting');
+
+  // Same genuinely active Ink meeting, but on a compact Arabic Web
+  // viewport: scene and choices stay sourced; off-duty art must not cover
+  // the city or phone-sized player controls.
+  await page.setViewportSize({ width: 480, height: 760 });
+  await page.waitForFunction(() =>
+    JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 480);
+  assert.equal((await data()).playerContactStage, 'false',
+    'Compact Contacts must not overlay the city with a desktop vignette');
+  await click('settings');
+  await click('arabic');
+  await click('contacts');
+  assert.equal((await data()).playerLocale, 'ar');
+  assert.equal((await data()).playerTab, 'contacts');
+  assert.equal((await data()).sandboxMeetingStatus, 'in_progress');
+  assert.equal((await sections()).ContactSceneSection, true);
+  assert.equal((await sections()).ContactRepliesSection, true);
+  assert.equal((await data()).playerContactStage, 'false');
+  assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText,
+    'Arabic UI must not silently translate the source Ink meeting line');
+  assert.equal((await data()).playerContactSceneTopVisible, 'true',
+    'Arabic compact Contacts must show the real encounter text immediately');
+  const compactReplies = await actions();
+  for (let i = 0; i < 3; i++)
+    assert.equal(compactReplies['meeting_choice_' + i]?.disabled, false,
+      'All sourced Ink replies must remain reachable on compact Arabic Web');
+  const firstReply = compactReplies.meeting_choice_0;
+  assert.ok(firstReply.y - firstReply.height / 2 >= firstReply.clipTop &&
+            firstReply.y + firstReply.height / 2 <= firstReply.clipBottom,
+    'Compact Arabic meeting must show the entire first actionable reply, not just its label');
+  await shot('web-player-contact-compact-ar');
+
+  // Return to wide English player-facing controls and finish through the
+  // same authentic reply as the baseline. No debug shortcut to settle it.
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.waitForFunction(() =>
+    JSON.parse(document.documentElement.dataset.playerViewport || '[]')[0] === 1280);
+  await click('settings');
+  await click('english');
+  await click('contacts');
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.playerContactStage === 'true');
+  assert.equal((await data()).playerContactSceneText, (await data()).sandboxMeetingText);
+  await click('meeting_choice_0');
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.sandboxMeetingStatus === 'completed');
+  assert.equal((await data()).sandboxMeetingStatus, 'completed');
+  assert.equal((await sections()).ContactRepliesSection, false);
+  assert.equal((await data()).playerContactStage, 'false');
+  assert.equal((await sections()).ContactActionsSection, false,
+    'Completed encounters must not show nonfunctional invitation controls');
+  assert.equal((await actions()).meeting_attend, undefined);
+  await shot('web-player-contact-completed');
+  console.log('WEB_PLAYER_CONTACTS_PASS real two fares, confirmed appointment, restored Ink, live Player choices, single settlement');
+}).catch(err => { console.error(err); process.exitCode = 1; });
