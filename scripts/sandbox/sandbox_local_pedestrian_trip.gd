@@ -46,6 +46,20 @@ static func begin(world: SandboxWorld, npc_id: String, site: String) -> bool:
 	world._record("local_pedestrian_departed",npc_id,{"from":"garage","site":site,"slot":slot})
 	return true
 
+# Ordinary World ticks select purposes before dispatch can offer the same
+# resident a taxi. The presenter never makes this decision in normal play.
+static func tick(world: SandboxWorld) -> void:
+	var hour: int=(world.minute % 1440) / 60
+	if hour<6 or hour>=22: return
+	for id in candidates(world):
+		if not eligible(world,world.resident(id)): continue
+		if begin(world,id,PATCHWORKS_PARTS):
+			world.resident(id)["activity"]="travelling"
+			# No native body exists away from the active neighborhood. Start
+			# at the same authored distance anchor as a genuine unload.
+			if not SandboxStreetRouteBinding.in_neighborhood(world):
+				handoff(world,id,0.0)
+
 static func reserve(world: SandboxWorld, npc_id: String) -> bool:
 	return _crossing_transition(world,npc_id,"reserved",["approach"])
 

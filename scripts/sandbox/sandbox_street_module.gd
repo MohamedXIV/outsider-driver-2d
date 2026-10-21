@@ -25,7 +25,7 @@ const FRONTAGES: Array[Rect2] = [
 ]
 
 static func destination(slot: int=0) -> Vector2:
-	return SITE+Vector2(-20*slot,18*slot)
+	return SITE if slot==0 else Vector2(700.0,SOUTH_Y)
 
 static func waypoints(slot: int=0) -> PackedVector2Array:
 	return PackedVector2Array([START-Vector2(30*slot,0),Vector2(CROSS_X,NORTH_Y),
