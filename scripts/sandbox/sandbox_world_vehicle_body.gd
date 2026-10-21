@@ -140,14 +140,16 @@ func _turn_clear(at: Vector2,current: float,facing: float) -> bool:
 	return true
 
 
-func step(delta: float) -> bool:
+func step(delta: float, peers_ready: bool=false) -> bool:
 	if world==null or not is_finite(delta) or delta<=0.0: return false
 	last_blocker=""
 	_space_transform=global_transform*transform.affine_inverse()
 	var travel: Dictionary=SandboxVehicleExecution.trip(world,vehicle_id)
 	var state: Dictionary=world.vehicle_execution.get(vehicle_id,{})
 	if travel.is_empty() or state.is_empty() or not bool(state["native"]): return false
-	_refresh_peers()
+	# A standalone native body's direct tests keep refreshing peers normally.
+	# The corridor can prepare the stable peer set once per render frame.
+	if not peers_ready: _refresh_peers()
 	var at: float=float(state["progress"])
 	var speed: float=float(state["speed"])
 	var direction: Vector2=SandboxVehicleExecution.tangent(travel,at)
@@ -181,13 +183,25 @@ func step(delta: float) -> bool:
 	else:
 		# Sweep the real collision shape over the curved lane, rather than
 		# treating an unobstructed tangent as permission to cross a junction.
-		for sample in range(1,19):
-			var distance: float=float(sample)*2.0
+		# Coarse forward collision sweeps use a 4px stride over the same 36px
+		# horizon. The sweep from the current body catches intermediate contact.
+		# On obstruction, refine the previous 2px step so that stopping
+		# clearance agrees with the original dense 2px sampling.
+		for sample in range(1,10):
+			var distance: float=float(sample)*4.0
 			if distance>available: break
 			var cursor: float=_at_distance(travel,at,distance)
 			var point: Vector2=_sample_point(cursor)
 			var predicted: float=SandboxVehicleKinematics.turn_heading(float(state["heading"]),(_sample_point(cursor+.01)-_sample_point(cursor-.01)).angle(),distance/maxf(speed,1.0))
 			if _motion_blocked(point) or not _pose_clear(point,predicted):
+				var fine: float=distance-2.0
+				if fine<=available:
+					var fine_cursor: float=_at_distance(travel,at,fine)
+					var fine_point: Vector2=_sample_point(fine_cursor)
+					var fine_heading: float=SandboxVehicleKinematics.turn_heading(float(state["heading"]),
+						(_sample_point(fine_cursor+.01)-_sample_point(fine_cursor-.01)).angle(),fine/maxf(speed,1.0))
+					if _motion_blocked(fine_point) or not _pose_clear(fine_point,fine_heading):
+						distance=fine
 				available=maxf(0.0,distance-2.0-CLEARANCE)
 				reason="vehicle";break
 		target=minf(target,SandboxVehicleKinematics.braking_speed(available,delta))

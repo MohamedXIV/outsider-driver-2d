@@ -124,6 +124,10 @@ func reconcile() -> void:
 func step(seconds: float) -> void:
 	if world==null or not is_finite(seconds) or seconds<0.0: return
 	reconcile()
+	# Reconcile adds/removes peers only at this boundary. Reuse the same
+	# exclusion RIDs for the 60Hz substeps inside this render frame.
+	for loaded in bodies.values():
+		loaded._refresh_peers()
 	var left: float=seconds
 	while left>.0000001:
 		var dt: float=minf(left,1.0/60.0)
@@ -135,7 +139,7 @@ func step(seconds: float) -> void:
 			if SandboxVehicleExecution.trip(world,str(id)).is_empty(): continue
 			var body: SandboxWorldVehicleBody=bodies[id]
 			var before: Transform2D=body.transform
-			if not body.step(dt):
+			if not body.step(dt,true):
 				push_error("World rejected physical vehicle execution: "+str(id));return
 			changed=changed or body.transform!=before or float(world.vehicle_execution[id]["speed"])>.000001
 		left-=dt
