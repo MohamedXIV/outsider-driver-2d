@@ -551,7 +551,9 @@ func _advance_manual_time(minutes: int) -> void:
 # vicinity. It is one shared world, not an alternate passenger simulator.
 func _update_player_crossing_yield() -> void:
 	var occupied: bool=_street_pilot.crossing_occupied() if _street_pilot!=null else not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world)
-	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
+	# Clearance is exactly the inverse of the checked physical occupancy.
+	# Do not rescan/reconcile the same native bodies twice per vehicle tick.
+	var cleared: bool=not occupied
 	if not _world.route_hold_id.is_empty():
 		if cleared: _world.release_crossing_yield()
 	elif occupied and SandboxStreetRouteBinding.approaching(_world):
@@ -559,7 +561,9 @@ func _update_player_crossing_yield() -> void:
 
 func _update_shuttle_crossing_yields() -> void:
 	var occupied: bool=_street_pilot.crossing_occupied() if _street_pilot!=null else not SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world)
-	var cleared: bool=SandboxLocalPedestrianTrip.crossing_cleared_without_actor(_world) if _street_pilot==null else _street_pilot.crossing_cleared()
+	# Clearance is exactly the inverse of the checked physical occupancy.
+	# Do not rescan/reconcile the same native bodies twice per vehicle tick.
+	var cleared: bool=not occupied
 	for npc in _world.residents:
 		if npc.get("transit_hold_crossing","")==SandboxStreetRouteBinding.CROSSING_ID:
 			if cleared: _world.release_shuttle_crossing_yield(str(npc["id"]))
@@ -950,6 +954,21 @@ func _render_debug() -> void:
 		working, resting, moving, departed, arrived, peer_count, peer_facts,
 		_world.events.size(), recent_contact, recent, phase.to_upper()
 	]
+	# Diagnostic-only live costs from the actual desktop engine, not estimated
+	# FPS or a second simulation. F3 exposes blocking evidence during a stall.
+	if _player_ui!=null and _player_ui.debug_mode:
+		var native: Dictionary=_world.vehicle_execution.get("player",{})
+		_world_info.text+="\nPERF %d FPS · process %.1fms · physics %.1fms · nodes %d" % [
+			Engine.get_frames_per_second(),
+			1000.0*Performance.get_monitor(Performance.TIME_PROCESS),
+			1000.0*Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS),
+			int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))]
+		_world_info.text+="\nTAXI %s · speed %.2f · hold %s · cars %d · walkers %d" % [
+			str(native.get("reason","none")),
+			float(native.get("speed",0.0)),
+			_world.route_hold_id if not _world.route_hold_id.is_empty() else "none",
+			_vehicle_corridor.bodies.size() if _vehicle_corridor!=null else 0,
+			_street_pilot.loaded_ids().size() if _street_pilot!=null else 0]
 	if not _world.active_offer_id.is_empty():
 		var route: Dictionary = _world.offer_by_id(_world.active_offer_id)
 		_notice.text = "ON ROUTE  %s -> %s  |  %dm remaining  |  edge %d/%d" % [
