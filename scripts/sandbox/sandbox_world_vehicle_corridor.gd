@@ -59,6 +59,7 @@ func _sync_parked() -> void:
 		_remove_parked();return
 	if parked==null:
 		parked=StaticBody2D.new()
+		parked.name="PlayerParked"
 		parked.collision_layer=16
 		parked.collision_mask=2|4|16
 		var shape: CollisionShape2D=CollisionShape2D.new()
@@ -79,6 +80,7 @@ func _sync_curb_residents(focus: Vector2) -> void:
 		present.append(id)
 		if not curb_residents.has(id):
 			var actor: StaticBody2D=StaticBody2D.new()
+			actor.name="CurbResident_"+id
 			actor.collision_layer=2;actor.collision_mask=16
 			var collider: CollisionShape2D=CollisionShape2D.new()
 			var shape: CircleShape2D=CircleShape2D.new()
@@ -122,6 +124,10 @@ func reconcile() -> void:
 func step(seconds: float) -> void:
 	if world==null or not is_finite(seconds) or seconds<0.0: return
 	reconcile()
+	# Reconcile adds/removes peers only at this boundary. Reuse the same
+	# exclusion RIDs for the 60Hz substeps inside this render frame.
+	for loaded in bodies.values():
+		loaded._refresh_peers()
 	var left: float=seconds
 	while left>.0000001:
 		var dt: float=minf(left,1.0/60.0)
@@ -133,7 +139,7 @@ func step(seconds: float) -> void:
 			if SandboxVehicleExecution.trip(world,str(id)).is_empty(): continue
 			var body: SandboxWorldVehicleBody=bodies[id]
 			var before: Transform2D=body.transform
-			if not body.step(dt):
+			if not body.step(dt,true):
 				push_error("World rejected physical vehicle execution: "+str(id));return
 			changed=changed or body.transform!=before or float(world.vehicle_execution[id]["speed"])>.000001
 		left-=dt

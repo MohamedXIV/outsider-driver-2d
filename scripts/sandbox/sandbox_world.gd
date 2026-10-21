@@ -43,6 +43,10 @@ var vehicle_departures: Dictionary={}
 var vehicle_junctions: Dictionary={}
 var vehicle_executor: Callable=Callable()
 var vehicle_fraction: float=0.0
+# Derived from the authoritative append-only ledger; not serialized.
+# Physical car lookups run each frame, so never reverse-scan all events
+# to recover the same active reposition source repeatedly.
+var last_reposition_event_id: String=""
 
 
 func _init(world_seed: int = 1) -> void:
@@ -59,6 +63,8 @@ func _record(kind: String, subject: String, detail: Dictionary = {}) -> void:
 		"subject": subject,
 		"detail": detail.duplicate(true)
 	})
+	if kind=="reposition" and subject=="player":
+		last_reposition_event_id=str(events.back()["id"])
 
 
 func select_starter_device(device: String) -> bool:
@@ -1004,8 +1010,12 @@ func restore_snapshot(value: Dictionary) -> bool:
 	for offer in value["offers"]:
 		offers.append((offer as Dictionary).duplicate(true))
 	events.clear()
+	last_reposition_event_id=""
 	for event in value["events"]:
-		events.append((event as Dictionary).duplicate(true))
+		var restored_event: Dictionary=(event as Dictionary).duplicate(true)
+		events.append(restored_event)
+		if restored_event.get("kind","")=="reposition" and restored_event.get("subject","")=="player":
+			last_reposition_event_id=str(restored_event["id"])
 	active_offer_id = active
 	travel_destination = relocation
 	engaged_offer_id = engagement

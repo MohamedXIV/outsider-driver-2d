@@ -156,13 +156,30 @@ func cancel_resident(id: String) -> bool:
 			walking_npc_id=str(pedestrians.keys()[0]);pedestrian=pedestrians[walking_npc_id]
 	return true
 
-func handoff_all(clock_fraction: float=0.0) -> void:
+func handoff_all(clock_fraction: float=0.0) -> bool:
 	reconcile_reservations()
+	# Preflight ALL still-walking physical bodies before editing ANY World trip.
+	# Collision avoidance may place a real actor outside the legal 24px
+	# handoff corridor. In that case, never discard its only trusted pose
+	# or half-handoff one resident while another is still physically loaded.
 	for id in pedestrians:
+		var trip: Dictionary=world.resident(str(id)).get("local_pedestrian_trip",{})
+		if trip.get("status","")!="walking": continue
 		var actor: SandboxPedestrianActor=pedestrians[id]
-		var slot: int=int(world.resident(str(id)).get("local_pedestrian_trip",{}).get("slot",0))
+		var slot: int=int(trip.get("slot",0))
 		var phase: float=minf(.999999,SandboxStreetModule.progress_of(actor.position,slot))
-		SandboxLocalPedestrianTrip.handoff(world,str(id),phase,actor.position,clock_fraction)
+		if not actor.position.is_finite() or actor.position.distance_to(
+				SandboxStreetModule.position_at(phase,slot))>24.0:
+			return false
+	for id in pedestrians:
+		var trip: Dictionary=world.resident(str(id)).get("local_pedestrian_trip",{})
+		if trip.get("status","")!="walking": continue
+		var actor: SandboxPedestrianActor=pedestrians[id]
+		var slot: int=int(trip.get("slot",0))
+		var phase: float=minf(.999999,SandboxStreetModule.progress_of(actor.position,slot))
+		if not SandboxLocalPedestrianTrip.handoff(
+				world,str(id),phase,actor.position,clock_fraction): return false
+	return true
 
 func _make_lane_car(label: String,start: Vector2) -> SandboxTrafficVehicle:
 	var vehicle: SandboxTrafficVehicle=SandboxTrafficVehicle.new()

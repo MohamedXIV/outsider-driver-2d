@@ -17,10 +17,7 @@ static func trip(world: SandboxWorld,id: String) -> Dictionary:
 			base+=SandboxRoads.edge_minutes(world.route_nodes[index],world.route_nodes[index+1])
 		var source: String="fare:"+world.active_offer_id
 		if world.active_offer_id.is_empty():
-			source=""
-			for index in range(world.events.size()-1,-1,-1):
-				if world.events[index].get("kind","")=="reposition":
-					source=str(world.events[index]["id"]);break
+			source=world.last_reposition_event_id
 		return {"nodes":world.route_nodes.duplicate(),"base":base,"source":source,
 			"arrival_policy":world.vehicle_execution.get(id,{}).get("arrival_policy",""),
 			"incoming_node":world.vehicle_execution.get(id,{}).get("incoming_node",""),
