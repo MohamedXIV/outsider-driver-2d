@@ -403,6 +403,17 @@ func sync() -> void:
 				_begin_button_group(trp("Selected fare","التوصيلة المحددة")+" · "+
 					place(str(chosen["destination"])),"SelectedFareSection")
 				_button("talk",trp("Speak to the resident","تحدث مع المقيم"),_call.bind("_on_talk"))
+				# Preview facts from the same World road graph used by accept();
+				# exposure is accumulated route attention, not a probability or
+				# an invented prediction of who might recognize the driver.
+				var fare_path: Array[String]=SandboxRoads.path(world.player_district,
+					str(chosen["destination"]),controller._route_waypoint)
+				if SandboxRoads.valid_path(fare_path):
+					_group_note(trp("Planned: %.1f km · %d min · Attention +%d · Tolls %d cr",
+						"المسار: %.1f كم · %d د · الانتباه +%d · رسوم %d")%
+						[SandboxRoads.path_metres(fare_path)/1000.0,
+						SandboxRoads.path_minutes(fare_path),
+						SandboxRoads.path_exposure(fare_path),SandboxRoads.path_expense(fare_path)])
 				_button("accept",trp("Take this fare","اقبل التوصيلة"),_call.bind("_on_accept"),chosen["channel"]=="official")
 				_button("decline",trp("Decline","ارفض"),_call.bind("_on_decline"))
 				_end_button_group()
@@ -440,7 +451,12 @@ func sync() -> void:
 		_button("clear_waypoints",trp("Clear waypoints","امسح النقاط"),_clear_waypoints,_planned_stops.is_empty())
 		var path: Array[String]=SandboxRoads.path(world.player_district,_map_selected,_planned_via) if _planned_stops.is_empty() else SandboxRoads.path_via(world.player_district,_map_selected,_planned_stops)
 		map.preview_nodes=path;map.preview_active=true;map.queue_redraw()
-		if SandboxRoads.valid_path(path): _label(trp("Road tolls: %d cr · Empty-trip fuel: %d cr","رسوم الطريق: %d · وقود الرحلة الفارغة: %d")%[SandboxRoads.path_expense(path),maxi(1,ceili(SandboxRoads.path_metres(path)/5000))])
+		if SandboxRoads.valid_path(path):
+			_label(trp("Road tolls: %d cr · Empty-trip fuel: %d cr · Attention +%d",
+				"رسوم الطريق: %d · وقود الرحلة الفارغة: %d · الانتباه +%d")%
+				[SandboxRoads.path_expense(path),
+				maxi(1,ceili(SandboxRoads.path_metres(path)/5000.0)),
+				SandboxRoads.path_exposure(path)])
 		_label("%s · %.1f km · %d min"%[place(_map_selected),SandboxRoads.path_metres(path)/1000,SandboxRoads.path_minutes(path)])
 		_button("drive",trp("Drive to this stop","قد إلى الموقف"),_drive.bind(_map_selected),world.is_travelling() or world.player_district==_map_selected or not SandboxRoads.valid_path(path))
 		if not world.is_travelling():
