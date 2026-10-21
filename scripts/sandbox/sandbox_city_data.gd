@@ -34,6 +34,11 @@ const NODES: Dictionary = {
 	"shelter": {"position": Vector3(10500, 0, 5500), "region": "outer_margin", "name": "Mutual Aid Hall"},
 	"lantern": {"position": Vector3(11400, 0, 8100), "region": "outer_margin", "name": "Lantern Row"},
 	"cut": {"position": Vector3(13900, 0, 7000), "region": "outer_margin", "name": "The Cut"},
+	# Second physical access to the terrace escarpment, via low-speed
+	# Outer Margin service streets. The ascent is 180m over 3.4km (5.3%).
+	"east_service": {"position": Vector3(16000, 0, 7000), "region": "outer_margin", "name": "Eastern Repair Blocks"},
+	"east_ramp_foot": {"position": Vector3(16000, 0, 4400), "region": "outer_margin", "name": "Escarpment Service Gate"},
+	"east_ramp_top": {"position": Vector3(16000, 180, 1000), "region": "upper_terraces", "name": "Service Ascent"},
 	"south_gate": {"position": Vector3(11900, 0, 10300), "region": "outer_margin", "name": "Land Access Gate"},
 	"south_quay": {"position": Vector3(6200, 0, 8500), "region": "docks", "name": "Basin Ring"},
 	"terrace_ramp": {"position": Vector3(13300, 0, -800), "region": "civic_core", "name": "Civic Causeway"},
@@ -74,6 +79,12 @@ const EDGES: Dictionary = {
 	"south_gate|south_quay": {"speed": 40, "bend": -0.22, "toll": 1, "exposure": 0},
 	"basin_turn|south_quay": {"speed": 32, "bend": -0.25, "toll": 0, "exposure": 0},
 	"civic|cut": {"speed": 30, "bend": 0.18, "toll": 0, "exposure": 1},
+	# Authored metric streets, not a multiplier on the existing world clock.
+	# Straight blocks stay regular; the ramp is a real grade connection.
+	"cut|east_service": {"speed": 18, "bend": 0.0, "toll": 0, "exposure": 0},
+	"east_ramp_foot|east_service": {"speed": 20, "bend": 0.0, "toll": 0, "exposure": 0},
+	"east_ramp_foot|east_ramp_top": {"speed": 25, "bend": 0.0, "toll": 0, "exposure": 0},
+	"east_ramp_top|upper_bend": {"speed": 24, "bend": 0.0, "toll": 0, "exposure": 0},
 }
 const LINKS: Dictionary = {
 	"docks": ["quay_gate", "clinic"],
@@ -96,11 +107,14 @@ const LINKS: Dictionary = {
 	"garage": ["margin_gate", "shelter", "lantern"],
 	"shelter": ["garage", "cut"],
 	"lantern": ["garage", "cut", "south_gate"],
-	"cut": ["shelter", "lantern", "civic"],
+	"cut": ["shelter", "lantern", "civic", "east_service"],
+	"east_service": ["cut", "east_ramp_foot"],
+	"east_ramp_foot": ["east_service", "east_ramp_top"],
+	"east_ramp_top": ["east_ramp_foot", "upper_bend"],
 	"south_gate": ["lantern", "south_quay"],
 	"south_quay": ["south_gate", "basin_turn"],
 	"terrace_ramp": ["civic", "terrace_deck"],
 	"terrace_deck": ["terrace_ramp", "upper_bend"],
-	"upper_bend": ["terrace_deck", "terraces"],
+	"upper_bend": ["terrace_deck", "terraces", "east_ramp_top"],
 	"terraces": ["upper_bend"],
 }

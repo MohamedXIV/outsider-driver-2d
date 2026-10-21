@@ -18,11 +18,12 @@ func _run() -> void:
 	scene._player_ui._tab("map")
 	var picker: OptionButton=scene._player_ui._actions["via"]
 	for i in range(picker.item_count):
-		if picker.get_item_metadata(i)=="depot":
+		if picker.get_item_metadata(i)=="east_ramp_foot":
 			picker.select(i);picker.item_selected.emit(i);break
 	await _press("plan_fare")
 	await _press("accept")
-	assert(scene._world.route_nodes.has("depot"))
+	assert(scene._world.route_nodes.has("east_service") and scene._world.route_nodes.has("east_ramp_foot")
+		and scene._world.route_nodes.has("east_ramp_top"),"Genuine passenger fare must use all new legal city road sections")
 	var longer: Dictionary=await _drive("native-long-journey",1)
 	await _press("choice_2")
 	var shorter_id: String=""

@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const { openCity } = require('./city_browser.cjs');
 
 (async () => {
-  const { browser, page, errors, data, click, shot } = await openCity();
+  const { browser, page, errors, data, ready, click, shot } = await openCity();
   const progress = setInterval(() => data().then(d => console.log('ROUTE_PROGRESS',
     d.sandboxMinute, d.playerRouteMinutes, d.playerTravelling)).catch(() => {}), 10000);
   const sequence = async name => {
@@ -39,21 +39,44 @@ const { openCity } = require('./city_browser.cjs');
     await click('map');
     await click('via');
     await page.keyboard.press('Home');
-    for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
+    // Godot's popup starts one row *before* the selected Home item here:
+    // the exact-head browser run showed 23 Down presses selecting east_service.
+    // One more Down reaches the actual east_ramp_foot service gate. Assert
+    // the semantic selected ID below so menu-order drift fails visibly.
+    for (let i = 0; i < 24; i++) await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
     // OptionButton selection is published on a deferred Godot frame.
     await page.waitForFunction(() => Boolean(document.documentElement.dataset.playerPlannedVia));
     const selectedVia = (await data()).playerPlannedVia;
-    assert.ok(selectedVia);
+    assert.equal(selectedVia, 'east_ramp_foot',
+      'Use the actual new service ascent via the visible Player Map option');
     await click('plan_fare');
     assert.equal((await data()).sandboxRouteWaypoint, selectedVia);
     await click('choice_1');
     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'true');
     const long = await data();
-    assert.ok(long.sandboxRouteNodes.split(',').includes(selectedVia));
+    const newNodes = long.sandboxRouteNodes.split(',');
+    for (const node of ['east_service', 'east_ramp_foot', 'east_ramp_top']) {
+      assert.ok(newNodes.includes(node), 'Live passenger must traverse ' + node);
+    }
     const longMinutes = Number(long.playerRouteMinutes);
     await click('talk');
     await shot('web-long-route');
+
+    // Real in-ride persistence on the newly-authored passenger route.
+    await click('settings');
+    await click('save');
+    assert.equal((await data()).playerNotice, 'Sandbox saved.');
+    await page.waitForTimeout(3000); // Godot IndexedDB flush on exported Web.
+    await page.reload();
+    await ready();
+    await click('settings');
+    await click('load');
+    await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'true');
+    assert.equal((await data()).sandboxRouteNodes, newNodes.join(','));
+    assert.equal((await data()).sandboxSettlements, '0',
+      'Reload must never settle a passenger fare early');
+    await click('requests');
     await sequence('web-driving-sequence');
     await page.waitForFunction(() => document.documentElement.dataset.playerTravelling === 'false',
       null, { timeout: 240000 });

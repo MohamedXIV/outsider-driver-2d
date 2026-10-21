@@ -8,7 +8,12 @@ const ROAD_PROFILES: Dictionary={
 	"basin_turn|clinic":{"per_direction":1,"lane_width":240.0},
 	"clinic|docks":{"per_direction":1,"lane_width":240.0},
 	"freight_cross|quay_gate":{"per_direction":2,"lane_width":240.0},
-	"garage|margin_gate":{"per_direction":1,"lane_width":240.0}
+	"garage|margin_gate":{"per_direction":1,"lane_width":240.0},
+	# Physically executed ground-level access to the new East Margin ascent.
+	# The graded ramp and elevated deck remain World-projected, not false
+	# ground-level collision bodies (native ground-only admission invariant).
+	"cut|east_service":{"per_direction":1,"lane_width":240.0},
+	"east_ramp_foot|east_service":{"per_direction":1,"lane_width":240.0}
 }
 
 # The 25×13 projected vehicle footprint needs at least 17 screen units
