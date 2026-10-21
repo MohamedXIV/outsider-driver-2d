@@ -13,7 +13,10 @@ const CLEARANCE: float=SandboxVehicleKinematics.CLEARANCE
 var _query: PhysicsShapeQueryParameters2D
 var _space_transform: Transform2D
 var _motion_query: PhysicsTestMotionParameters2D=PhysicsTestMotionParameters2D.new()
+var _motion_result: PhysicsTestMotionResult2D=PhysicsTestMotionResult2D.new()
 var _peers: Array=[]
+# Diagnostic only; no change to collision resolution or World authority.
+var last_blocker: String=""
 
 func bind(state: SandboxWorld,id: String,fraction: float=0.0) -> bool:
 	if world!=null or not SandboxVehicleExecution.bind(state,id,fraction): return false
@@ -94,7 +97,12 @@ func _refresh_peers() -> void:
 func _motion_blocked(point: Vector2) -> bool:
 	_motion_query.from=global_transform
 	_motion_query.motion=_space_transform.basis_xform(point-position)
-	return PhysicsServer2D.body_test_motion(get_rid(),_motion_query)
+	var collided: bool=PhysicsServer2D.body_test_motion(get_rid(),_motion_query,_motion_result)
+	if collided:
+		var obstacle: Object=instance_from_id(_motion_result.get_collider_id())
+		last_blocker=("%s (%s)"%[str((obstacle as Node).name),obstacle.get_class()]
+			if obstacle is Node else str(_motion_result.get_collider_id()))
+	return collided
 
 func _peer_clear(pose: Transform2D) -> bool:
 	var half: Vector2=BODY_SIZE*.5
@@ -108,12 +116,21 @@ func _peer_clear(pose: Transform2D) -> bool:
 				+half.y*(absf(axis.dot(pose.y))+absf(axis.dot(other.y)))
 			if absf(axis.dot(offset))>reach+_query.margin:
 				separated=true;break
-		if not separated: return false
+		if not separated:
+			last_blocker="native peer "+str(peer.vehicle_id)
+			return false
 	return true
 
 func _pose_clear(at: Vector2,facing: float) -> bool:
 	_query.transform=_space_transform*Transform2D(facing,at)
-	return _peer_clear(_query.transform) and get_world_2d().direct_space_state.intersect_shape(_query,1).is_empty()
+	if not _peer_clear(_query.transform): return false
+	var hits: Array[Dictionary]=get_world_2d().direct_space_state.intersect_shape(_query,1)
+	if not hits.is_empty():
+		var obstacle: Object=hits[0].get("collider")
+		last_blocker=("%s (%s)"%[str((obstacle as Node).name),obstacle.get_class()]
+			if obstacle is Node else "physics shape")
+		return false
+	return true
 
 func _turn_clear(at: Vector2,current: float,facing: float) -> bool:
 	var angle: float=angle_difference(current,facing)
@@ -125,6 +142,7 @@ func _turn_clear(at: Vector2,current: float,facing: float) -> bool:
 
 func step(delta: float) -> bool:
 	if world==null or not is_finite(delta) or delta<=0.0: return false
+	last_blocker=""
 	_space_transform=global_transform*transform.affine_inverse()
 	var travel: Dictionary=SandboxVehicleExecution.trip(world,vehicle_id)
 	var state: Dictionary=world.vehicle_execution.get(vehicle_id,{})

@@ -984,6 +984,10 @@ func _render_debug() -> void:
 			_world_info.text+="\nTRIP %s → %s · %dm remaining · edge %d/%d" % [
 				_world.player_district,_world.travel_destination,_world.remaining_minutes,
 				_world.route_segment+1,maxi(0,_world.route_nodes.size()-1)]
+			if _vehicle_corridor!=null and _vehicle_corridor.bodies.has("player"):
+				var live_car: SandboxWorldVehicleBody=_vehicle_corridor.bodies["player"]
+				if str(native.get("reason",""))=="vehicle" and float(native.get("speed",1.0))<0.05:
+					_world_info.text+="\nBLOCKER "+live_car.last_blocker
 	if not _world.active_offer_id.is_empty():
 		var route: Dictionary = _world.offer_by_id(_world.active_offer_id)
 		_notice.text = "ON ROUTE  %s -> %s  |  %dm remaining  |  edge %d/%d" % [

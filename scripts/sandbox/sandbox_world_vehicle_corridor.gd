@@ -59,6 +59,7 @@ func _sync_parked() -> void:
 		_remove_parked();return
 	if parked==null:
 		parked=StaticBody2D.new()
+		parked.name="PlayerParked"
 		parked.collision_layer=16
 		parked.collision_mask=2|4|16
 		var shape: CollisionShape2D=CollisionShape2D.new()
@@ -79,6 +80,7 @@ func _sync_curb_residents(focus: Vector2) -> void:
 		present.append(id)
 		if not curb_residents.has(id):
 			var actor: StaticBody2D=StaticBody2D.new()
+			actor.name="CurbResident_"+id
 			actor.collision_layer=2;actor.collision_mask=16
 			var collider: CollisionShape2D=CollisionShape2D.new()
 			var shape: CircleShape2D=CircleShape2D.new()

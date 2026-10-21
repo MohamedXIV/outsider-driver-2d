@@ -13,6 +13,8 @@ on:
       - 'tests/test_reposition_history_index.gd'
       - 'scripts/sandbox/sandbox_world.gd'
       - 'scripts/sandbox/sandbox_vehicle_execution.gd'
+      - 'scripts/sandbox/sandbox_world_vehicle_body.gd'
+      - 'scripts/sandbox/sandbox_world_vehicle_corridor.gd'
       - 'tests/test_playtest_roundtrip_scene.gd'
       - '.github/workflows/r05-playtest-reliability.yml'
 permissions:
