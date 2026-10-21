@@ -1,0 +1,13 @@
+{
+  "head": "3c59a0809749b50cea92db40bb9d76fb87039363",
+  "godot": "4.7.2.stable.official.ed1daf0bf",
+  "command": [
+    "node",
+    "tests/web_two_residents.cjs"
+  ],
+  "pck_sha256": "7a78c4caf80c59fbfd3c2ce144b81798b7a014252a95b814d5a20fd1f27c3188",
+  "suite": "web_two_residents",
+  "exit": 0,
+  "seconds": 269.22,
+  "passed": true
+}

@@ -1,0 +1,11 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 4.5 (Core Profile) Mesa 25.0.7-2+deb13u1 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 19.1.7, 256 bits)
+
+LIVING_TRACE minute=481 first=(155.0, 313.0) second=(125.0, 313.0) reserved=false car=(180.0, 350.0) goal=(500.0, 409.0) arrived=false blocked=false next=(112.8919, 950.267) velocity=(0.0, 0.0) local_next=(155.0001, 312.9999) agent_goal=(1006.371, -123.9434) finished=true
+LIVING_TRACE minute=483 first=(295.4026, 312.9992) second=(264.8242, 312.999) reserved=false car=(238.8032, 349.9982) goal=(500.0, 409.0) arrived=false blocked=false next=(170.3873, 795.6084) velocity=(25.09095, -67.48663) local_next=(320.0, 313.0) agent_goal=(500.0, 408.9999) finished=false
+LIVING_TRACE minute=484 first=(337.8204, 388.6376) second=(319.4229, 384.2286) reserved=false car=(259.6186, 349.9992) goal=(500.0, 409.0) arrived=false blocked=false next=(323.0934, 660.3408) velocity=(33.30082, -63.83616) local_next=(500.0012, 409.0003) agent_goal=(500.0, 408.9999) finished=false
+LIVING_TRACE minute=487 first=(480.6993, 406.5762) second=(460.0664, 389.4193) reserved=false car=(321.7405, 349.9981) goal=(500.0, 409.0) arrived=false blocked=false next=(323.0934, 660.3408) velocity=(33.30299, -63.83503) local_next=(500.0012, 409.0003) agent_goal=(500.0, 408.9999) finished=false
+LIVING_TRACE minute=488 first=(497.3688, 408.6695) second=(604.0576, 390.9567) reserved=false car=(393.7408, 349.9971) goal=(500.0, 409.0) arrived=true blocked=false next=(323.0934, 660.3408) velocity=(0.0, 0.0) local_next=(500.0012, 409.0003) agent_goal=(500.0, 408.9999) finished=false
+LIVING_STREETS_SCENE_PASS normal World ticks, two real agents, legal crossing, traffic yield, mid-crossing save and adjacent-block arrival
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
