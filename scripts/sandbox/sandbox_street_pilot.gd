@@ -176,7 +176,9 @@ func sync_residents() -> void:
 	# Observe newly committed World intent, including a second resident whose
 	# eligibility changed after this module was loaded.
 	for id in SandboxLocalPedestrianTrip.candidates(world):
-		if not pedestrians.has(id) and not world.resident(id).get("local_pedestrian_trip",{}).is_empty():
+		# A walking trip with no body has no trusted restart pose. Keep
+		# its reservation fail-closed; only World offscreen intent may spawn.
+		if not pedestrians.has(id) and world.resident(id).get("local_pedestrian_trip",{}).get("status","")=="offscreen":
 			_spawn_resident(id)
 
 func _physics_process(delta: float) -> void:

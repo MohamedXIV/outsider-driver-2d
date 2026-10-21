@@ -53,6 +53,7 @@ func _run() -> void:
 	var missing: Node=pilot.pedestrians["npc:08"]
 	pilot.pedestrians.erase("npc:08");pilot.remove_child(missing)
 	scene._process(.25)
+	assert(not pilot.pedestrians.has("npc:08"),"Missing native bodies must not respawn at a fabricated start pose")
 	assert(not scene._world.route_hold_id.is_empty())
 	pilot.add_child(missing);pilot.pedestrians["npc:08"]=missing
 	missing.position=Vector2(328,SandboxStreetModule.crossing_clear_y())

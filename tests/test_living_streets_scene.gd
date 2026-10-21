@@ -11,6 +11,7 @@ func _run() -> void:
 	var saw_crossing: bool=false
 	var saw_adjacent: bool=false
 	var did_save: bool=false
+	var checked_missing: bool=false
 	for frame in range(2400):
 		await physics_frame
 		var pilot: SandboxStreetPilot=scene._street_pilot
@@ -18,6 +19,13 @@ func _run() -> void:
 		assert(scene._world.residents.size()==9)
 		var first: SandboxPedestrianActor=pilot.pedestrians["npc:04"]
 		var second: SandboxPedestrianActor=pilot.pedestrians["npc:08"]
+		if not checked_missing:
+			# A temporarily missing body has no trusted replacement pose.
+			pilot.pedestrians.erase(second.npc_id);pilot.remove_child(second)
+			scene._sync_local_pedestrian()
+			assert(not pilot.pedestrians.has(second.npc_id), "Missing native bodies must fail closed instead of respawning at START")
+			pilot.add_child(second);pilot.pedestrians[second.npc_id]=second
+			checked_missing=true
 		assert(first.position.distance_to(second.position)>=13.0)
 		for actor in [first,second]:
 			if actor.position.y>330 and actor.position.y<374:
