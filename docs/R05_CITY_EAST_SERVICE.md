@@ -29,13 +29,14 @@ Straight modular roads are deliberate; no invented complex curves.
   segment events, no fabricated fare.
 - `test_city_east_service_scene.gd`: genuine native taxi enters the new
   street, moves with the physical execution contract, and restores exactly.
-- Existing native/world and exported Chromium current-world suites must
-  remain unchanged and passing; two actual fares already have short/long
-  native/Web journey contracts but are **not** a human pacing acceptance.
+- Existing native/Chromium two-fare journey contracts now select this real
+  service-gate waypoint for the first authentic seeded fare, including
+  authored in-ride speech, mid-route Native+Web Save/Load and once-only
+  settlement, followed by a second shorter actual NPC-generated fare.
+  Test execution must pass on the *exact new head* before claiming proof.
 - Real player evaluation of city breathing-room, individual NPC activity,
   new route legibility, Linux/Windows and longer journey comfort remains
-  outstanding. A new service-route full *passenger fare* Web capture is a
-  later acceptance task, not something to claim from the reposition test.
+  outstanding. Automated replay and screenshots do not mean accepted pacing.
 
 The bounded road supports core city expansion without prematurely rebuilding
 all six neighbourhoods or investing in UI polish.
