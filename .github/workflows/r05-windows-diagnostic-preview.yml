@@ -1,4 +1,4 @@
-name: R05 Windows Native Diagnostic Preview (#86)
+name: R05 Windows Performance Playtest Preview (#86)
 on:
   push:
     branches: [feat/r05-playtest-reliability-86]
@@ -16,8 +16,8 @@ jobs:
       - name: Pin exact playtest triage runtime
         run: |
           set -euo pipefail
-          git checkout --detach --force 0a7aba4400144f3b52717a29a585e36b672a4c22
-          test "$(git rev-parse HEAD)" = 0a7aba4400144f3b52717a29a585e36b672a4c22
+          git checkout --detach --force a4311be4cea0ffc63b982acdbaebca0f5706514c
+          test "$(git rev-parse HEAD)" = a4311be4cea0ffc63b982acdbaebca0f5706514c
       - name: Install official Godot 4.7.2 and Windows export templates
         run: |
           set -euo pipefail
@@ -53,14 +53,14 @@ jobs:
           Outsider Driver 2D — #86 Windows x64 DIAGNOSTIC PREVIEW
           Not a production release. No main merge.
           Extract the entire ZIP; run OutsiderDriver.exe.
-          This build contains one tested failed-handoff safety fix,
-          read-only Map status when travelling, and F3 Debug telemetry.
+          This build includes physical-handoff safety plus native vehicle CPU tuning,
+          incremental event readouts, remote pickup reasons and F3 Debug telemetry.
           To investigate a freeze: press F3 (Debug). Note the WorldInfo:
           PERF FPS / process ms / physics ms / nodes
-          TAXI reason / speed / hold / cars / walkers
+          TAXI reason / speed / hold / cars / walkers; BLOCKER (when driving stuck)
           Save a screenshot when driving stops and after playing several minutes.
           World projection NPCs and native walkers are not unified yet.
-          Do not interpret this as a fix of ALL playtest issues.
+          The exact intermittent stall and Windows FPS recovery require playtest.
           TXT
           python3 - <<'PY'
           import hashlib,json,pathlib,subprocess
@@ -75,7 +75,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: OutsiderDriver-Windows-Diagnostic-86
+          name: OutsiderDriver-Windows-Perf-Preview-86
           path: work/playtest-diagnostic/Windows/
           retention-days: 7
       - uses: actions/upload-artifact@v4
