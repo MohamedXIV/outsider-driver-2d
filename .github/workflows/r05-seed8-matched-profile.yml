@@ -1,0 +1,62 @@
+name: R05 Seed 8 matched CPU profile (single run)
+on:
+  push:
+    branches: [feat/r05-playtest-reliability-86]
+    paths: ['.github/workflows/r05-seed8-matched-profile.yml']
+permissions:
+  contents: read
+jobs:
+  matched:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install exact Godot 4.7.2 native renderer
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /tmp/godot
+          chmod +x /tmp/godot
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb xauth libgl1-mesa-dri libgl1 libxcursor1 libxinerama1 libxi6 libxrandr2
+      - name: Measure before/after seed-8 long-session CPU on SAME runner
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/od2d-seed8-profile
+          cp tests/test_seed8_matched_perf_scene.gd /tmp/od2d-seed8-profile/probe.gd
+          for entry in 'baseline 30176e06d027ee8e7ef583ee8d9289d2bdf7a1b8' 'fixed 3d6a2698ca6bfcd7556ec884f966492bb73361f7'; do
+            set -- $entry
+            name="$1"; sha="$2"
+            git checkout --detach --force "$sha"
+            cp /tmp/od2d-seed8-profile/probe.gd tests/test_seed8_matched_perf_scene.gd
+            rm -rf .godot
+            /tmp/godot --headless --path . --editor --import --quit > "/tmp/od2d-seed8-profile/$name-import.log" 2>&1
+            timeout 460s xvfb-run -a -s '-screen 0 1600x900x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_seed8_matched_perf_scene.gd > "/tmp/od2d-seed8-profile/$name.log" 2>&1
+            grep -q SEED8_MATCHED_PERF_PASS "/tmp/od2d-seed8-profile/$name.log"
+            grep 'SEED8_MATCHED_PERF ' "/tmp/od2d-seed8-profile/$name.log"
+          done
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('/tmp/od2d-seed8-profile')
+          result={}
+          for name in ['baseline','fixed']:
+              samples=[json.loads(line.split('SEED8_MATCHED_PERF ',1)[1]) for line in (root/(name+'.log')).read_text().splitlines() if 'SEED8_MATCHED_PERF ' in line]
+              assert len(samples)==5
+              result[name]=samples
+          result['last_batch_ratio']={
+              'frame_mean':round(result['fixed'][-1]['frame_mean_ms']/result['baseline'][-1]['frame_mean_ms'],3),
+              'manual_six_hour':round(result['fixed'][-1]['manual_six_hour_wall_ms']/result['baseline'][-1]['manual_six_hour_wall_ms'],3)}
+          (root/'comparison.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('SEED8_MATCHED_COMPARISON',json.dumps(result['last_batch_ratio']))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r05-seed8-matched-perf-evidence
+          path: /tmp/od2d-seed8-profile
+          retention-days: 4
