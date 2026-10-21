@@ -6,6 +6,8 @@ on:
       - 'tests/test_playtest_liveness_scene.gd'
       - 'scripts/sandbox/sandbox_player_ui.gd'
       - 'scripts/sandbox/sandbox_main.gd'
+      - 'scripts/sandbox/sandbox_street_pilot.gd'
+      - 'tests/test_failed_handoff_scene.gd'
       - 'tests/test_playtest_roundtrip_scene.gd'
       - '.github/workflows/r05-playtest-reliability.yml'
 permissions:
@@ -39,6 +41,8 @@ jobs:
           grep -q PLAYTEST_LIVENESS_PASS work/playtest-triage/liveness.log
           timeout 240s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_playtest_roundtrip_scene.gd 2>&1 | tee work/playtest-triage/roundtrip.log
           grep -q PLAYTEST_ROUNDTRIP_PASS work/playtest-triage/roundtrip.log
+          timeout 90s xvfb-run -a -s '-screen 0 1280x1400x24' /tmp/godot --path . --audio-driver Dummy --script res://tests/test_failed_handoff_scene.gd 2>&1 | tee work/playtest-triage/handoff.log
+          grep -q FAILED_HANDOFF_SAFETY_PASS work/playtest-triage/handoff.log
       - name: Existing Native crossing and Player Map regression
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'

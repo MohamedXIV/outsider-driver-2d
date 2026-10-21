@@ -600,7 +600,13 @@ func _handoff_restored_pedestrians() -> void:
 func _sync_local_pedestrian() -> void:
 	if not SandboxStreetRouteBinding.in_neighborhood(_world):
 		if _street_pilot!=null:
-			_street_pilot.handoff_all(_street_clock_fraction())
+			if not _street_pilot.handoff_all(_street_clock_fraction()):
+				# The physical actor is the only source of its valid next pose.
+				# Retain its collision/nav authority rather than orphaning a
+				# World walking trip with an unresolvable crossing reservation.
+				_city.local_active_npc_ids=_street_pilot.loaded_ids()
+				_city.local_active_npc_id=_street_pilot.walking_npc_id
+				return
 			_street_restore_state=_traffic_only_state(_street_pilot.visual_snapshot())
 			_street_pilot.queue_free();_street_pilot=null
 		elif not _street_restore_state.get("actors",{}).is_empty() or _street_restore_state.has("npc_id"):
