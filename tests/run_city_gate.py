@@ -4,10 +4,13 @@ import os
 import pathlib
 import subprocess
 import sys
+import time
 
 GODOT = os.environ.get("GODOT_BIN", os.environ.get("OD2D_GODOT_BIN", "godot"))
 NATIVE = "--native" in sys.argv
 OUT = pathlib.Path(os.environ.get("OD2D_LOGS", "/tmp/od2d-gate-logs"))
+# OD2D_ONLY=test_stem runs a single test file (used for the fail-fast negative control).
+ONLY = os.environ.get("OD2D_ONLY", "")
 OUT.mkdir(parents=True, exist_ok=True)
 ERRORS = ("SCRIPT ERROR", "ERROR:", "Parse Error", "Failed to load script")
 version = subprocess.check_output([GODOT, "--version"], text=True).strip()
@@ -20,16 +23,32 @@ print("HEAD", head, "GODOT", version, flush=True)
 (OUT / "head.txt").write_text(head + "\n" + version + "\n")
 
 def run(label, args, timeout=90):
-    try:
-        result = subprocess.run([GODOT, "--path", ".", *args], capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired as error:
-        (OUT / (label + ".log")).write_bytes((error.stdout or b"") + (error.stderr or b""))
-        raise SystemExit(f"FAIL {label}: timeout; partial output retained in {OUT}")
-    output = result.stdout + result.stderr
-    (OUT / (label + ".log")).write_text(output)
-    if result.returncode or any(error in output for error in ERRORS):
-        print(output)
-        raise SystemExit(f"FAIL {label}: see {OUT}")
+    # Stream output into the log while the test runs. A "FAIL " line from
+    # tests/support/check.gd means the test has already decided: kill it now
+    # instead of waiting for the timeout backstop.
+    log_path = OUT / (label + ".log")
+    deadline = time.monotonic() + timeout
+    with log_path.open("w") as log:
+        process = subprocess.Popen([GODOT, "--path", ".", *args], stdout=log, stderr=subprocess.STDOUT)
+        while True:
+            text = log_path.read_text(errors="replace")
+            failed = [line for line in text.splitlines() if line.startswith("FAIL ")]
+            if failed or any(error in text for error in ERRORS):
+                process.kill()
+                process.wait()
+                print(text[-4000:])
+                raise SystemExit(f"FAIL {label}: {(failed or ['error marker'])[0]} (killed early; log in {OUT})")
+            if process.poll() is not None:
+                break
+            if time.monotonic() > deadline:
+                process.kill()
+                process.wait()
+                raise SystemExit(f"FAIL {label}: timeout; partial output retained in {OUT}")
+            time.sleep(0.05)
+    output = log_path.read_text(errors="replace")
+    if process.returncode:
+        print(output[-4000:])
+        raise SystemExit(f"FAIL {label}: exit code {process.returncode}; see {OUT}")
     if label.startswith("test_") and not any(word in output for word in ("PASS", "passed")):
         raise SystemExit(f"FAIL {label}: no completion marker")
     print("PASS", label, flush=True)
@@ -37,7 +56,7 @@ def run(label, args, timeout=90):
 run("import", ["--headless", "--editor", "--import", "--quit"])
 for path in sorted(pathlib.Path("tests").glob("test_*.gd")):
     native = path.stem.endswith("_scene") or path.stem in ("test_native_ride", "test_city_presentation", "test_world_shuttle_visual")
-    if native != NATIVE:
+    if native != NATIVE or (ONLY and path.stem != ONLY):
         continue
     args = ["--audio-driver", "Dummy"] if native else ["--headless"]
     run(path.stem, args + ["--script", str(path)])
