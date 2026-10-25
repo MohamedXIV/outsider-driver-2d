@@ -101,7 +101,7 @@ Dependency direction: `presentation → app/session → domain`; `platform` is c
 # Rules for every refactor PR
 
 1. **No behaviour change.** Golden hashes (#91) identical before/after. If an intentional change is needed, regenerate goldens in a **separate commit** and explain why.
-2. **Supersession preflight** (ENGINEERING_RULES #11): check `docs/SUPERSESSION_REGISTER.md`, live branches/PRs/issues, and relevant tests; classify touched code Reuse / Replace / Retire; no two competing sources of truth.
+2. **Supersession preflight** (rule 11 in `docs/ENGINEERING_RULES.md`): check `docs/SUPERSESSION_REGISTER.md`, live branches/PRs/issues, and relevant tests; classify touched code Reuse / Replace / Retire; no two competing sources of truth.
 3. **Protected surfaces** (from #82): `sandbox_city_data.gd`, `sandbox_directed_lanes.gd`, `tests/web_city_routes.cjs` (#51/#81); `sandbox_player_ui.gd`, player-guidance assets, `web_city_playability.cjs` (#50/#77). Do not edit them until those PRs have landed, unless the issue says so.
 4. **Draft PRs only**, small, one concern; do not merge, mark ready, close issues, publish releases (owner does).
 5. **Godot 4.7.2 exactly.** `run_city_gate.py` refuses other versions and requires a clean tracked tree.
