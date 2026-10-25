@@ -188,14 +188,18 @@ func _process(delta: float) -> void:
 	while physical_left>.0000001:
 		var slice: float=minf(physical_left,REAL_SECONDS_PER_STEP-_elapsed)
 		_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
+		PerfProbe.begin("corridor.step")
 		_vehicle_corridor.step(slice)
+		PerfProbe.end("corridor.step")
 		_elapsed+=slice
 		physical_left-=slice
 		if _elapsed>=REAL_SECONDS_PER_STEP-.0000001:
 			_elapsed=0.0
 			_update_player_crossing_yield()
 			_update_shuttle_crossing_yields()
+			PerfProbe.begin("world.advance")
 			_world.advance_elapsed(1)
+			PerfProbe.end("world.advance")
 			_sync_passenger_alight()
 			_render()
 	_world.vehicle_fraction=_elapsed/REAL_SECONDS_PER_STEP
@@ -766,8 +770,10 @@ func _on_load() -> void:
 
 
 func _render() -> void:
+	PerfProbe.begin("main.render")
 	_render_debug()
 	if _player_ui != null: _player_ui.sync()
+	PerfProbe.end("main.render")
 
 
 func _render_debug() -> void:

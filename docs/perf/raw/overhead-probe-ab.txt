@@ -1,0 +1,5 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PERF_META {"cores":2,"cpu":"Intel(R) Xeon(R) Processor @ 2.80GHz","display_driver":"headless","godot":"4.7.2-stable (official)","os":"Linux","phase":"overhead","probe_enabled":false,"renderer":""}
+PERF_SUMMARY {"baseline_ms":59.334,"disabled_overhead_ns_per_begin_end_pair":338.9,"iterations":2000000,"probe_disabled_ms":737.087,"sink":4000000}
+PERF_PASS overhead

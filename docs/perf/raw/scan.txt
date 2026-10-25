@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PERF_META {"cores":2,"cpu":"Intel(R) Xeon(R) Processor @ 2.80GHz","display_driver":"headless","godot":"4.7.2-stable (official)","os":"Linux","phase":"scan","probe_enabled":false,"renderer":""}
+PERF_ROW {"events":0,"minute":480,"scan_mean_us":1.03,"stop":"docks"}
+PERF_ROW {"events":1008,"minute":12060,"scan_mean_us":236.755,"stop":"docks"}
+PERF_ROW {"events":2000,"minute":27300,"scan_mean_us":499.43,"stop":"docks"}
+PERF_ROW {"events":5007,"minute":73980,"scan_mean_us":3788.12,"stop":"docks"}
+PERF_ROW {"events":10000,"minute":151260,"scan_mean_us":6376.62,"stop":"docks"}
+PERF_SUMMARY [{"events":0,"minute":480,"scan_mean_us":1.03,"stop":"docks"},{"events":1008,"minute":12060,"scan_mean_us":236.755,"stop":"docks"},{"events":2000,"minute":27300,"scan_mean_us":499.43,"stop":"docks"},{"events":5007,"minute":73980,"scan_mean_us":3788.12,"stop":"docks"},{"events":10000,"minute":151260,"scan_mean_us":6376.62,"stop":"docks"}]
+PERF_PASS scan

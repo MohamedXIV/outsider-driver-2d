@@ -182,6 +182,14 @@ func _road(canvas: Node2D, a: String, b: String, elevated: bool, pass_index: int
 			canvas.draw_polyline(rail,Color("d2ccad"),1.6,true)
 
 func paint(canvas: Node2D, role: String) -> void:
+	# Coarse timing of the whole layer paint, which reaches the parking and
+	# crossing ledger scans on the ground and above layers (#94).
+	PerfProbe.begin("city.paint." + role)
+	_paint_layer(canvas, role)
+	PerfProbe.end("city.paint." + role)
+
+
+func _paint_layer(canvas: Node2D, role: String) -> void:
 	if world == null: return
 	if role=="structure":
 		for key in SandboxCityData.EDGES:
@@ -190,7 +198,9 @@ func paint(canvas: Node2D, role: String) -> void:
 				SandboxBridgePresentation.paint_structure(canvas,pair[0],pair[1])
 		return
 	if role in ["ground","above"]:
+		PerfProbe.begin("city.draw_people")
 		_draw_people(canvas,role=="above")
+		PerfProbe.end("city.draw_people")
 		var above: bool=world.player_position(visual_fraction).y>0
 		if world.is_travelling():
 			above=above or SandboxRoads.map_position(world.route_nodes[world.route_segment]).y>0 or SandboxRoads.map_position(world.route_nodes[world.route_segment+1]).y>0
